@@ -41,6 +41,6 @@ To test the models, follow these steps:
 ## Authors
 
 - **Amer Zuher ALriahy** - [My GitHub Profile](https://github.com/AmerZuher)
-- **Hisham Maher Sunjaq** - [Hisham's GitHub Profile](https://github.com/kobo-cash)
+- **Hisham Maher Sunjaq** - [Hisham's GitHub Profile](https://github.com/HishamSunjeq)
 
 # Thanks for your time.
