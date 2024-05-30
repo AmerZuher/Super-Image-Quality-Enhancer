@@ -37,5 +37,10 @@ To test the models, follow these steps:
 > Feel free to experiment with and adjust any settings. The model architecture uses Residual Dense Blocks (RDB), a common structure in image processing models. We used three RDBs and focused on > the Y channel from the YUV color space to reduce the computational power needed for training.
 > 
 > Please be aware that the model's performance may vary due to our limited resources. It is recommended to create and test your own model within the app for optimal results.
-> 
+>
+## Authors
+
+- **Amer Zuher ALriahy** - [My GitHub Profile](https://github.com/AmerZher)
+- **Hisham Maher Sunjaq** - [Hisham's GitHub Profile](https://github.com/kobo-cash)
+
 # Thanks for your time.
