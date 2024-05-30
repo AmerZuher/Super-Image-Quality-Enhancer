@@ -38,4 +38,4 @@ To test the models, follow these steps:
 > 
 > Please be aware that the model's performance may vary due to our limited resources. It is recommended to create and test your own model within the app for optimal results.
 > 
-# Thank you for your time.
+# Thanks for your time.
