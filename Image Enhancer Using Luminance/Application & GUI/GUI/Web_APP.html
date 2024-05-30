@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>SuperResolved_Image_Model Ultimate Edition</title>
+    <link rel="stylesheet" href="./Static/style.css" />
+    <link rel="icon" href="Static/Icons/Tab.svg" type="image/x-icon">
+    <script src="Static/script.js"></script>
+
+</head>
+
+<body>
+    <div class="app-container">
+        <form id="imageForm" enctype="multipart/form-data">
+
+            <!-- Header Section -->
+            <header class="app-header">
+                <div class="app-header-left">
+                    <span class="app-icon"></span>
+                    <select class="dropdown" id="modelDropdown" aria-label="Model Selector">
+                      <option value="">Select Model</option>
+                      <option value="v10.h5">Super Resolved Model v10.h5</option>
+                      <option value="Super_Resolved_Model-imagenet_pairs-Epochs(100).h5">Super Resolved Model imagenet pairs</option>
+                      <option value="v10.keras">keras model with 3 RDBs</option>
+
+                      <!-- Add more options as needed -->
+                  </select>
+                </div>
+                <div class="app-header-right">
+                    <button type="button" class="mode-switch active" title="Switch Theme">
+                      <svg class="moon" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="24" height="24" viewBox="0 0 24 24">
+                          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                      </svg>
+                  </button>
+                    <button type="button" class="profile-btn">
+                      <img src="Static/Icons/CHAI.png" alt="Profile Image" />
+                  </button>
+                </div>
+            </header>
+
+            <!-- Main Content Section -->
+            <main class="app-content">
+                <!-- Projects Section -->
+                <section class="projects-section">
+                    <div class="projects-status">
+                        <div class="left-text">
+                            <p id="enhanced-resolution"></p>
+                        </div>
+                        <div>
+                            <p id="processing-time"></p>
+                        </div>
+                        <div class="right-text">
+                            <p id="original-resolution"></p>
+                        </div>
+                    </div>
+                    <div class="image-container">
+                        <img src="Static/Icons/None.png" id="processedImage" alt="Returned Image" />
+                        <button type="button" class="fullscreen-btn">
+                          <img src="Static/Icons/fullscreen_icon.png" alt="Fullscreen Icon" />
+                      </button>
+                    </div>
+                </section>
+
+                <!-- Messages/Settings Section -->
+                <aside class="messages-section">
+                    <header class="projects-section-header">
+                        <h3>Settings</h3>
+                    </header>
+                    <div class="dropdown-container">
+                        <br />
+                        <div class="action">
+                            <input type="file" id="file-input" accept="image/*" class="input_button" style="display: none" />
+                            <label for="file-input" class="start_button">Select Image</label>
+                        </div>
+                        <h3 id="file-name-display">No Selected Image</h3>
+                    </div>
+                    <div class="action">
+                        <button type="button" id="Download_button" class="action_buttons">Download</button>
+                        <button type="button" id="popupContainer" class="action_buttons" onclick="compareImages()">Compare</button>
+                    </div>
+                    <div class="action">
+                        <button type="button" id="startButton" class="action_buttons">Start</button>
+                    </div>
+                </aside>
+            </main>
+        </form>
+    </div>
+
+    <!-- Notification Popup -->
+    <div id="notificationPopup" class="notification-popup"></div>
+</body>
+
+</html>

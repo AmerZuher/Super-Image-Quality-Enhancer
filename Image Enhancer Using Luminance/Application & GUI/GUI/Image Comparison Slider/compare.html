@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>CodePen - image compare</title>
+
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <!-- partial:index.partial.html -->
+    <div id="app">
+        <!-- Adding labels for "Original" and "Enhanced" -->
+        <div class="labels" id="originalDimensions"></div>
+
+        <div id="image-compare">
+            <div id="image-1">
+                <!-- image before -->
+                <img id="beforeImage" alt="" />
+            </div>
+            <div id="image-2">
+                <!-- image after -->
+                <img id="afterImage" alt="" />
+            </div>
+            <div id="slider">
+                <div id="button">
+                    <svg viewBox="0 0 24 24">
+              <path
+                fill="#fff"
+                d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"
+              />
+            </svg>
+                    <svg viewBox="0 0 24 24">
+              <path
+                fill="#fff"
+                d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+              />
+            </svg>
+                </div>
+            </div>
+        </div>
+        <div class="labels" id="enhancedDimensions"></div>
+    </div>
+
+
+</body>
+
+</html>
+<!-- partial -->
+<script src="./script.js"></script>
