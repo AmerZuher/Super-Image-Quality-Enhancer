@@ -30,13 +30,12 @@ To test the models, follow these steps:
 
 
 > [!NOTE]
-> For more explanation, you can go to the pdf file "Resolution Revolution Unleashing AI for Superior Image Quality.pdf" on the main page.
-> ![Contribution guidelines for this project](doc/Resolution Revolution Unleashing AI for Superior Image Quality.pdf).
+> For more explanation, you can go to the pdf file [Resolution Revolution Unleashing AI for Superior Image Quality](https://github.com/AmerZuher/Super-Image-Quality-Enhancer-/blob/a92b171ab95b713d43b4cb971bb0ef67848e7e3e/Resolution%20Revolution%20Unleashing%20AI%20for%20Superior%20Image%20Quality.pdf) on the main page.
+> 
 > 
 > 
 > Feel free to experiment with and adjust any settings. The model architecture uses Residual Dense Blocks (RDB), a common structure in image processing models. We used three RDBs and focused on > the Y channel from the YUV color space to reduce the computational power needed for training.
 > 
-> Please be awa[Resolution Revolution Unleashing AI for Superior Image Quality.pdf](/Resolution.Revolution.Unleashing.AI.for.Superior.Image.Quality.pdf)
-re that the model's performance may vary due to our limited resources. It is recommended to create and test your own model within the app for optimal results.
+> Please be aware that the model's performance may vary due to our limited resources. It is recommended to create and test your own model within the app for optimal results.
 > 
 # Thank you for your time.
