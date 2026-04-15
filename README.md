@@ -58,13 +58,13 @@ Optimized for performance with Docker containers that support GPU passthrough, e
 
 ## 🛠️ Technology Stack
 
-| Component | Technology |
 
-| :--- | :--- |
-| **Deep Learning** | TensorFlow, Keras, Residual Dense Blocks (RDB) |
-| **Backend** | FastAPI (Python), OpenCV, NumPy, Pillow |
-| **Frontend** | Next.js, React, TypeScript |
-| **Infrastructure** | Docker, Docker Compose, PostgreSQL |
+| Component        | Technology                                              |
+| :--------------- | :------------------------------------------------------ |
+| **Deep Learning**| TensorFlow, Keras, Residual Dense Blocks (RDB)          |
+| **Backend**      | FastAPI (Python), OpenCV, NumPy, Pillow                 |
+| **Frontend**     | Next.js, React, TypeScript                              |
+| **Infrastructure** | Docker, Docker Compose, PostgreSQL                   |
 
 ### Architecture Detail
 
