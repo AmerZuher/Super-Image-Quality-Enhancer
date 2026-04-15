@@ -9,13 +9,9 @@
 
 ## 📽️ Project Demonstration
 
+</div>
 <div align="center">
-  <video src="resources/UsageSample.mp4" width="100%" controls autoplay muted loop>
-    Your browser does not support the video tag.
-
-
-
-
+  <video src="https://github.com/user-attachments/assets/def9dedf-4777-484c-a1ba-ac450eaa3a40" width="100%" controls autoplay muted loop>
   </video>
 </div>
 
