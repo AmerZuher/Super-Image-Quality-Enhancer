@@ -46,9 +46,9 @@ Our interactive UI allows you to compare original and enhanced images side-by-si
   <img src="resources/MainUi.png" alt="Main UI" width="80%" />
 </div>
 
-### 🛠️ Model Creator
+### 🛠️ [Model Creator](Model%20Creator/README.md)
 
-Don't just use our models—create your own! Adjust hyperparameters, specify datasets, and train custom RDB architectures tailored to your specific needs.
+Don't just use our models—create your own! Adjust hyperparameters, specify datasets, and train custom RDB architectures tailored to your specific needs. See our [detailed guide](Model%20Creator/README.md) for more info.
 
 ### ⚡ GPU Accelerated
 
@@ -59,6 +59,7 @@ Optimized for performance with Docker containers that support GPU passthrough, e
 ## 🛠️ Technology Stack
 
 | Component | Technology |
+
 | :--- | :--- |
 | **Deep Learning** | TensorFlow, Keras, Residual Dense Blocks (RDB) |
 | **Backend** | FastAPI (Python), OpenCV, NumPy, Pillow |
