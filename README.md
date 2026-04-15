@@ -12,6 +12,10 @@
 <div align="center">
   <video src="resources/UsageSample.mp4" width="100%" controls autoplay muted loop>
     Your browser does not support the video tag.
+
+
+
+
   </video>
 </div>
 
