@@ -1,46 +1,124 @@
-# Super Image Quality Enhancer description  
- Developing a deep learning model utilizing residual dense blocks (RDBs) to enhance image quality by focusing on its luminance (Y) component
+# 🚀 Super Image Quality Enhancer (SIQE)
 
-# Running the Application and Testing the Models
-To test the models, follow these steps:
-1. Navigate to the "Application & GUI" Folder: Open the "App.ipynb" file.
-2. Install Necessary Libraries: Ensure all required libraries are installed.
-3. Run the Application: Execute the notebook, and a web page will automatically open in your browser.
-4. Select Model and Image: Choose the model and image you want to enhance. The enhanced result will appear in the left box.
-5. Compare Images: Use the "compare" button to view the original image alongside the enhanced version.
+<div align="center">
+  <img src="resources/SIQE_logo.png" alt="SIQE Logo" width="200" />
+  <h3>Unleashing AI for Superior Image Quality</h3>
+</div>
 
+---
 
-# Creating Your Own Model:
-1. Navigate to the "Model Creation Code" Folder: Open the "Model Creator.ipynb" file.
-2. Install Necessary Libraries: Ensure all required libraries are installed.
-3. Adjust Variables: Modify the following variables as needed:
-4. Dataset_location: Specify the location of your dataset.
-5. ModelName: Set your preferred model name or use the default.
-6. Hyperparameters: Adjust or keep the default values:
-      - cropped_width = 600
-      - cropped_height = 300
-      - batch_size = 32
-      - seed = 240
-      - validation_split = 0.2
-      - upscale_factor = 3
-      - epochs_number = 100
+## 📽️ Project Demonstration
 
-# Model architecture review:
-![v10 keras](https://github.com/AmerZuher/Super-Image-Quality-Enhancer-/assets/80674857/9cb03afe-383f-4c79-86eb-c07565204e68)
+<div align="center">
+  <video src="resources/UsageSample.mp4" width="100%" controls autoplay muted loop>
+    Your browser does not support the video tag.
+  </video>
+</div>
 
+---
+
+## 🌟 Overview
+
+**Super Image Quality Enhancer (SIQE)** is an advanced deep learning platform designed to breathe new life into low-resolution images. By leveraging **Residual Dense Blocks (RDBs)** and focusing on the **luminance (Y) component** of the YUV color space, SIQE achieves state-of-the-art upscaling while maintaining high computational efficiency.
+
+Developed as a full-stack solution, SIQE provides a seamless journey from training custom models to deploying them in a modern, interactive web environment.
 
 > [!NOTE]
-> For more explanation, you can go to the pdf file [Resolution Revolution Unleashing AI for Superior Image Quality](https://github.com/AmerZuher/Super-Image-Quality-Enhancer-/blob/a92b171ab95b713d43b4cb971bb0ef67848e7e3e/Resolution%20Revolution%20Unleashing%20AI%20for%20Superior%20Image%20Quality.pdf) on the main page.
-> 
-> 
-> 
-> Feel free to experiment with and adjust any settings. The model architecture uses Residual Dense Blocks (RDB), a common structure in image processing models. We used three RDBs and focused on > the Y channel from the YUV color space to reduce the computational power needed for training.
-> 
-> Please be aware that the model's performance may vary due to our limited resources. It is recommended to create and test your own model within the app for optimal results.
->
-## Authors
+> For a deep dive into the underlying research, read our paper: [Resolution Revolution: Unleashing AI for Superior Image Quality](resources/Resolution%20Revolution%20Unleashing%20AI%20for%20Superior%20Image%20Quality.pdf).
 
-- **Amer Zuher ALriahy** - [My GitHub Profile](https://github.com/AmerZuher)
-- **Hisham Maher Sunjaq** - [Hisham's GitHub Profile](https://github.com/HishamSunjeq)
+---
 
-# Thanks for your time.
+## 🎨 Key Features
+
+### 💎 Intelligent Upscaling
+
+Transform pixelated, low-quality images into crisp, high-definition visuals using our specialized AI models.
+
+<div align="center">
+  <img src="resources/EnhancedSample1.png" alt="Enhanced Sample" width="80%" />
+</div>
+
+### ⚖️ Real-time Comparison
+
+Our interactive UI allows you to compare original and enhanced images side-by-side using an intuitive slider/toggle system.
+
+<div align="center">
+  <img src="resources/MainUi.png" alt="Main UI" width="80%" />
+</div>
+
+### 🛠️ Model Creator
+
+Don't just use our models—create your own! Adjust hyperparameters, specify datasets, and train custom RDB architectures tailored to your specific needs.
+
+### ⚡ GPU Accelerated
+
+Optimized for performance with Docker containers that support GPU passthrough, ensuring rapid inference and training.
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technology |
+| :--- | :--- |
+| **Deep Learning** | TensorFlow, Keras, Residual Dense Blocks (RDB) |
+| **Backend** | FastAPI (Python), OpenCV, NumPy, Pillow |
+| **Frontend** | Next.js, React, TypeScript |
+| **Infrastructure** | Docker, Docker Compose, PostgreSQL |
+
+### Architecture Detail
+
+The model utilizes **Residual Dense Blocks**, which allow for deeper networks without the vanishing gradient problem. By focusing on the **Y (Luminance) channel**, we capture the majority of structural details while significantly reducing the training power required compared to RGB-based models.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- NVIDIA Drivers (for GPU support)
+
+### Installation
+
+1.  Clone the repository:
+
+    ```bash
+    git clone https://github.com/AmerZuher/Super-Image-Quality-Enhancer.git
+    cd Super-Image-Quality-Enhancer
+    ```
+
+2.  Start the services:
+
+    ```bash
+    docker compose up --build
+    ```
+
+3.  Access the application:
+
+    - **Frontend**: `http://localhost:3000`
+    -  **Backend API**: `http://localhost:8000/docs`
+
+---
+
+## 📸 Gallery
+
+<div align="center">
+  <img src="resources/Sample2.png" alt="Sample 2" width="45%" />
+  <img src="resources/Sample3.png" alt="Sample 3" width="45%" />
+  <br />
+  <img src="resources/Sample4.png" alt="Sample 4" width="90%" />
+</div>
+
+---
+
+## 👥 Authors
+
+- **Amer Zuher ALriahy** - [GitHub](https://github.com/AmerZuher)
+- **Hisham Maher Sunjaq** - [GitHub](https://github.com/HishamSunjeq)
+
+---
+
+<div align="center">
+  <p>Thank you for your interest in SIQE! 🚀</p>
+  <p>If you find this project useful, please consider giving it a ⭐!</p>
+</div>

@@ -1,0 +1,111 @@
+.app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: row; /* make it a row */
+  align-items: center;
+  justify-content: center;
+  gap: 20px; /* spacing between columns */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.imageCompare {
+  position: relative;
+  width: 75%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1%;
+  border: 1px solid var(--line-color);
+}
+
+.image1,
+.image2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background-color: var(--line-color);
+  z-index: 10;
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cirlce {
+  position: relative;
+  width: 50px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--line-color);
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.cirlce svg {
+  width: 15px;
+  height: 15px;
+}
+
+.labels {
+  color: var(--main-color);
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 700px) {
+  .app {
+    flex-direction: column; /* stack vertically on mobile */
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .imageCompare {
+    width: 100%;
+    height: 60vh; /* adjust height for mobile */
+  }
+  
+  .labels {
+    font-size: 1rem; /* smaller font on mobile */
+    white-space: normal; /* allow text wrapping */
+  }
+  
+  .cirlce {
+    width: 40px; /* slightly smaller circle on mobile */
+    height: 30px;
+  }
+  
+  .cirlce svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+  .imageCompare {
+    height: 50vh;
+  }
+  
+  .labels {
+    font-size: 0.9rem;
+  }
+}

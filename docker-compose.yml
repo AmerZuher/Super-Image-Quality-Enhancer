@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: fastapi-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: image_processing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 7895123
+    volumes:
+      - ./backend/images:/app/images
+    networks:
+      - app-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  db:
+    image: postgres:13
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: image_processing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 7895123
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend # Specifies the directory containing the Dockerfile and code
+    container_name: nextjs-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+    command: npm start
+
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
