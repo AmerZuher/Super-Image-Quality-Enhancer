@@ -1,7 +1,7 @@
 # 🚀 Super Image Quality Enhancer (SIQE)
 
 <div align="center">
-  <img src="resources/SIQE_logo.png" alt="SIQE Logo" width="200" />
+  <img src="resources/SIQE_logo.png" alt="SIQE Logo" width="800" />
   <h3>Unleashing AI for Superior Image Quality</h3>
 </div>
 
