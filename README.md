@@ -119,6 +119,12 @@ The model utilizes **Residual Dense Blocks**, which allow for deeper networks wi
 
 ---
 
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
 <div align="center">
   <p>Thank you for your interest in SIQE! 🚀</p>
   <p>If you find this project useful, please consider giving it a ⭐!</p>
