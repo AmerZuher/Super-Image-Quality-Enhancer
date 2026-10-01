@@ -15,20 +15,30 @@ from typing import Any
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
 from siqe.activities.jobs import update_job
 from siqe.activities.selftest import cpu_probe, gpu_probe
 from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE, get_settings
 from siqe.core.logging import configure_logging, get_logger
 from siqe.db.session import dispose_engine
 from siqe.orchestration.client import connect
+from siqe.storage.store import get_store
 from siqe.system.resources import cpu_info
 from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
+from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
 
 log = get_logger(__name__)
 
-WORKFLOWS = [SelfTestWorkflow]
-CPU_ACTIVITIES: list[Callable[..., Any]] = [update_job, cpu_probe]
+WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow]
+CPU_ACTIVITIES: list[Callable[..., Any]] = [
+    update_job,
+    cpu_probe,
+    prepare_asset,
+    export_rendition,
+    mark_asset_failed,
+    mark_rendition_failed,
+]
 GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe]
 
 
@@ -57,6 +67,10 @@ async def run_worker(kind: WorkerKind) -> None:
     settings = get_settings()
     configure_logging(settings)
     log.info("worker.starting", kind=kind, version=settings.version)
+    if kind == "cpu":
+        removed = await asyncio.to_thread(get_store().clean_tmp)
+        if removed:
+            log.info("worker.tmp_cleaned", removed=removed)
 
     client = await connect(settings)
     worker = build_worker(client, kind)

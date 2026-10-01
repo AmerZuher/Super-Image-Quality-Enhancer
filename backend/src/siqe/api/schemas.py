@@ -73,3 +73,131 @@ class UpdateStatusOut(BaseModel):
 class HealthOut(BaseModel):
     status: Literal["ok", "degraded"]
     checks: dict[str, bool] = {}
+
+
+AssetStatusName = Literal["processing", "ready", "failed"]
+
+
+class AssetOut(BaseModel):
+    id: str
+    original_name: str
+    format: str
+    width: int = Field(description="Width after EXIF orientation.")
+    height: int
+    bit_depth: int
+    has_alpha: bool
+    size_bytes: int
+    status: AssetStatusName
+    error: dict[str, Any] | None
+    exif: dict[str, Any]
+    has_gps: bool
+    preview_width: int | None
+    preview_height: int | None
+    edits: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None
+    thumb_url: str | None
+    preview_url: str | None
+    dzi_url: str | None
+    original_url: str
+
+
+class UploadOut(BaseModel):
+    asset: AssetOut
+    duplicate: bool = Field(description="True when this exact file was already in the library.")
+    job: JobOut | None
+
+
+class CropIn(BaseModel):
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+class GeometryIn(BaseModel):
+    rotate: Literal[0, 90, 180, 270] = 0
+    flip_h: bool = False
+    flip_v: bool = False
+    crop: CropIn | None = None
+
+
+class OpEntryIn(BaseModel):
+    id: str
+    enabled: bool = True
+    params: dict[str, float] = Field(default_factory=dict)
+
+
+class EditDocumentIn(BaseModel):
+    """Validated against the operation catalog on save; see GET /api/ops."""
+
+    version: Literal[1] = 1
+    geometry: GeometryIn = Field(default_factory=GeometryIn)
+    ops: list[OpEntryIn] = Field(default_factory=list)
+
+
+class OpParamOut(BaseModel):
+    name: str
+    label: str
+    min: float
+    max: float
+    step: float
+    default: float
+    unit: str
+
+
+class OpOut(BaseModel):
+    id: str
+    label: str
+    group: Literal["light", "color", "detail", "effects"]
+    description: str
+    params: list[OpParamOut]
+
+
+class OutputFormatOut(BaseModel):
+    id: Literal["jpeg", "png", "webp", "avif", "tiff"]
+    label: str
+    extension: str
+    max_side: int
+    lossy: bool
+    alpha: bool
+    sixteen_bit: bool
+
+
+class CatalogOut(BaseModel):
+    ops: list[OpOut]
+    formats: list[OutputFormatOut]
+    max_input_megapixels: int
+    max_upload_mb: int
+    accepted_extensions: str
+
+
+class ExportIn(BaseModel):
+    format: Literal["jpeg", "png", "webp", "avif", "tiff"] = "jpeg"
+    quality: int = Field(default=90, ge=1, le=100)
+    max_side: int | None = Field(default=None, ge=16, le=200_000)
+    target_kb: int | None = Field(default=None, ge=10, le=2_000_000)
+    strip_metadata: bool = True
+
+
+RenditionStatusName = Literal["pending", "ready", "failed"]
+
+
+class RenditionOut(BaseModel):
+    id: str
+    asset_id: str
+    job_id: str | None
+    status: RenditionStatusName
+    format: str
+    filename: str
+    options: dict[str, Any]
+    width: int | None
+    height: int | None
+    size_bytes: int | None
+    quality: int | None
+    created_at: datetime | None
+    download_url: str | None
+
+
+class ExportStartOut(BaseModel):
+    job: JobOut
+    rendition: RenditionOut

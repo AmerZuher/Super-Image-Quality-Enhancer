@@ -57,6 +57,20 @@ class AppError(Exception):
         return body
 
 
+def validation_message(exc: Exception) -> str:
+    """Plain-language summary of a Pydantic validation error (first problem only)."""
+    errors = getattr(exc, "errors", None)
+    if callable(errors):
+        try:
+            first = errors()[0]
+        except (IndexError, TypeError):
+            return str(exc)
+        message = str(first.get("msg", exc)).removeprefix("Value error, ")
+        location = ".".join(str(part) for part in first.get("loc", ()) if not isinstance(part, int))
+        return f"{location}: {message}" if location and "must be" not in message else message
+    return str(exc)
+
+
 class NotFoundError(AppError):
     status = 404
 

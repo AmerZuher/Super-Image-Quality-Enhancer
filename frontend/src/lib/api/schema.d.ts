@@ -123,6 +123,216 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Edit operations, export formats and upload limits */
+        get: operations["ops_catalog_api_ops_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Images in the library, newest first */
+        get: operations["list_assets_api_assets_get"];
+        put?: never;
+        /**
+         * Upload an image (raw request body)
+         * @description Send the file bytes as the request body and its name in `filename`. The body is streamed to disk and hashed, never held in memory. Uploading a file that is already in the library returns the existing image with `duplicate: true` and status 200.
+         */
+        post: operations["upload_asset_api_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One image */
+        get: operations["one_asset_api_assets__asset_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete an image and its files */
+        delete: operations["delete_asset_api_assets__asset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/thumb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 320 px thumbnail (WebP) */
+        get: operations["asset_thumb_api_assets__asset_id__thumb_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 2048 px preview (WebP) */
+        get: operations["asset_preview_api_assets__asset_id__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/dz/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deep-zoom pyramid files */
+        get: operations["asset_deep_zoom_api_assets__asset_id__dz__path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the original file */
+        get: operations["asset_original_api_assets__asset_id__original_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/edits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The image's edit document */
+        get: operations["get_edits_api_assets__asset_id__edits_get"];
+        /** Replace the image's edit document */
+        put: operations["put_edits_api_assets__asset_id__edits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the current edits at full resolution and encode them */
+        post: operations["start_export_api_assets__asset_id__exports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{asset_id}/renditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exports of this image */
+        get: operations["list_renditions_api_assets__asset_id__renditions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/renditions/{rendition_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download an export */
+        get: operations["download_rendition_api_renditions__rendition_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/renditions/{rendition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an export */
+        delete: operations["delete_rendition_api_renditions__rendition_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/updates": {
         parameters: {
             query?: never;
@@ -144,6 +354,148 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssetOut */
+        AssetOut: {
+            /** Id */
+            id: string;
+            /** Original Name */
+            original_name: string;
+            /** Format */
+            format: string;
+            /**
+             * Width
+             * @description Width after EXIF orientation.
+             */
+            width: number;
+            /** Height */
+            height: number;
+            /** Bit Depth */
+            bit_depth: number;
+            /** Has Alpha */
+            has_alpha: boolean;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "processing" | "ready" | "failed";
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /** Exif */
+            exif: {
+                [key: string]: unknown;
+            };
+            /** Has Gps */
+            has_gps: boolean;
+            /** Preview Width */
+            preview_width: number | null;
+            /** Preview Height */
+            preview_height: number | null;
+            /** Edits */
+            edits?: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string | null;
+            /** Thumb Url */
+            thumb_url: string | null;
+            /** Preview Url */
+            preview_url: string | null;
+            /** Dzi Url */
+            dzi_url: string | null;
+            /** Original Url */
+            original_url: string;
+        };
+        /** CatalogOut */
+        CatalogOut: {
+            /** Ops */
+            ops: components["schemas"]["OpOut"][];
+            /** Formats */
+            formats: components["schemas"]["OutputFormatOut"][];
+            /** Max Input Megapixels */
+            max_input_megapixels: number;
+            /** Max Upload Mb */
+            max_upload_mb: number;
+            /** Accepted Extensions */
+            accepted_extensions: string;
+        };
+        /** CropIn */
+        CropIn: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /** W */
+            w: number;
+            /** H */
+            h: number;
+        };
+        /**
+         * EditDocumentIn
+         * @description Validated against the operation catalog on save; see GET /api/ops.
+         */
+        EditDocumentIn: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            geometry?: components["schemas"]["GeometryIn"];
+            /** Ops */
+            ops?: components["schemas"]["OpEntryIn"][];
+        };
+        /** ExportIn */
+        ExportIn: {
+            /**
+             * Format
+             * @default jpeg
+             * @enum {string}
+             */
+            format: "jpeg" | "png" | "webp" | "avif" | "tiff";
+            /**
+             * Quality
+             * @default 90
+             */
+            quality: number;
+            /** Max Side */
+            max_side?: number | null;
+            /** Target Kb */
+            target_kb?: number | null;
+            /**
+             * Strip Metadata
+             * @default true
+             */
+            strip_metadata: boolean;
+        };
+        /** ExportStartOut */
+        ExportStartOut: {
+            job: components["schemas"]["JobOut"];
+            rendition: components["schemas"]["RenditionOut"];
+        };
+        /** GeometryIn */
+        GeometryIn: {
+            /**
+             * Rotate
+             * @default 0
+             * @enum {integer}
+             */
+            rotate: 0 | 90 | 180 | 270;
+            /**
+             * Flip H
+             * @default false
+             */
+            flip_h: boolean;
+            /**
+             * Flip V
+             * @default false
+             */
+            flip_v: boolean;
+            crop?: components["schemas"]["CropIn"] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -200,6 +552,73 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /** OpEntryIn */
+        OpEntryIn: {
+            /** Id */
+            id: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Params */
+            params?: {
+                [key: string]: number;
+            };
+        };
+        /** OpOut */
+        OpOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "light" | "color" | "detail" | "effects";
+            /** Description */
+            description: string;
+            /** Params */
+            params: components["schemas"]["OpParamOut"][];
+        };
+        /** OpParamOut */
+        OpParamOut: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /** Min */
+            min: number;
+            /** Max */
+            max: number;
+            /** Step */
+            step: number;
+            /** Default */
+            default: number;
+            /** Unit */
+            unit: string;
+        };
+        /** OutputFormatOut */
+        OutputFormatOut: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "jpeg" | "png" | "webp" | "avif" | "tiff";
+            /** Label */
+            label: string;
+            /** Extension */
+            extension: string;
+            /** Max Side */
+            max_side: number;
+            /** Lossy */
+            lossy: boolean;
+            /** Alpha */
+            alpha: boolean;
+            /** Sixteen Bit */
+            sixteen_bit: boolean;
+        };
         /** ReleaseOut */
         ReleaseOut: {
             /** Tag */
@@ -219,6 +638,40 @@ export interface components {
             published_at: string | null;
             /** Prerelease */
             prerelease: boolean;
+        };
+        /** RenditionOut */
+        RenditionOut: {
+            /** Id */
+            id: string;
+            /** Asset Id */
+            asset_id: string;
+            /** Job Id */
+            job_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "ready" | "failed";
+            /** Format */
+            format: string;
+            /** Filename */
+            filename: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+            /** Width */
+            width: number | null;
+            /** Height */
+            height: number | null;
+            /** Size Bytes */
+            size_bytes: number | null;
+            /** Quality */
+            quality: number | null;
+            /** Created At */
+            created_at: string | null;
+            /** Download Url */
+            download_url: string | null;
         };
         /** ServicesOut */
         ServicesOut: {
@@ -266,6 +719,16 @@ export interface components {
             repo_url: string;
             /** Releases Url */
             releases_url: string;
+        };
+        /** UploadOut */
+        UploadOut: {
+            asset: components["schemas"]["AssetOut"];
+            /**
+             * Duplicate
+             * @description True when this exact file was already in the library.
+             */
+            duplicate: boolean;
+            job: components["schemas"]["JobOut"] | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -489,6 +952,468 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["JobOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ops_catalog_api_ops_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogOut"];
+                };
+            };
+        };
+    };
+    list_assets_api_assets_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_asset_api_assets_post: {
+        parameters: {
+            query: {
+                filename: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": unknown;
+            };
+        };
+        responses: {
+            /** @description Already in the library */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadOut"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    one_asset_api_assets__asset_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_asset_api_assets__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_thumb_api_assets__asset_id__thumb_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_preview_api_assets__asset_id__preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_deep_zoom_api_assets__asset_id__dz__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_original_api_assets__asset_id__original_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_edits_api_assets__asset_id__edits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditDocumentIn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_edits_api_assets__asset_id__edits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditDocumentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditDocumentIn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_export_api_assets__asset_id__exports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportStartOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_renditions_api_assets__asset_id__renditions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenditionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_rendition_api_renditions__rendition_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rendition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rendition_api_renditions__rendition_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rendition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

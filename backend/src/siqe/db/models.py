@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, Float, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -72,4 +72,75 @@ class AppSetting(Base):
     value: Mapped[dict[str, Any]] = mapped_column(JSONB)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=utcnow, onupdate=utcnow
+    )
+
+
+class AssetStatus(enum.StrEnum):
+    processing = "processing"
+    ready = "ready"
+    failed = "failed"
+
+
+def _enum(cls: type[enum.StrEnum], name: str) -> Enum:
+    return Enum(cls, name=name, values_callable=lambda e: [m.value for m in e])
+
+
+class Asset(TimestampMixin, Base):
+    """An uploaded image. The original file is immutable and stored once per content hash."""
+
+    __tablename__ = "assets"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    original_name: Mapped[str] = mapped_column(String(255))
+    extension: Mapped[str] = mapped_column(String(16))
+    format: Mapped[str] = mapped_column(String(16))
+    width: Mapped[int] = mapped_column(Integer)  # after EXIF orientation
+    height: Mapped[int] = mapped_column(Integer)
+    bit_depth: Mapped[int] = mapped_column(Integer, default=8)
+    has_alpha: Mapped[bool] = mapped_column(Boolean, default=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[AssetStatus] = mapped_column(
+        _enum(AssetStatus, "asset_status"), default=AssetStatus.processing
+    )
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    exif: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    has_gps: Mapped[bool] = mapped_column(Boolean, default=False)
+    preview_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    preview_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    edits: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    edits_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RenditionStatus(enum.StrEnum):
+    pending = "pending"
+    ready = "ready"
+    failed = "failed"
+
+
+class Rendition(Base):
+    """An exported file: an asset rendered with a snapshot of its edits and export options."""
+
+    __tablename__ = "renditions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assets.id", ondelete="CASCADE"), index=True
+    )
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[RenditionStatus] = mapped_column(
+        _enum(RenditionStatus, "rendition_status"), default=RenditionStatus.pending
+    )
+    format: Mapped[str] = mapped_column(String(16))
+    filename: Mapped[str] = mapped_column(String(255))
+    options: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    edits: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    quality: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=utcnow
     )

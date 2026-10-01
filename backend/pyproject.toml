@@ -63,7 +63,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "S", "SIM", "RUF", "PTH"]
-ignore = ["S101", "S311", "RUF012", "B008"]
+# RUF001/RUF002: "×" is intentional in user-facing sizes such as "7680 × 4320".
+ignore = ["S101", "S311", "RUF012", "B008", "RUF001", "RUF002"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "PTH"]

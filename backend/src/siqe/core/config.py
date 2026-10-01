@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # Resource limits (see docs/robustness.md)
     max_input_megapixels: int = 250
+    max_upload_mb: int = Field(default=2048, description="Largest single upload, in MB.")
     gpu_vram_reserve_mb: int = Field(
         default=1536, description="VRAM kept free for the driver and fragmentation."
     )
