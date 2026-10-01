@@ -1,0 +1,1113 @@
+<title>Facetry Architecture Proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: technical proposal; sticky section index on the left, one 780px reading column */
+:root{
+  color-scheme: dark;
+  --bg:#060A14; --surface:#0D1427; --surface-2:#121B33; --line:#1D2947; --line-2:#2B3A63;
+  --fg:#E8EEFA; --fg-2:#B8C5DF; --muted:#8090B3;
+  --cyan:#4DCBF3; --cyan-soft:rgba(77,203,243,.10); --gold:#F5BD45; --gold-soft:rgba(245,189,69,.12);
+  --code-bg:#080D1A;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --bg:#F4F6FB; --surface:#FFFFFF; --surface-2:#EEF2F9; --line:#D7DEEB; --line-2:#BAC6DD;
+    --fg:#0A1330; --fg-2:#2B3A5E; --muted:#56648A;
+    --cyan:#0784B6; --cyan-soft:rgba(7,132,182,.08); --gold:#A56A00; --gold-soft:rgba(201,138,16,.12);
+    --code-bg:#EEF2F9;
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#F4F6FB; --surface:#FFFFFF; --surface-2:#EEF2F9; --line:#D7DEEB; --line-2:#BAC6DD;
+  --fg:#0A1330; --fg-2:#2B3A5E; --muted:#56648A;
+  --cyan:#0784B6; --cyan-soft:rgba(7,132,182,.08); --gold:#A56A00; --gold-soft:rgba(201,138,16,.12);
+  --code-bg:#EEF2F9;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:24px}
+body{background:var(--bg); color:var(--fg); font:16px/1.65 var(--f-body); -webkit-font-smoothing:antialiased}
+a{color:var(--cyan); text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+.page{max-width:1180px; margin:0 auto; padding-inline:20px; display:grid; grid-template-columns:220px minmax(0,1fr); gap:56px}
+header.top{grid-column:1/-1; padding-block:64px 8px; border-bottom:1px solid var(--line)}
+.eyebrow{font:12px var(--f-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--cyan)}
+header.top h1{font-family:var(--f-display); font-weight:700; font-size:clamp(40px,7vw,76px); line-height:1; letter-spacing:-.02em; margin:16px 0 14px}
+header.top h1 span{color:var(--muted); font-weight:500; font-size:.42em; letter-spacing:0; display:block; margin-top:14px}
+header.top p{color:var(--fg-2); font-size:18px; max-width:62ch; margin:0 0 28px}
+nav.toc{position:sticky; top:24px; align-self:start; padding-block:32px; display:grid; gap:2px; max-height:calc(100vh - 48px); overflow:auto}
+nav.toc .h{font:11px var(--f-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+nav.toc a{color:var(--fg-2); text-decoration:none; font-size:13.5px; padding:5px 10px; border-left:2px solid var(--line); line-height:1.35}
+nav.toc a:hover{color:var(--fg); border-color:var(--cyan)}
+article{padding-block:16px 96px; max-width:780px; min-width:0}
+article h2{font-family:var(--f-display); font-weight:500; font-size:clamp(24px,3vw,30px); line-height:1.15; margin:64px 0 16px; letter-spacing:-.01em; text-wrap:balance}
+article h3{font-size:19px; margin:36px 0 10px; font-weight:600}
+article p, article li{color:var(--fg-2)}
+article strong{color:var(--fg)}
+article hr{border:0; border-top:1px solid var(--line); margin:48px 0 0}
+article ul, article ol{padding-left:22px}
+article li{margin-bottom:6px}
+article code{font:0.86em var(--f-mono); background:var(--surface-2); border:1px solid var(--line); padding:1px 5px; border-radius:4px; color:var(--fg)}
+article pre{background:var(--code-bg); border:1px solid var(--line); border-radius:10px; padding:16px 18px; overflow-x:auto; font:12.5px/1.6 var(--f-mono)}
+article pre code{background:none; border:0; padding:0; font-size:inherit; color:var(--fg-2)}
+pre.mermaid{background:var(--surface); text-align:center; padding:20px}
+.tbl{overflow-x:auto; margin:18px 0; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14px; font-variant-numeric:tabular-nums}
+th,td{padding:10px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font:500 11.5px var(--f-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); background:var(--surface-2)}
+td{color:var(--fg-2)}
+td strong{color:var(--fg)}
+article > .tbl:first-child{border-color:var(--gold); background:var(--gold-soft)}
+article > .tbl:first-child th{display:none}
+article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(--gold); background:var(--gold-soft); border-radius:0 8px 8px 0}
+@media (max-width:900px){.page{grid-template-columns:1fr; gap:0} nav.toc{display:none}}
+</style>
+
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Architecture proposal · v2 · awaiting your review · 1 Oct 2026</div>
+    <h1>Facetry<span>The technical plan for the new image platform</span></h1>
+    <p>Stack, database, memory safety for 8K images on an 8 GB GPU, naming, repository layout, agent guidelines and build order. Nothing is built until you approve it.</p>
+  </header>
+  <nav class="toc" aria-label="Sections"><div class="h">Sections</div><a href="#1-decisions-at-a-glance">1. Decisions at a glance</a><a href="#2-tooling-check-mcp-servers-skills-and-plugins">2. Tooling check: MCP servers, skills and plugins</a><a href="#3-tech-stack-evaluation">3. Tech stack evaluation</a><a href="#4-database-strategy">4. Database strategy</a><a href="#5-robustness-and-resource-safety">5. Robustness and resource safety</a><a href="#6-naming">6. Naming</a><a href="#7-project-structure">7. Project structure</a><a href="#8-agentsmd-draft">8. AGENTS.md (draft)</a><a href="#9-security-single-user">9. Security (single user)</a><a href="#10-execution-plan">10. Execution plan</a><a href="#11-what-i-need-from-you">11. What I need from you</a></nav>
+  <article>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Status</strong></td>
+<td>Proposed, awaiting review (v2)</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>1 October 2026</td>
+</tr>
+<tr>
+<td><strong>Replaces</strong></td>
+<td>Plan v1 (<a href="https://claude.ai/artifact/HE5trVkqVBFrXt41QV67oy">docs/plan/blueprint.html</a>) where the two differ</td>
+</tr>
+<tr>
+<td><strong>Working name</strong></td>
+<td>Facetry (see <a href="#6-naming">Naming</a>); the old name SIQE stays on your original model, "SIQE Classic"</td>
+</tr>
+</tbody>
+</table></div>
+<p>This document is the technical plan for rebuilding Super-Image-Quality-Enhancer, Image-modifier and Image-Modifier- into one platform. Plan v1 described the product: five workspaces (Studio, AI Lab, Library, Flows, Forge) and 83 operations. This version makes the engineering decisions: stack, database, memory safety, naming, repository layout, agent guidelines and the build order. Nothing here is built yet. Once you approve it, this file becomes the living architecture reference and stays in sync with the code.</p>
+<hr />
+<h2 id="1-decisions-at-a-glance">1. Decisions at a glance</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Decision</th>
+<th>Main reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend</td>
+<td><strong>Python 3.12 + FastAPI</strong></td>
+<td>PyTorch forces Python for the AI side; FastAPI gives async I/O, Pydantic validation and an OpenAPI schema we generate the frontend client from.</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td><strong>Vite 8 + React 19 + TypeScript (SPA)</strong></td>
+<td>Your suggestion is the right call. A local-first, canvas-heavy app gains nothing from server rendering. Plan v1's Next.js is dropped.</td>
+</tr>
+<tr>
+<td>Job queue</td>
+<td><strong>Celery 5.6 on Valkey</strong></td>
+<td>Mature routing, priorities, retries and revocation; one queue per resource class (CPU, GPU, training).</td>
+</tr>
+<tr>
+<td>Database</td>
+<td><strong>PostgreSQL 18 + pgvector</strong> as the only system of record</td>
+<td>Relational integrity, JSONB for flexible documents and vector search for "find similar" in one engine.</td>
+</tr>
+<tr>
+<td>Ephemeral state</td>
+<td><strong>Valkey 9</strong> (BSD-licensed Redis fork)</td>
+<td>Queue broker, live progress events, GPU leases, caches. Nothing in Valkey is needed after a restart.</td>
+</tr>
+<tr>
+<td>Image engine</td>
+<td><strong>libvips (pyvips) + OpenCV + Pillow</strong></td>
+<td>libvips streams images in small regions, so classic edits on 8K+ images use little memory.</td>
+</tr>
+<tr>
+<td>AI runtime</td>
+<td><strong>PyTorch 2.14 + spandrel + ONNX Runtime</strong></td>
+<td>spandrel loads most super-resolution and restoration architectures from weight files; ONNX Runtime runs user-supplied models.</td>
+</tr>
+<tr>
+<td>Memory safety</td>
+<td><strong>Resource governor</strong>: admission checks, VRAM planner, tiled streaming inference, OOM fallback ladder</td>
+<td>Every job is sized before it starts and degrades step by step instead of crashing.</td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td><strong>Docker Compose, 7 containers</strong>, GPU via an override file</td>
+<td>One command on any machine; NVIDIA GPU optional.</td>
+</tr>
+<tr>
+<td>Name</td>
+<td><strong>Facetry</strong> (recommended)</td>
+<td>See section 6.</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="2-tooling-check-mcp-servers-skills-and-plugins">2. Tooling check: MCP servers, skills and plugins</h2>
+<p>Everything needed to build, test and screenshot the project is available in this cloud session. Two manual actions would improve coverage. Neither blocks the start.</p>
+<h3 id="what-i-use-as-is">What I use as-is</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Used for</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GitHub MCP</td>
+<td>Pushes, PRs if you want them, reading CI results</td>
+<td>Connected, scoped to this repository</td>
+</tr>
+<tr>
+<td>Docker</td>
+<td>Building and running every image</td>
+<td>Works after I configure the daemon with this sandbox's proxy. Pulls from Docker Hub succeed.</td>
+</tr>
+<tr>
+<td>PyPI and npm</td>
+<td>All Python and JavaScript dependencies</td>
+<td>Reachable</td>
+</tr>
+<tr>
+<td>Chromium + Playwright</td>
+<td>End-to-end tests and capturing <code>gallery/</code> screenshots</td>
+<td>Pre-installed</td>
+</tr>
+<tr>
+<td>Built-in skills</td>
+<td><code>run</code> (launch the app), <code>code-review</code>, <code>security-review</code>, <code>simplify</code>, <code>session-start-hook</code> (auto-install dependencies in future cloud sessions), <code>dataviz</code> (training charts)</td>
+<td>Available</td>
+</tr>
+</tbody>
+</table></div>
+<p>I checked the container constraints that shaped the Dockerfiles. Debian's package mirror is blocked here, so the images install nothing with <code>apt</code>. libvips 8.18, OpenCV 5 and HEIF support all come from PyPI wheels (<code>pyvips[binary]</code>, <code>opencv-python-headless</code>, <code>pillow-heif</code>), which I verified inside a <code>python:3.12-slim</code> container. That also makes the images smaller and reproducible on your PC.</p>
+<h3 id="manual-actions-for-you">Manual actions for you</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Why</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Allow <code>huggingface.co</code> and <code>download.pytorch.org</code> in the cloud environment's network settings</td>
+<td>Still refused in this session (checked at 11:05 UTC). Needed to test Hugging Face-hosted models here (BiRefNet, Depth Anything V2, DDColor, CLIP) and for small CPU-only PyTorch images. If you already changed it, the setting may only apply to new sessions.</td>
+<td>Recommended. Without it I test with GitHub-hosted models and you verify the rest on your PC.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Connect the <strong>Context7</strong> connector on claude.ai</td>
+<td>It serves current documentation for libraries newer than my training data (Vite 8, TypeScript 7, TanStack Router, React 19.3), which cuts down on API mistakes.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Install the <strong>frontend-design</strong> plugin (Anthropic)</td>
+<td>Extra UI implementation guidance for the frontend phases.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Tell me your <strong>GPU model and VRAM</strong></td>
+<td>Your form said it would be in your notes, but the notes didn't come through. Until I hear otherwise, I design for an 8 GB card.</td>
+<td>Needed before Phase 2</td>
+</tr>
+</tbody>
+</table></div>
+<p>Not needed: the Hugging Face MCP (we only download weights, which plain HTTPS does), Figma, and Higgsfield. Gallery images will be real screenshots, so I won't spend your Higgsfield credits.</p>
+<hr />
+<h2 id="3-tech-stack-evaluation">3. Tech stack evaluation</h2>
+<h3 id="31-backend-fastapi">3.1 Backend: FastAPI</h3>
+<p>The AI work (PyTorch, ONNX Runtime, CLIP) only exists in Python, so the backend is Python. A Node or Go API would still need a Python service behind it, which means two backend languages and a network hop for every job.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FastAPI</strong></td>
+<td><strong>Chosen.</strong> Async request handling, Pydantic v2 validation, automatic OpenAPI schema, WebSockets, and the largest ecosystem of the three.</td>
+</tr>
+<tr>
+<td>Django</td>
+<td>Strong admin and ORM, but synchronous-first and heavier than an API-only service needs.</td>
+</tr>
+<tr>
+<td>Litestar</td>
+<td>Technically excellent and similar to FastAPI, but a smaller community and fewer examples for agents and contributors.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="32-frontend-vite-spa">3.2 Frontend: Vite SPA</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Vite + React SPA</strong></td>
+<td><strong>Chosen.</strong> The app runs on your own machine behind one gateway, has no SEO needs, and does its heavy lifting in the browser (WebGL preview, canvas, node editors). Vite builds static files that Caddy serves, so there's no Node server container at runtime. Hot reload is instant.</td>
+</tr>
+<tr>
+<td>Next.js (plan v1)</td>
+<td>Server components and SSR add a Node runtime and a server/client boundary that this app doesn't benefit from. Dropped.</td>
+</tr>
+<tr>
+<td>SvelteKit / Vue</td>
+<td>Good tools, but React has the libraries this app depends on: React Flow for Flows and Forge, and the TanStack libraries.</td>
+</tr>
+</tbody>
+</table></div>
+<p>A desktop build with Tauri can wrap the same SPA later without a rewrite.</p>
+<h3 id="33-job-queue-celery-on-valkey">3.3 Job queue: Celery on Valkey</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Celery 5.6</strong></td>
+<td><strong>Chosen.</strong> Named queues per resource (<code>cpu</code>, <code>gpu</code>, <code>train</code>), priorities, retries, <code>acks_late</code> for crash safety, revocation, and Flower for monitoring. The GPU worker runs with <code>--pool=solo</code> so CUDA is never forked.</td>
+</tr>
+<tr>
+<td>arq / SAQ</td>
+<td>Lightweight and asyncio-native, but missing priorities and mature routing.</td>
+</tr>
+<tr>
+<td>Dramatiq</td>
+<td>Solid, but a smaller ecosystem and nothing it does better here.</td>
+</tr>
+<tr>
+<td>Postgres-based queue (procrastinate)</td>
+<td>Would remove one container, but high-frequency progress events (one per tile) fit pub/sub on Valkey better than <code>LISTEN/NOTIFY</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Valkey replaces Redis because Redis is now offered only under AGPL, SSPL or RSAL. Valkey is BSD-licensed and protocol-compatible, which matches your "commercial-safe only" decision.</p>
+<h3 id="34-ai-runtime">3.4 AI runtime</h3>
+<ul>
+<li><strong>PyTorch</strong> runs built-in models and Forge training.</li>
+<li><strong>spandrel</strong> (MIT) detects and loads ESRGAN, SwinIR, GFPGAN, NAFNet and similar architectures from weight files, so we don't reimplement each one. We use only core spandrel; its "extra arches" package includes non-commercial licenses and stays out.</li>
+<li><strong>ONNX Runtime</strong> runs models you bring as <code>.onnx</code> files, and is the CPU fallback path where it's faster.</li>
+<li><strong>SIQE Classic</strong> is ported by reading your <code>v10.h5</code> with <code>h5py</code> and mapping each Keras kernel (HWIO) to PyTorch (OIHW). TensorFlow isn't needed, and a test checks that both versions produce the same output on a fixture image.</li>
+</ul>
+<h3 id="35-final-stack-and-versions">3.5 Final stack and versions</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice (versions checked against PyPI, npm and Docker Hub on 1 Oct 2026)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend</td>
+<td>Vite 8.3, React 19.3, TypeScript 7.0 (native compiler; fallback to 5.9 if a tool needs the old API), TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, Radix primitives, Motion 13, React Flow 12, OpenSeadragon 6 (deep zoom), uPlot (live training charts), Biome 2.5, Vitest 5, Playwright 1.63, pnpm</td>
+</tr>
+<tr>
+<td>API client</td>
+<td><code>openapi-typescript</code> + <code>openapi-fetch</code>, generated from FastAPI's schema, so types match end to end</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Python 3.12, FastAPI 0.142, Pydantic 2.13, SQLAlchemy 2.1 (async, asyncpg), Alembic 1.20, Celery 5.6, structlog, Typer (CLI), uv (packaging), Ruff, pyright, pytest + Hypothesis</td>
+</tr>
+<tr>
+<td>Imaging</td>
+<td>pyvips 3.2 with libvips 8.18, OpenCV 5, Pillow + pillow-heif, imagehash</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>PyTorch 2.14, spandrel 0.4, ONNX Runtime 1.30, open_clip 3.3, safetensors, nvidia-ml-py (VRAM telemetry)</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>PostgreSQL 18 + pgvector, Valkey 9</td>
+</tr>
+<tr>
+<td>Edge</td>
+<td>Caddy 2 (static SPA, reverse proxy, security headers)</td>
+</tr>
+<tr>
+<td>CI</td>
+<td>GitHub Actions: lint, typecheck, tests, image builds, Trivy image scan</td>
+</tr>
+</tbody>
+</table></div>
+<p>Python 3.12 rather than 3.13 because it has the widest coverage of prebuilt CUDA and imaging wheels. Moving up is a one-line change once every dependency ships 3.13 wheels.</p>
+<hr />
+<h2 id="4-database-strategy">4. Database strategy</h2>
+<h3 id="41-what-the-data-looks-like">4.1 What the data looks like</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Shape</th>
+<th>Main queries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assets (images)</td>
+<td>Fixed fields (size, format, hashes) plus variable EXIF</td>
+<td>Filter, sort, page through thousands of rows</td>
+</tr>
+<tr>
+<td>Edit stacks, flows, Forge graphs</td>
+<td>Nested documents, versioned</td>
+<td>Load and save whole, occasionally search inside</td>
+</tr>
+<tr>
+<td>Embeddings</td>
+<td>512 to 768 floats per image</td>
+<td>Nearest neighbours ("find similar", text search)</td>
+</tr>
+<tr>
+<td>Perceptual hashes</td>
+<td>64-bit values</td>
+<td>Hamming distance under a threshold (duplicates)</td>
+</tr>
+<tr>
+<td>Jobs</td>
+<td>State machine, frequent updates</td>
+<td>Queue views, history, crash recovery</td>
+</tr>
+<tr>
+<td>Training metrics</td>
+<td>Time series per run</td>
+<td>Append, plot ranges</td>
+</tr>
+<tr>
+<td>Smart albums</td>
+<td>Rules evaluated against assets</td>
+<td>Dynamic queries</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="42-evaluation">4.2 Evaluation</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>PostgreSQL 18</th>
+<th>MongoDB</th>
+<th>SQLite</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Relational integrity (asset → rendition → job)</td>
+<td>Strong, with foreign keys and transactions</td>
+<td>Manual</td>
+<td>Strong</td>
+</tr>
+<tr>
+<td>Flexible documents</td>
+<td>JSONB with indexes</td>
+<td>Native</td>
+<td>JSON1, weaker indexing</td>
+</tr>
+<tr>
+<td>Vector similarity</td>
+<td>pgvector with HNSW indexes, in the same transaction as filters</td>
+<td>Needs a separate search setup</td>
+<td>sqlite-vec, less mature</td>
+</tr>
+<tr>
+<td>Hamming distance on hashes</td>
+<td>pgvector <code>bit</code> type with Hamming HNSW index</td>
+<td>Manual</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Several processes writing at once (API + 3 workers)</td>
+<td>Built for it</td>
+<td>Fine</td>
+<td>One writer at a time; job progress would contend</td>
+</tr>
+<tr>
+<td>Operations in Docker</td>
+<td>One container</td>
+<td>One container</td>
+<td>Zero, but shared-volume locking across containers is fragile</td>
+</tr>
+<tr>
+<td>License</td>
+<td>PostgreSQL (permissive)</td>
+<td>SSPL</td>
+<td>Public domain</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="43-decision">4.3 Decision</h3>
+<p><strong>PostgreSQL 18 with pgvector is the single system of record.</strong> JSONB covers the document-shaped data without a second engine, and pgvector puts similarity search next to normal filters. For example, "similar to this photo, landscape only, not in quarantine" runs as one query.</p>
+<p><strong>Valkey holds only ephemeral state:</strong> the Celery broker, progress pub/sub, GPU leases and short-lived caches. If Valkey restarts, running jobs are recovered from PostgreSQL (see 5.8).</p>
+<p>MongoDB is rejected because it adds an engine without adding a capability. SQLite is rejected as the main store because four processes write concurrently. It stays a candidate for a future single-binary "portable mode", and SQLAlchemy keeps that door open.</p>
+<h3 id="44-data-model">4.4 Data model</h3>
+<pre class="mermaid">erDiagram
+  ASSET ||--o{ RENDITION : &quot;has outputs&quot;
+  ASSET ||--o| EDIT_STACK : &quot;edited by&quot;
+  ASSET ||--o{ ASSET_TAG : &quot;tagged&quot;
+  TAG ||--o{ ASSET_TAG : &quot;applied&quot;
+  ALBUM }o--o{ ASSET : &quot;rule or manual&quot;
+  JOB ||--o{ RENDITION : &quot;produces&quot;
+  MODEL ||--o{ JOB : &quot;used by&quot;
+  FLOW ||--o{ FLOW_RUN : &quot;runs&quot;
+  FLOW_RUN ||--o{ JOB : &quot;spawns&quot;
+  FORGE_PROJECT ||--o{ TRAINING_RUN : &quot;trains&quot;
+  TRAINING_RUN ||--o{ CHECKPOINT : &quot;saves&quot;
+  TRAINING_RUN ||--o{ METRIC : &quot;logs&quot;
+  CHECKPOINT ||--o| MODEL : &quot;published as&quot;
+  ASSET {
+    uuid id
+    text sha256
+    int width
+    int height
+    text format
+    jsonb exif
+    bit phash
+    vector clip_embedding
+  }
+  JOB {
+    uuid id
+    text kind
+    text state
+    jsonb params
+    jsonb plan
+    jsonb error
+    timestamptz heartbeat_at
+  }
+  MODEL {
+    text id
+    text task
+    int scale
+    text license
+    text sha256
+    jsonb vram_profile
+  }
+</pre>
+<p>Other tables: <code>api_keys</code> (hashed), <code>settings</code>, <code>quarantine</code> (asset, reason, expiry), <code>datasets</code>.</p>
+<h3 id="45-file-storage">4.5 File storage</h3>
+<p>Image bytes never go in the database. They live on a volume, addressed by content hash:</p>
+<pre><code class="language-text">/data
+├── media/originals/ab/cd/&lt;sha256&gt;.&lt;ext&gt;   immutable uploads; identical files stored once
+├── media/renditions/&lt;asset&gt;/&lt;job&gt;.&lt;ext&gt;   every output is a new file, never an overwrite
+├── media/previews/&lt;sha256&gt;/               2048 px preview + deep-zoom tile pyramid
+├── models/&lt;family&gt;/&lt;file&gt;                 downloaded weights, verified by sha256
+├── checkpoints/&lt;run&gt;/                     Forge training checkpoints
+└── tmp/                                   scratch space, cleaned on start and by age
+</code></pre>
+<p>A storage interface keeps an S3 or MinIO backend possible later without touching feature code.</p>
+<hr />
+<h2 id="5-robustness-and-resource-safety">5. Robustness and resource safety</h2>
+<h3 id="51-principles">5.1 Principles</h3>
+<ol>
+<li><strong>Plan before you run.</strong> Every job gets a resource plan (output size, RAM, VRAM, disk, file-format limits) before it's queued. A job that can't fit is adjusted or rejected with a clear reason, never started and crashed.</li>
+<li><strong>Stream, don't load.</strong> Large images flow through libvips regions and tiled inference. No code path holds a full-resolution 8K+ image in memory as float arrays.</li>
+<li><strong>Degrade, don't die.</strong> On out-of-memory errors the engine steps down: smaller batch, smaller tile, CPU. Each step is recorded on the job and shown to you.</li>
+<li><strong>Workers are disposable.</strong> Jobs are idempotent and checkpointed, so a crashed or recycled worker loses at most one tile or one training interval.</li>
+<li><strong>Every failure has a code.</strong> Errors are typed, logged with the job ID, and shown with a fix ("Choose PNG or TIFF: WebP can't exceed 16,383 px").</li>
+</ol>
+<h3 id="52-admission-control">5.2 Admission control</h3>
+<pre class="mermaid">flowchart LR
+  U[Upload or job request] --&gt; H[Read header only]
+  H --&gt; L{Pixels within limit?}
+  L -- no --&gt; R[Reject: image.too_large]
+  L -- yes --&gt; P[Plan: output size, RAM, VRAM, disk, format limits]
+  P --&gt; F{Fits this machine?}
+  F -- yes --&gt; Q[Queue with plan attached]
+  F -- with changes --&gt; X[Offer fixes: lower scale, TIFF instead of WebP, CPU route]
+  F -- no --&gt; E[Reject with the reason and the numbers]
+</pre>
+<ul>
+<li><strong>Decompression bombs:</strong> a 100 KB file can claim 50,000 × 50,000 pixels. Dimensions are read from the header without decoding and checked against a configurable limit (default 250 MP input). Pillow's <code>MAX_IMAGE_PIXELS</code> is set to the same limit as a second guard.</li>
+<li><strong>Format limits:</strong> the planner knows hard ceilings. WebP stops at 16,383 px per side and JPEG at 65,535 px. PNG and BigTIFF handle the rest.</li>
+<li><strong>Disk:</strong> a job needs at least twice its predicted output size free, or it isn't queued.</li>
+<li><strong>Uploads:</strong> chunked (8 MB parts), resumable, hashed while streaming to disk, never buffered in RAM. ZIP imports check compression ratio and total size to stop zip bombs.</li>
+</ul>
+<h3 id="53-worked-example-8k-image-4-upscale-8-gb-gpu">5.3 Worked example: 8K image, ×4 upscale, 8 GB GPU</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>7680 × 4320 = 33.2 MP; 99.5 MB decoded as 8-bit RGB</td>
+</tr>
+<tr>
+<td>Output at ×4</td>
+<td>30720 × 17280 = 530.8 MP</td>
+</tr>
+<tr>
+<td>Output in RAM as 8-bit RGB</td>
+<td>1.59 GB. As float32 it would be 6.37 GB, which is why it never sits in RAM</td>
+</tr>
+<tr>
+<td>Tiling</td>
+<td>448 px core + 32 px context per side = 512 px tiles; 18 × 10 = 180 tiles</td>
+</tr>
+<tr>
+<td>Memory per tile on the host</td>
+<td>Output tile 2048 × 2048 × 3 channels × 4 bytes ≈ 50 MB</td>
+</tr>
+<tr>
+<td>Output path</td>
+<td>Each tile's centre is written straight into a disk-backed array, then libvips encodes from it in strips</td>
+</tr>
+<tr>
+<td>Format check</td>
+<td>WebP rejected (16,383 px limit); PNG, TIFF or JPEG offered</td>
+</tr>
+<tr>
+<td>Browser</td>
+<td>Never receives the full image: a 2048 px preview plus a deep-zoom tile pyramid, so only visible tiles load</td>
+</tr>
+<tr>
+<td>VRAM</td>
+<td>The planner picks the largest tile batch whose measured peak fits 85% of free VRAM (see 5.4)</td>
+</tr>
+</tbody>
+</table></div>
+<p>On your 8 GB card, the same job that would have crashed the old app runs to completion in bounded memory, with a progress bar per tile and an ETA from measured tile time.</p>
+<h3 id="54-tiled-inference-engine">5.4 Tiled inference engine</h3>
+<ul>
+<li><strong>Context-padded tiles, centre crop.</strong> Each tile is processed with extra context around it (at least the model's receptive field), and only the centre is kept. The same approach Real-ESRGAN uses for tiling avoids seams without accumulating a full-size blending buffer. Transformer models with large receptive fields get optional feathered blending, limited to the overlap strips.</li>
+<li><strong>Shape rules per model.</strong> Inputs are reflect-padded to the multiple a model needs (for example SwinIR's window size of 8) and cropped back.</li>
+<li><strong>VRAM planner.</strong> The first time a model runs on a device, a short calibration measures peak VRAM at two or three tile sizes and fits a curve, stored in <code>model.vram_profile</code>. Later jobs choose tile size and tile batch from that curve. With no profile yet, the planner starts small (256 px, batch 1).</li>
+<li><strong>Half precision by default</strong> on GPUs for models that support it, which roughly halves activation memory.</li>
+<li><strong>Resume.</strong> A tile manifest records finished tiles, so a restarted job continues where it stopped.</li>
+</ul>
+<h3 id="55-oom-fallback-ladder">5.5 OOM fallback ladder</h3>
+<pre class="mermaid">flowchart TD
+  S[Run tile batch] --&gt;|ok| N[Next batch]
+  S --&gt;|CUDA out of memory| A[Free cached memory, retry once]
+  A --&gt;|ok| N
+  A --&gt;|out of memory| B[Halve tile batch]
+  B --&gt;|ok| N
+  B --&gt;|batch is 1 and out of memory| C[Halve tile size, minimum 128 px]
+  C --&gt;|ok| N
+  C --&gt;|still out of memory| D[Move job to CPU and tell the user]
+  D --&gt;|ok| N
+  D --&gt;|not enough system RAM| F[Fail with gpu.insufficient_memory and suggestions]
+  N --&gt; W[Record the settings that worked for this model and device]
+</pre>
+<p>The ladder catches <code>torch.OutOfMemoryError</code> and ONNX Runtime allocation failures inside the worker process, so the worker survives. Each step is logged on the job, and the result feeds back into the VRAM profile so the next job starts at a size that works.</p>
+<h3 id="56-gpu-arbitration-and-model-cache">5.6 GPU arbitration and model cache</h3>
+<ul>
+<li><strong>One GPU worker per device</strong>, Celery <code>--pool=solo</code>, concurrency 1. Tile batching provides the parallelism. This avoids CUDA-after-fork crashes and two jobs fighting over VRAM.</li>
+<li><strong>Model cache with a VRAM budget</strong> (default 70% of total). Least-recently-used models are evicted when space is needed, and idle models unload after 10 minutes.</li>
+<li><strong>GPU leases in Valkey.</strong> The trainer reserves VRAM through a lease. When inference needs the GPU during a training run, the trainer checkpoints, releases its lease and resumes afterwards. Interactive jobs never wait hours behind training.</li>
+<li><strong>Priorities.</strong> Interactive jobs (one image you're looking at) go ahead of batch jobs. Batches enqueue in chunks of 50 instead of 10,000 tasks at once, so Valkey memory stays flat.</li>
+</ul>
+<h3 id="57-system-ram-and-disk">5.7 System RAM and disk</h3>
+<ul>
+<li>Workers read the container's real memory limit from cgroups (<code>/sys/fs/cgroup/memory.max</code>), not the host total, and check available memory before taking a job.</li>
+<li>libvips cache and thread limits are set from config. OpenCV threads are capped.</li>
+<li>Celery <code>worker_max_memory_per_child</code> recycles a worker that grows past a threshold. <code>MALLOC_ARENA_MAX=2</code> reduces glibc fragmentation.</li>
+<li>Every container has a memory limit in Compose, so a runaway process is stopped by Docker instead of freezing your PC.</li>
+<li>Below 5% free disk, new jobs are paused and the UI shows a banner. <code>tmp/</code> is cleaned on start and by age.</li>
+</ul>
+<h3 id="58-job-reliability">5.8 Job reliability</h3>
+<pre class="mermaid">stateDiagram-v2
+  [*] --&gt; queued
+  queued --&gt; rejected: plan does not fit
+  queued --&gt; running: worker picks it up
+  running --&gt; running: progress and heartbeat
+  running --&gt; retrying: worker lost or transient error
+  retrying --&gt; queued
+  running --&gt; succeeded
+  running --&gt; failed: permanent error
+  running --&gt; cancelled: user cancels
+  succeeded --&gt; [*]
+  failed --&gt; [*]
+  cancelled --&gt; [*]
+  rejected --&gt; [*]
+</pre>
+<ul>
+<li>PostgreSQL's <code>job</code> table is the source of truth. Valkey only carries messages.</li>
+<li>Celery runs with <code>acks_late</code> and <code>reject_on_worker_lost</code>, so a task whose worker dies is redelivered.</li>
+<li>Tasks are idempotent: outputs go to a temporary file and are renamed into place atomically, so a retry never leaves a half-written file.</li>
+<li>Workers send a heartbeat every 5 seconds. A reaper marks jobs with stale heartbeats as <code>retrying</code> (up to 3 attempts) and then <code>failed</code>.</li>
+<li>Cancellation is cooperative and checked between tiles and batches, so nothing is killed mid-write.</li>
+<li>Each job type has soft and hard time limits.</li>
+</ul>
+<h3 id="59-training-safety-forge">5.9 Training safety (Forge)</h3>
+<ul>
+<li><strong>Before training starts,</strong> the shape checker validates the graph, and the planner estimates VRAM from parameter count and activation sizes at the chosen patch size. It warns if the run won't fit.</li>
+<li><strong>Automatic batch size:</strong> try the requested batch, halve on OOM, then use gradient accumulation to keep the effective batch size you asked for.</li>
+<li><strong>Mixed precision</strong> (bf16 or fp16) by default, with optional gradient checkpointing for large graphs.</li>
+<li><strong>Checkpoints</strong> every N steps and on shutdown signals. Runs resume exactly where they stopped.</li>
+<li><strong>NaN and Inf guard:</strong> skip the step and lower the learning rate. Abort with a clear message after repeated failures.</li>
+<li><strong>Dataset validation</strong> up front: corrupt, non-RGB and too-small images are filtered once (the rules from your notebook), not discovered mid-epoch. Data-loader workers are sized to available CPU and RAM.</li>
+</ul>
+<h3 id="510-input-edge-cases-handled-explicitly">5.10 Input edge cases handled explicitly</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EXIF rotation</td>
+<td>Applied on import; pixels and metadata agree</td>
+</tr>
+<tr>
+<td>CMYK, Adobe RGB, wide-gamut profiles</td>
+<td>Converted to an sRGB working space via ICC; export can embed sRGB or Display P3</td>
+</tr>
+<tr>
+<td>16-bit images</td>
+<td>Kept 16-bit through classic ops; models run in float and return 16-bit</td>
+</tr>
+<tr>
+<td>Alpha channel</td>
+<td>RGB goes through the model; alpha is upscaled separately and recombined</td>
+</tr>
+<tr>
+<td>Grayscale, palette, 1-bit</td>
+<td>Normalised on import, original mode recorded for export</td>
+</tr>
+<tr>
+<td>Animated GIF, WebP, APNG</td>
+<td>Frames processed individually, or the first frame with a visible notice</td>
+</tr>
+<tr>
+<td>HEIC and AVIF input</td>
+<td>Supported via pillow-heif and libvips</td>
+</tr>
+<tr>
+<td>Truncated or corrupt files</td>
+<td>libvips fails fast; the asset is marked unreadable instead of crashing a worker</td>
+</tr>
+<tr>
+<td>Images smaller than a tile or kernel</td>
+<td>Padded, processed, cropped</td>
+</tr>
+<tr>
+<td>Extreme aspect ratios (1 × 20,000)</td>
+<td>The tiler handles any shape; previews are letterboxed</td>
+</tr>
+<tr>
+<td>Y-channel models (SIQE Classic) on RGB</td>
+<td>Correct YCbCr conversion and range handling; chroma upscaled with Lanczos</td>
+</tr>
+<tr>
+<td>NaN or out-of-range model output</td>
+<td>Detected, clamped, and flagged on the job</td>
+</tr>
+<tr>
+<td>Same file uploaded twice</td>
+<td>Recognised by hash; you're offered the existing asset</td>
+</tr>
+<tr>
+<td>Partially written files in hot folders</td>
+<td>Picked up only after the size has stayed stable for 2 seconds</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="511-browser-side-safety">5.11 Browser-side safety</h3>
+<ul>
+<li>The browser never decodes full-resolution images. It gets previews and a deep-zoom pyramid (OpenSeadragon).</li>
+<li>Live adjustments run as WebGL shaders on the preview. The full-resolution render happens on the server.</li>
+<li>Long lists (libraries with thousands of photos) are virtualised.</li>
+<li>A WebSocket drop falls back to polling and resubscribes, so progress bars never freeze.</li>
+</ul>
+<h3 id="512-errors-and-graceful-degradation">5.12 Errors and graceful degradation</h3>
+<p>API errors follow RFC 9457 (<code>application/problem+json</code>) with stable codes such as <code>image.too_large</code>, <code>format.dimension_limit</code>, <code>gpu.insufficient_memory</code> and <code>model.not_installed</code>, plus a <code>fix</code> hint the UI shows as-is.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>If this is missing or down</th>
+<th>The app does this</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU</td>
+<td>Runs everything on CPU and labels it in the status bar</td>
+</tr>
+<tr>
+<td>A model's weights</td>
+<td>Shows a Download button instead of an error</td>
+</tr>
+<tr>
+<td>Valkey</td>
+<td>Library and editing still work; new jobs return 503 with retry advice</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>Health check fails; the UI shows a clear maintenance screen</td>
+</tr>
+<tr>
+<td>Disk nearly full</td>
+<td>New jobs pause; a banner explains why</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="513-observability">5.13 Observability</h3>
+<ul>
+<li>structlog JSON logs with <code>job_id</code> on every line.</li>
+<li><code>/healthz</code> and <code>/readyz</code> endpoints, and Docker health checks on every container.</li>
+<li>A <code>/metrics</code> endpoint (Prometheus format): queue depth, job durations, OOM fallback counts, VRAM and RAM in use.</li>
+<li>A System panel in the UI shows GPU, VRAM, RAM, disk and queue live.</li>
+</ul>
+<h3 id="514-how-robustness-is-tested">5.14 How robustness is tested</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>What it proves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Property tests (Hypothesis) on the tiler</td>
+<td>Every output pixel is written exactly once; an identity model gives identical results tiled and untiled</td>
+</tr>
+<tr>
+<td>OOM injection</td>
+<td>A fake device raising OOM at chosen thresholds walks the whole fallback ladder</td>
+</tr>
+<tr>
+<td>Memory ceiling test</td>
+<td>A synthetic 8K image is upscaled inside a container capped at 2 GB RAM, and peak memory is asserted</td>
+</tr>
+<tr>
+<td>Fuzzed inputs</td>
+<td>Malformed, truncated and bomb files are rejected cleanly</td>
+</tr>
+<tr>
+<td>Crash recovery</td>
+<td>A worker is killed mid-job; the job resumes from its tile manifest</td>
+</tr>
+<tr>
+<td>End to end (Playwright)</td>
+<td>Upload, enhance, compare and export through the real UI</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="6-naming">6. Naming</h2>
+<p><strong>Recommendation: Facetry.</strong> Tagline: <em>Cut every image to brilliance.</em></p>
+<p>In gem cutting, facets are what turn a dull stone into a brilliant one. Your logo is a faceted crystal, and the platform has many facets: enhance, edit, organize, automate and train. The word reads like "artistry" and "wizardry". It's unclaimed on PyPI and npm, and quick web searches found no image product using it. That's not a trademark search, so check before any commercial launch.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>For</th>
+<th>Against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Facetry</strong> (recommended)</td>
+<td>Meaningful, ties to the logo, short CLI (<code>facetry run</code>)</td>
+<td>Some people may first read "face"</td>
+</tr>
+<tr>
+<td>Lucere (Latin "to shine")</td>
+<td>Elegant</td>
+<td>Close to existing AI photo apps Lucent and Lucer</td>
+</tr>
+<tr>
+<td>SIQE Studio</td>
+<td>Continuity with your current brand and paper</td>
+<td>Acronym is hard to pronounce and remember</td>
+</tr>
+<tr>
+<td>Lumacore</td>
+<td>Nice story (luma channel + gold core)</td>
+<td>Already used by several products</td>
+</tr>
+</tbody>
+</table></div>
+<p>Whichever you pick, your original model keeps the heritage name <strong>SIQE Classic</strong>, and the design language keeps the name <strong>Lattice</strong>. Renaming before Phase 0 is a search-and-replace; after that it's more work.</p>
+<hr />
+<h2 id="7-project-structure">7. Project structure</h2>
+<h3 id="71-containers">7.1 Containers</h3>
+<pre class="mermaid">flowchart LR
+  B[Browser] --&gt; C[web: Caddy, static SPA, reverse proxy]
+  C --&gt;|/api and /ws| A[api: FastAPI]
+  A --&gt; P[(PostgreSQL 18 + pgvector)]
+  A --&gt; V[(Valkey: queue, events, leases)]
+  V --&gt; W1[worker: CPU queue, imaging and library]
+  V --&gt; W2[worker-gpu: AI inference]
+  V --&gt; T[trainer: Forge training]
+  W1 --&gt; P
+  W2 --&gt; P
+  T --&gt; P
+  A --&gt; D[/data volume: media, models, checkpoints/]
+  W1 --&gt; D
+  W2 --&gt; D
+  T --&gt; D
+</pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Container</th>
+<th>Image</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>web</code></td>
+<td>Caddy + built SPA</td>
+<td>Serves the frontend; proxies <code>/api</code> and <code>/ws</code>; binds to <code>127.0.0.1:8080</code> by default</td>
+</tr>
+<tr>
+<td><code>api</code></td>
+<td>backend <code>api</code> target</td>
+<td>Small image, no PyTorch</td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td>backend <code>api</code> target</td>
+<td>CPU queue: classic operations, hashing, previews</td>
+</tr>
+<tr>
+<td><code>worker-gpu</code></td>
+<td>backend <code>ai</code> target</td>
+<td>GPU queue: inference and embeddings; runs on CPU when no GPU is present</td>
+</tr>
+<tr>
+<td><code>trainer</code></td>
+<td>backend <code>ai</code> target</td>
+<td>Forge training; holds a GPU lease while running</td>
+</tr>
+<tr>
+<td><code>db</code></td>
+<td><code>pgvector/pgvector:pg18</code></td>
+<td>Volume <code>pgdata</code></td>
+</tr>
+<tr>
+<td><code>valkey</code></td>
+<td><code>valkey/valkey:9</code></td>
+<td>No persistence needed</td>
+</tr>
+</tbody>
+</table></div>
+<p>Run with <code>docker compose up -d</code>. For NVIDIA, use <code>docker compose -f compose.yaml -f compose.gpu.yaml up -d</code> (wrapped as <code>make up-gpu</code>).</p>
+<h3 id="72-repository-layout">7.2 Repository layout</h3>
+<pre><code class="language-text">facetry/
+├── AGENTS.md                    guidelines for AI agents (section 8)
+├── README.md
+├── LICENSE
+├── .env.example                 every setting, documented; .env is git-ignored
+├── compose.yaml                 the 7 services
+├── compose.gpu.yaml             NVIDIA device reservations
+├── compose.dev.yaml             hot reload: Vite dev server, uvicorn --reload, bind mounts
+├── Makefile                     up, up-gpu, dev, test, lint, gen-api, migrate, models, gallery
+├── .github/
+│   ├── workflows/ci.yml         lint, typecheck, tests, image builds, Trivy scan
+│   └── pull_request_template.md
+├── backend/
+│   ├── pyproject.toml           uv project; extras: ai, train, dev
+│   ├── uv.lock
+│   ├── Dockerfile               targets: api (no torch), ai (torch, onnxruntime, spandrel)
+│   ├── alembic.ini
+│   ├── migrations/
+│   ├── models/manifests/        one YAML per model: source URL, sha256, license, task, scale
+│   ├── src/facetry/
+│   │   ├── api/                 FastAPI app, routers, schemas, dependencies, problem+json errors
+│   │   ├── core/                settings, logging, error types, IDs
+│   │   ├── db/                  SQLAlchemy models, session, repositories
+│   │   ├── storage/             content-addressed store, previews, deep-zoom pyramids
+│   │   ├── imaging/             safe open and admission, color management, classic operations
+│   │   ├── ai/
+│   │   │   ├── registry/        manifests, resumable downloads, checksum and license checks
+│   │   │   ├── runtime/         torch, spandrel and ONNX sessions, device and model cache
+│   │   │   ├── governor/        resource planner, VRAM profiles, OOM ladder, GPU leases
+│   │   │   ├── tiling/          tile planner, padded inference, streaming writer
+│   │   │   └── tasks/           upscale, restore faces, cutout, erase, colorize, depth, embed
+│   │   ├── library/             hashing, embeddings, duplicates, similarity, smart albums, EXIF
+│   │   ├── flows/               flow graph schema, validation, executor, hot folders
+│   │   ├── forge/               graph schema, shape checker, graph-to-PyTorch compiler, trainer, datasets
+│   │   ├── jobs/                Celery app, queues, progress events, heartbeats, reaper
+│   │   └── cli/                 `facetry` command-line tool (Typer)
+│   └── tests/
+│       ├── unit/
+│       ├── integration/         against real PostgreSQL and Valkey containers
+│       ├── robustness/          OOM injection, memory ceiling, fuzzing, crash recovery
+│       └── fixtures/
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── biome.json
+│   ├── Dockerfile               builds the SPA, copies it into the Caddy image
+│   ├── index.html
+│   ├── src/
+│   │   ├── app/                 router, providers, app shell, command palette
+│   │   ├── features/
+│   │   │   ├── studio/
+│   │   │   ├── ai-lab/
+│   │   │   ├── library/
+│   │   │   ├── flows/
+│   │   │   ├── forge/
+│   │   │   └── settings/
+│   │   ├── components/ui/       Lattice design-system primitives
+│   │   ├── lib/api/             generated OpenAPI types and client, WebSocket events
+│   │   ├── lib/gl/              WebGL2 live-preview shaders
+│   │   └── styles/tokens.css
+│   ├── tests/                   Vitest unit and component tests
+│   └── e2e/                     Playwright tests and the gallery capture script
+├── deploy/
+│   ├── caddy/Caddyfile
+│   └── postgres/init.sql        CREATE EXTENSION vector
+├── docs/
+│   ├── architecture.md          this document, kept current
+│   ├── adr/                     one short record per significant decision
+│   ├── robustness.md            limits, error codes, fallback behaviour
+│   ├── brand/                   logo and poster (moved from Gallery/)
+│   ├── research/                your &quot;Resolution Revolution&quot; paper and architecture SVG
+│   └── plan/                    blueprint.html and architecture.html review pages
+├── gallery/                     README screenshots, regenerated by `make gallery`
+├── samples/                     demo and test images (moved from resources/LowQualityImgesForTest)
+└── scripts/
+    └── port_v10_weights.py      converts v10.h5 to SIQE Classic safetensors
+</code></pre>
+<p>What happens to today's files: <code>backend/</code>, <code>frontend/</code>, <code>ModelCreator/</code> and <code>docker-compose.yml</code> are deleted (your decision; git history keeps them). The logo and poster move to <code>docs/brand/</code>, the paper and architecture SVG to <code>docs/research/</code>, and the test photos to <code>samples/</code>. The old UI screenshots in <code>Gallery/</code> are replaced by the new <code>gallery/</code>. <code>v10.h5</code> is read once by the port script and not committed again. The converted weights are attached to a GitHub release instead of living in git.</p>
+<hr />
+<h2 id="8-agentsmd-draft">8. AGENTS.md (draft)</h2>
+<p><code>AGENTS.md</code> lands in the repository root in Phase 0. It's written for any coding agent, and kept short enough to read in full every session. It contains:</p>
+<ol>
+<li><strong>What this project is</strong>, in five lines, and a map of where things live (the table in 7.2).</li>
+<li><strong>Commands:</strong> <code>make dev</code>, <code>make test</code>, <code>make lint</code>, <code>make gen-api</code>, <code>make migrate</code>, <code>make gallery</code>, and how to run one backend test or one Playwright spec.</li>
+<li><strong>Golden rules.</strong> Break one and CI or review will catch it:
+   - Open images only through <code>imaging.open_image()</code>, which applies admission limits and streaming. Never call <code>PIL.Image.open</code> or <code>cv2.imread</code> on user files directly.
+   - All GPU work goes through <code>ai.governor</code>. Tasks never call <code>.cuda()</code> or pick devices themselves.
+   - Jobs are idempotent, report progress through <code>jobs.progress</code>, and check for cancellation between units of work.
+   - Raise typed <code>AppError</code>s with a stable code and a <code>fix</code> hint. Don't return ad-hoc error dicts.
+   - Never commit model weights. Add a model by writing a manifest with sha256 and license, and only commercial-safe licenses are allowed.
+   - Load weights with <code>weights_only=True</code> or from safetensors. Never unpickle user files.
+   - Schema changes go through new Alembic migrations. Never edit an applied migration.
+   - The frontend calls the backend only through the generated client. Run <code>make gen-api</code> after changing an endpoint.
+   - UI colors come from design tokens. Gold is reserved for AI.</li>
+<li><strong>Definition of done:</strong> tests added or updated, <code>make lint test</code> green, docs and <code>AGENTS.md</code> updated if structure or commands changed, and screenshots regenerated if UI changed.</li>
+<li><strong>Conventions:</strong> Conventional Commits, small focused changes, ADRs for decisions that change this document.</li>
+</ol>
+<p>Claude Code reads <code>CLAUDE.md</code> by default. If your version doesn't pick up <code>AGENTS.md</code> on its own, a one-line <code>CLAUDE.md</code> containing <code>@AGENTS.md</code> fixes that. I won't add it unless you ask.</p>
+<hr />
+<h2 id="9-security-single-user">9. Security (single user)</h2>
+<ul>
+<li>Binds to <code>127.0.0.1</code> by default. Exposing it on your network is a deliberate setting.</li>
+<li>API keys for automation are stored hashed, with scopes and a last-used time. Revoke from Settings.</li>
+<li>Uploaded files are sniffed by content rather than trusted by extension. Stored paths come from hashes, never from user file names, so there's no path traversal.</li>
+<li>Bring-your-own models: ONNX and safetensors are accepted. <code>.pth</code> files load only with <code>weights_only=True</code>.</li>
+<li>Caddy sets a strict Content Security Policy and security headers.</li>
+<li>Exports can strip EXIF and GPS data, and a setting makes that the default.</li>
+<li>Trivy scans every image in CI. Dependencies are locked (<code>uv.lock</code>, <code>pnpm-lock.yaml</code>).</li>
+</ul>
+<hr />
+<h2 id="10-execution-plan">10. Execution plan</h2>
+<p>Each phase ends with a commit series pushed to <code>claude/brave-keller-fgjtdn</code>, updated screenshots in <code>gallery/</code>, and an updated <code>README.md</code>. You can stop me after any phase and still have a working app.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Delivers</th>
+<th>Verified where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0 Foundation</strong></td>
+<td>Old code removed and assets moved; backend and frontend skeletons; settings, logging and problem+json errors; PostgreSQL, Alembic and pgvector; Celery, job table and live progress over WebSocket; Lattice design tokens, app shell and command palette; Compose (7 services, GPU override, dev mode); CI; <code>AGENTS.md</code>; README v0; gallery capture script; session-start hook for future cloud sessions</td>
+<td>Here, including <code>docker compose up</code></td>
+</tr>
+<tr>
+<td><strong>P1 Studio and storage</strong></td>
+<td>Content-addressed storage; admission checks; previews and deep zoom; classic operations; non-destructive edit stack; WebGL preview; Compare viewer; export with format-limit checks</td>
+<td>Here</td>
+</tr>
+<tr>
+<td><strong>P2 AI Lab and governor</strong></td>
+<td>Model registry and downloads; runtimes; tiling engine; VRAM calibration and planner; OOM ladder; GPU leases; SIQE Classic port; upscalers, faces, cutout, erase, colorize, denoise and deblur</td>
+<td>Here on CPU with GitHub-hosted models; GPU and Hugging Face models on your PC unless the network change lands</td>
+</tr>
+<tr>
+<td><strong>P3 Library</strong></td>
+<td>Import and hot folders; hashing and embeddings; duplicates with quarantine; similar and text search; smart albums; EXIF and GPS tools</td>
+<td>Here</td>
+</tr>
+<tr>
+<td><strong>P4 Flows and automation</strong></td>
+<td>Node editor; batch runs with chunked enqueueing; saved recipes; API keys; <code>facetry</code> CLI</td>
+<td>Here</td>
+</tr>
+<tr>
+<td><strong>P5 Forge</strong></td>
+<td>Visual builder; shape checker; graph-to-PyTorch compiler; dataset builder; resumable trainer with GPU leases; live charts; benchmark and publish to AI Lab</td>
+<td>Small CPU runs here; real training on your GPU</td>
+</tr>
+<tr>
+<td><strong>P6 Hardening and launch</strong></td>
+<td>Full robustness suite at 8K+; performance pass; final README and gallery; docs</td>
+<td>Final <code>docker compose up</code> on your PC</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="gallery-and-readme-workflow">Gallery and README workflow</h3>
+<ul>
+<li><code>make gallery</code> runs a Playwright script that starts the stack with demo data from <code>samples/</code>, then captures each workspace in dark and light themes at 1600 × 1000, plus phone-width shots, into <code>gallery/</code> with stable file names (<code>gallery/studio-dark.png</code> and so on).</li>
+<li>The README embeds those files, so every phase refreshes the screenshots automatically.</li>
+<li>The README covers what the platform does, a screenshot tour, quick start (CPU and GPU), hardware guidance (what fits in 4, 8, 12 and 24 GB of VRAM), configuration reference, architecture summary with a link to this document, model list with licenses, CLI and API examples, troubleshooting by error code, contributing, and credits for your original research.</li>
+</ul>
+<hr />
+<h2 id="11-what-i-need-from-you">11. What I need from you</h2>
+<ol>
+<li><strong>Approve this plan,</strong> or tell me what to change.</li>
+<li><strong>Pick the name:</strong> Facetry (recommended), Lucere, SIQE Studio, or your own.</li>
+<li><strong>Your GPU model and VRAM.</strong></li>
+<li><strong>Optional:</strong> allow the two network hosts, connect Context7, install the frontend-design plugin.</li>
+</ol>
+<p>When you approve, I start Phase 0 immediately.</p>
+  </article>
+</div>
