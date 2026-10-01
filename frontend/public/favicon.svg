@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>SIQE Studio</title>
+  <rect width="32" height="32" rx="7" fill="#080D1A"/>
+  <g fill="none" stroke="#4DCBF3" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M16 4l10.4 6v12L16 28 5.6 22V10z"/>
+    <path d="M16 4v24M5.6 10l20.8 12M26.4 10L5.6 22" opacity=".45"/>
+  </g>
+  <path d="M16 11.2l4.2 2.4v4.8L16 20.8l-4.2-2.4v-4.8z" fill="#F5BD45"/>
+  <circle cx="24.5" cy="7.5" r="2" fill="#F5BD45"/>
+</svg>

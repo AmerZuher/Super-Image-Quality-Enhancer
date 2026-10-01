@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/unbounded";
+@import "./tokens.css";
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-cyan: var(--cyan);
+  --color-cyan-strong: var(--cyan-strong);
+  --color-cyan-soft: var(--cyan-soft);
+  --color-on-cyan: var(--on-cyan);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-on-gold: var(--on-gold);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-err: var(--err);
+  --color-err-soft: var(--err-soft);
+  --font-sans: "Instrument Sans Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Unbounded Variable", "Arial Black", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow-float: var(--shadow);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--cyan-soft);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .dot-grid {
+    background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 1.2px);
+    background-size: 20px 20px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .prose-notes {
+    color: var(--fg-2);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .prose-notes h1,
+  .prose-notes h2,
+  .prose-notes h3 {
+    color: var(--fg);
+    font-weight: 600;
+    font-size: 14px;
+    margin: 14px 0 6px;
+  }
+  .prose-notes p {
+    margin: 6px 0;
+  }
+  .prose-notes ul,
+  .prose-notes ol {
+    margin: 6px 0;
+    padding-left: 20px;
+  }
+  .prose-notes ul {
+    list-style: disc;
+  }
+  .prose-notes ol {
+    list-style: decimal;
+  }
+  .prose-notes li {
+    margin: 2px 0;
+  }
+  .prose-notes a {
+    color: var(--cyan);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .prose-notes code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+  .prose-notes pre {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+  .prose-notes pre code {
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  .prose-notes table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+  }
+  .prose-notes th,
+  .prose-notes td {
+    border-bottom: 1px solid var(--line);
+    padding: 4px 6px;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

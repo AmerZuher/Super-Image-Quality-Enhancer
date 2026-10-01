@@ -1,0 +1,105 @@
+/*
+ * Lattice design tokens. Built from the SIQE crystal logo:
+ * cyan is structure, focus and selection; gold is reserved for AI; status colours
+ * (ok, warn, err) always travel with an icon and a label, never colour alone.
+ *
+ * Dark-first. Bare :root holds the dark palette; light is applied when the viewer's OS
+ * prefers light (and they haven't forced dark), or when they choose light explicitly.
+ */
+:root {
+  color-scheme: dark;
+  --bg: #080d1a;
+  --panel: #0e1527;
+  --panel-2: #141d35;
+  --raised: #1a2442;
+  --line: #212d4d;
+  --line-2: #33456f;
+  --fg: #e3ebfa;
+  --fg-2: #aebcd8;
+  --muted: #8193b6;
+  --cyan: #4dcbf3;
+  --cyan-strong: #7ad8f6;
+  --cyan-soft: rgb(77 203 243 / 0.14);
+  --cyan-track: rgb(77 203 243 / 0.16);
+  --on-cyan: #03212c;
+  --gold: #f5bd45;
+  --gold-soft: rgb(245 189 69 / 0.14);
+  --on-gold: #1a1200;
+  --ok: #45d89d;
+  --ok-soft: rgb(69 216 157 / 0.14);
+  --warn: #ffa45c;
+  --warn-soft: rgb(255 164 92 / 0.14);
+  --warn-track: rgb(255 164 92 / 0.18);
+  --err: #ff6179;
+  --err-soft: rgb(255 97 121 / 0.14);
+  --err-track: rgb(255 97 121 / 0.18);
+  --overlay: rgb(3 6 14 / 0.62);
+  --shadow: 0 24px 60px -24px rgb(0 0 0 / 0.8);
+  --grid-dot: rgb(129 147 182 / 0.16);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f3f6fb;
+    --panel: #ffffff;
+    --panel-2: #eef2f9;
+    --raised: #e5ebf5;
+    --line: #d7deeb;
+    --line-2: #b9c5dc;
+    --fg: #0b1430;
+    --fg-2: #2e3c60;
+    --muted: #56648a;
+    --cyan: #0780b0;
+    --cyan-strong: #05668d;
+    --cyan-soft: rgb(7 128 176 / 0.1);
+    --cyan-track: rgb(7 128 176 / 0.14);
+    --on-cyan: #ffffff;
+    --gold: #a86c00;
+    --gold-soft: rgb(201 138 16 / 0.14);
+    --on-gold: #ffffff;
+    --ok: #0b8f5c;
+    --ok-soft: rgb(11 143 92 / 0.12);
+    --warn: #b45a0c;
+    --warn-soft: rgb(180 90 12 / 0.12);
+    --warn-track: rgb(180 90 12 / 0.16);
+    --err: #c8253f;
+    --err-soft: rgb(200 37 63 / 0.1);
+    --err-track: rgb(200 37 63 / 0.14);
+    --overlay: rgb(11 20 48 / 0.32);
+    --shadow: 0 24px 50px -28px rgb(16 36 86 / 0.45);
+    --grid-dot: rgb(86 100 138 / 0.18);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f6fb;
+  --panel: #ffffff;
+  --panel-2: #eef2f9;
+  --raised: #e5ebf5;
+  --line: #d7deeb;
+  --line-2: #b9c5dc;
+  --fg: #0b1430;
+  --fg-2: #2e3c60;
+  --muted: #56648a;
+  --cyan: #0780b0;
+  --cyan-strong: #05668d;
+  --cyan-soft: rgb(7 128 176 / 0.1);
+  --cyan-track: rgb(7 128 176 / 0.14);
+  --on-cyan: #ffffff;
+  --gold: #a86c00;
+  --gold-soft: rgb(201 138 16 / 0.14);
+  --on-gold: #ffffff;
+  --ok: #0b8f5c;
+  --ok-soft: rgb(11 143 92 / 0.12);
+  --warn: #b45a0c;
+  --warn-soft: rgb(180 90 12 / 0.12);
+  --warn-track: rgb(180 90 12 / 0.16);
+  --err: #c8253f;
+  --err-soft: rgb(200 37 63 / 0.1);
+  --err-track: rgb(200 37 63 / 0.14);
+  --overlay: rgb(11 20 48 / 0.32);
+  --shadow: 0 24px 50px -28px rgb(16 36 86 / 0.45);
+  --grid-dot: rgb(86 100 138 / 0.18);
+}
