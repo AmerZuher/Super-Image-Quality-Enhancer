@@ -42,7 +42,7 @@ def render() -> str:
     return TEMPLATE.replace("{{NAV}}", nav).replace("{{BODY}}", body)
 
 
-TEMPLATE = """<title>Facetry Architecture Proposal</title>
+TEMPLATE = """<title>SIQE Studio Architecture</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -116,9 +116,9 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 
 <div class="page">
   <header class="top">
-    <div class="eyebrow">Architecture proposal · v2 · awaiting your review · 1 Oct 2026</div>
-    <h1>Facetry<span>The technical plan for the new image platform</span></h1>
-    <p>Stack, database, memory safety for 8K images on an 8 GB GPU, naming, repository layout, agent guidelines and build order. Nothing is built until you approve it.</p>
+    <div class="eyebrow">Architecture · v3 · approved · Phase 0 implemented · 1 Oct 2026</div>
+    <h1>SIQE Studio<span>How the platform is built, and why</span></h1>
+    <p>Stack, Temporal orchestration, database, memory safety for 8K+ images, the Update Center, repository layout and build order. Rendered from docs/architecture.md, the source of truth.</p>
   </header>
   <nav class="toc" aria-label="Sections"><div class="h">Sections</div>{{NAV}}</nav>
   <article>
