@@ -1,0 +1,13 @@
+# Root context is only used by the web image (frontend/Dockerfile).
+**/node_modules
+**/.venv
+**/__pycache__
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+backend
+docs
+gallery
+samples
+data
+.git

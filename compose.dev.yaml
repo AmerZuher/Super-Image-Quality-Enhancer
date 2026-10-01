@@ -1,0 +1,10 @@
+# Development: run only the infrastructure in Docker and the app on your machine with hot reload.
+#   make dev-services   then   make dev
+# Publishes PostgreSQL and Temporal on localhost so `uv run siqe ...` and Vite can reach them.
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+  temporal:
+    ports:
+      - "127.0.0.1:7233:7233"

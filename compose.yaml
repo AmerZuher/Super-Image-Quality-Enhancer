@@ -1,0 +1,166 @@
+# SIQE Studio. Start with `make up` (or `docker compose up -d --build` after `make env`).
+# NVIDIA GPU: `make up-gpu` (adds compose.gpu.yaml). Temporal UI: `--profile ops`.
+name: siqe-studio
+
+x-backend-env: &backend-env
+  SIQE_DATABASE_URL: postgresql+asyncpg://siqe:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (run make env)}@db:5432/siqe
+  SIQE_TEMPORAL_ADDRESS: temporal:7233
+  SIQE_TEMPORAL_NAMESPACE: siqe
+  SIQE_DATA_DIR: /data
+  SIQE_LOG_LEVEL: ${SIQE_LOG_LEVEL:-INFO}
+  SIQE_MAX_INPUT_MEGAPIXELS: ${SIQE_MAX_INPUT_MEGAPIXELS:-250}
+  SIQE_GPU_VRAM_RESERVE_MB: ${SIQE_GPU_VRAM_RESERVE_MB:-1536}
+  SIQE_UPDATE_REPO: ${SIQE_UPDATE_REPO:-AmerZuher/Super-Image-Quality-Enhancer}
+  SIQE_UPDATE_INCLUDE_PRERELEASES: ${SIQE_UPDATE_INCLUDE_PRERELEASES:-false}
+  SIQE_GITHUB_TOKEN: ${SIQE_GITHUB_TOKEN:-}
+
+x-api-image: &api-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-api:${SIQE_VERSION:-latest}
+x-ai-image: &ai-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-ai:${SIQE_VERSION:-latest}
+
+x-api-build: &api-build
+  context: ./backend
+  target: api
+  args:
+    SIQE_VERSION: ${SIQE_VERSION:-0.1.0}
+
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB"]
+    environment:
+      POSTGRES_USER: siqe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (run make env)}
+      POSTGRES_DB: siqe
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U siqe -d siqe"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    restart: unless-stopped
+    mem_limit: 1g
+
+  temporal-schema:
+    image: temporalio/admin-tools:1.32.0
+    depends_on:
+      db: { condition: service_healthy }
+    environment: &temporal-db-env
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: siqe
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (run make env)}
+      POSTGRES_SEEDS: db
+    volumes:
+      - ./deploy/temporal/setup-schema.sh:/setup-schema.sh:ro
+    entrypoint: ["/bin/sh", "/setup-schema.sh"]
+    restart: "no"
+
+  temporal:
+    image: temporalio/server:1.32.0
+    depends_on:
+      temporal-schema: { condition: service_completed_successfully }
+    environment:
+      <<: *temporal-db-env
+      BIND_ON_IP: 0.0.0.0
+      TEMPORAL_BROADCAST_ADDRESS: 127.0.0.1
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/dynamicconfig/siqe.yaml
+      # Keep Temporal's connection pools modest so PostgreSQL has room for the app.
+      SQL_MAX_CONNS: "10"
+      SQL_MAX_IDLE_CONNS: "5"
+    volumes:
+      - ./deploy/temporal/dynamicconfig.yaml:/etc/temporal/dynamicconfig/siqe.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 7233"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+    restart: unless-stopped
+    mem_limit: 1g
+
+  temporal-ui:
+    image: temporalio/ui:2.54.1
+    profiles: ["ops"]
+    depends_on:
+      temporal: { condition: service_healthy }
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_DEFAULT_NAMESPACE: siqe
+    ports:
+      - "127.0.0.1:8233:8080"
+    restart: unless-stopped
+
+  init:
+    image: *api-image
+    build: *api-build
+    command: ["siqe", "init"]
+    depends_on:
+      db: { condition: service_healthy }
+      temporal: { condition: service_healthy }
+    environment: *backend-env
+    volumes:
+      - data:/data
+    restart: "no"
+
+  api:
+    image: *api-image
+    build: *api-build
+    command: ["siqe", "api"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+    environment: *backend-env
+    volumes:
+      - data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/live', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    restart: unless-stopped
+    mem_limit: ${SIQE_API_MEMORY:-1g}
+
+  worker:
+    image: *api-image
+    build: *api-build
+    command: ["siqe", "worker", "cpu"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+    environment: *backend-env
+    volumes:
+      - data:/data
+    restart: unless-stopped
+    mem_limit: ${SIQE_CPU_WORKER_MEMORY:-4g}
+
+  worker-gpu:
+    image: *ai-image
+    build:
+      context: ./backend
+      target: ai
+      args:
+        SIQE_VERSION: ${SIQE_VERSION:-0.1.0}
+    command: ["siqe", "worker", "gpu"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+    environment: *backend-env
+    volumes:
+      - data:/data
+    # PyTorch data loaders share tensors through /dev/shm.
+    shm_size: 2g
+    restart: unless-stopped
+    mem_limit: ${SIQE_GPU_WORKER_MEMORY:-12g}
+
+  web:
+    image: ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-web:${SIQE_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      api: { condition: service_healthy }
+    ports:
+      - "${SIQE_BIND:-127.0.0.1}:${SIQE_PORT:-8080}:8080"
+    restart: unless-stopped
+    mem_limit: 256m
+
+volumes:
+  pgdata:
+  data:

@@ -1,0 +1,5 @@
+# Temporal dynamic config. Defaults suit a single-user install; tune here if needed.
+# Reference: https://docs.temporal.io/references/dynamic-configuration
+limit.maxIDLength:
+  - value: 255
+    constraints: {}

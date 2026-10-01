@@ -1,0 +1,13 @@
+# NVIDIA GPU support. Requires the NVIDIA driver and the NVIDIA Container Toolkit on the host.
+#   docker compose -f compose.yaml -f compose.gpu.yaml up -d      (or: make up-gpu)
+services:
+  worker-gpu:
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -1,0 +1,86 @@
+# Publishes Docker images to GitHub Container Registry when you publish a GitHub release.
+# The release's notes are what users see in the in-app Update Center, so write them for users.
+#
+# Tag releases as vMAJOR.MINOR.PATCH (for example v0.2.0). Pre-releases (v0.3.0-rc.1) are
+# published too, but don't move the `latest` tag and are hidden in the app unless
+# SIQE_UPDATE_INCLUDE_PRERELEASES=true.
+name: Release images
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)publish, e.g. v0.2.0"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    name: Publish ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: siqe-studio-api
+            context: backend
+            file: backend/Dockerfile
+            target: api
+          - image: siqe-studio-ai
+            context: backend
+            file: backend/Dockerfile
+            target: ai
+          - image: siqe-studio-web
+            context: .
+            file: frontend/Dockerfile
+            target: web
+    steps:
+      - name: Free disk space for the PyTorch image
+        if: matrix.target == 'ai'
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          tool-cache: false
+      - name: Resolve version
+        id: version
+        run: |
+          tag="${{ github.event.release.tag_name || inputs.tag }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ steps.version.outputs.owner }}/${{ matrix.image }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.tag }}
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+          labels: |
+            org.opencontainers.image.title=SIQE Studio (${{ matrix.target }})
+            org.opencontainers.image.licenses=MIT
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          build-args: SIQE_VERSION=${{ steps.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

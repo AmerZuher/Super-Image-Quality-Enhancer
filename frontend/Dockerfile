@@ -1,42 +1,20 @@
-# Stage 1: Install dependencies and build the Next.js application
-FROM node:20-slim AS builder
+# syntax=docker/dockerfile:1.7
+#
+# Builds the SPA and serves it with Caddy, which also proxies /api to the backend.
+# Build context is the repository root (it needs deploy/caddy/Caddyfile).
 
-# Set working directory
+FROM node:24-alpine AS build
 WORKDIR /app
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    --mount=type=secret,id=extra_ca,required=false \
+    if [ -f /run/secrets/extra_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/extra_ca; fi; \
+    npm install --global --no-fund --no-audit pnpm@12.8.1 \
+ && pnpm install --frozen-lockfile
+COPY frontend/ ./
+RUN pnpm build
 
-# Copy package.json and lock file, then install dependencies
-COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; elif [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else npm ci; fi
-
-# Copy the rest of the application code
-COPY . .
-
-# Build the Next.js application
-# This creates the production build in the .next directory
-RUN npm run build
-
-# Stage 2: Run the production Next.js application
-FROM node:20-slim AS runner
-
-# Set environment variables for production
-ENV NODE_ENV production
-
-# Set working directory
-WORKDIR /app
-
-# Copy necessary files from the builder stage
-# Copy the production build output (.next directory)
-COPY --from=builder /app/.next ./.next
-# Copy the public directory (static assets)
-COPY --from=builder /app/public ./public
-# Copy package.json and node_modules required for production runtime
-# Note: Only production dependencies are needed here. npm ci in builder handles dev deps separation.
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-
-# Expose the port Next.js runs on (default is 3000)
-EXPOSE 3000
-
-# Command to run the production Next.js server
-CMD ["npm", "start"]
-
+FROM caddy:2 AS web
+COPY deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv
+EXPOSE 8080
