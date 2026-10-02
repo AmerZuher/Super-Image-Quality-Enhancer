@@ -158,8 +158,13 @@ def test_groups_use_embeddings_for_edited_copies() -> None:
     w = v.copy()
     w[1] = 0.2
     w /= np.linalg.norm(w)
-    far = (1 << 40) - 1
-    items = [_cand("a", 0, embedding=v), _cand("b", far, embedding=w), _cand("c", 0xFFFFFF << 40)]
+    cropped = (1 << 16) - 1  # 16 bits apart: too far for hashes alone
+    unrelated = (1 << 32) - 1  # 32 bits apart, like two different photos
+    items = [
+        _cand("a", 0, embedding=v),
+        _cand("b", cropped, dhash=cropped, embedding=w),
+        _cand("c", unrelated << 30, dhash=unrelated, embedding=w),
+    ]
     assert duplicates.groups(items) == [[0, 1]]
 
 

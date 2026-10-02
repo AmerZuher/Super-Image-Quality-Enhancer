@@ -116,3 +116,84 @@ def test_faces_are_found_and_restored() -> None:
     # Something changed around the faces and nothing far from them.
     assert (out - image).abs().max() > 0.05
     assert (out - image).abs().crop(0, 0, 40, 40).max() == 0
+
+
+# ------------------------------------------------------------------------------ CLIP
+
+
+def _torch_clip_block(
+    x: "torch.Tensor", w: dict[str, np.ndarray], p: str, mask: "torch.Tensor | None"
+) -> "torch.Tensor":
+    """OpenAI CLIP's ResidualAttentionBlock, built from torch's own attention."""
+    d = x.shape[-1]
+    attn = torch.nn.MultiheadAttention(d, d // 64, batch_first=True)
+    attn.in_proj_weight.data = torch.from_numpy(w[p + "attn.in_proj_weight"])
+    attn.in_proj_bias.data = torch.from_numpy(w[p + "attn.in_proj_bias"])
+    attn.out_proj.weight.data = torch.from_numpy(w[p + "attn.out_proj.weight"])
+    attn.out_proj.bias.data = torch.from_numpy(w[p + "attn.out_proj.bias"])
+
+    def ln(t: "torch.Tensor", name: str) -> "torch.Tensor":
+        return torch.nn.functional.layer_norm(
+            t, (d,), torch.from_numpy(w[p + name + ".weight"]), torch.from_numpy(w[p + name + ".bias"])
+        )
+
+    h = ln(x, "ln_1")
+    x = x + attn(h, h, h, attn_mask=mask, need_weights=False)[0]
+    h = ln(x, "ln_2") @ torch.from_numpy(w[p + "mlp.c_fc.weight"]).T + torch.from_numpy(
+        w[p + "mlp.c_fc.bias"]
+    )
+    h = h * torch.sigmoid(1.702 * h)
+    return x + h @ torch.from_numpy(w[p + "mlp.c_proj.weight"]).T + torch.from_numpy(w[p + "mlp.c_proj.bias"])
+
+
+@torch.inference_mode()
+def test_numpy_clip_matches_torch_attention() -> None:
+    from siqe.ai import clip
+    from tests.unit.library_helpers import tiny_clip
+
+    w = tiny_clip(layers=2)
+    t = {k: torch.from_numpy(v) for k, v in w.items()}
+    rng = np.random.default_rng(3)
+    pixels = rng.random((2, 224, 224, 3), dtype=np.float32)
+
+    x = (torch.from_numpy(pixels) - torch.from_numpy(clip.MEAN)) / torch.from_numpy(clip.STD)
+    x = torch.nn.functional.conv2d(x.permute(0, 3, 1, 2), t["visual.conv1.weight"], stride=32)
+    x = x.flatten(2).transpose(1, 2)
+    x = torch.cat([t["visual.class_embedding"].expand(2, 1, -1), x], 1) + t["visual.positional_embedding"]
+    x = torch.nn.functional.layer_norm(x, (x.shape[-1],), t["visual.ln_pre.weight"], t["visual.ln_pre.bias"])
+    for i in range(2):
+        x = _torch_clip_block(x, w, f"visual.transformer.resblocks.{i}.", None)
+    x = torch.nn.functional.layer_norm(
+        x[:, 0], (x.shape[-1],), t["visual.ln_post.weight"], t["visual.ln_post.bias"]
+    )
+    expected = torch.nn.functional.normalize(x @ t["visual.proj"], dim=-1).numpy()
+    np.testing.assert_allclose(clip.encode_images(w, pixels), expected, atol=2e-5)
+
+    tokens = np.zeros((2, clip.CONTEXT), np.int64)
+    tokens[0, :4] = [49406, 320, 1125, 49407]
+    tokens[1, :3] = [49406, 1615, 49407]
+    y = t["token_embedding.weight"][torch.from_numpy(tokens)] + t["positional_embedding"]
+    mask = torch.full((clip.CONTEXT, clip.CONTEXT), float("-inf")).triu(1)
+    for i in range(2):
+        y = _torch_clip_block(y, w, f"transformer.resblocks.{i}.", mask)
+    y = torch.nn.functional.layer_norm(y, (y.shape[-1],), t["ln_final.weight"], t["ln_final.bias"])
+    y = y[torch.arange(2), torch.from_numpy(tokens).argmax(-1)] @ t["text_projection"]
+    np.testing.assert_allclose(
+        clip.encode_texts(w, tokens), torch.nn.functional.normalize(y, dim=-1).numpy(), atol=2e-5
+    )
+
+
+def test_pth_reader_matches_torch_load(tmp_path: Path) -> None:
+    from siqe.ai import pth
+
+    state = {
+        "a.weight": torch.randn(4, 3),
+        "b": torch.randn(5).half(),
+        "c": torch.arange(6).reshape(2, 3)[:, 1:],
+    }
+    torch.save({"state_dict": state}, tmp_path / "zip.pt")
+    torch.save({"state_dict": state}, tmp_path / "legacy.pt", _use_new_zipfile_serialization=False)
+    for name in ("zip.pt", "legacy.pt"):
+        loaded = pth.state_dict(tmp_path / name)
+        for key, value in state.items():
+            np.testing.assert_array_equal(loaded[key], value.numpy())

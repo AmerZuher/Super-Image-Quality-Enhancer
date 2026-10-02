@@ -65,13 +65,16 @@ jobs:
           uv run python - <<'PY'
           import hashlib, urllib.request
           from siqe.ai.manifest import MODELS_BY_ID
-          for model_id in ("realesr-general-x4v3", "siqe-classic"):
-              f = MODELS_BY_ID[model_id].files[0]
+          wanted = [("realesr-general-x4v3", 0), ("siqe-classic", 0), ("clip-vit-b32", 1)]  # 1: tokenizer
+          for model_id, index in wanted:
+              f = MODELS_BY_ID[model_id].files[index]
               data = urllib.request.urlopen(f.url).read()
               assert hashlib.sha256(data).hexdigest() == f.sha256, f.name
               open(f"/tmp/models/{f.name}", "wb").write(data)
           PY
-      - run: uv run pytest tests/unit/test_ai_torch.py tests/unit/test_faces.py tests/unit/test_tiling.py -v
+      - run: >-
+          uv run pytest -v tests/unit/test_ai_torch.py tests/unit/test_faces.py tests/unit/test_tiling.py
+          tests/unit/test_pth_clip.py
 
   frontend:
     name: Frontend (lint, types, unit tests, build)
