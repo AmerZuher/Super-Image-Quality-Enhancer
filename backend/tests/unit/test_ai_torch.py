@@ -94,3 +94,25 @@ def test_real_siqe_classic_upscales_by_three(tmp_path: Path) -> None:
     assert out.shape == (1, 1, 60, 60)
     # A flat grey input should come back roughly the same grey.
     assert abs(float(out[0, 0, 20:40, 20:40].mean()) - 0.5) < 0.1
+
+
+@pytest.mark.skipif(
+    not all((MODELS / f).exists() for f in ("GFPGANv1.4.pth", "detection_Resnet50_Final.pth", "faces.jpg")),
+    reason="needs GFPGAN, RetinaFace and a photo with faces",
+)
+def test_faces_are_found_and_restored() -> None:
+    import pyvips
+
+    from siqe.ai.faces import restore_faces
+    from siqe.ai.runtime import FaceRestorer
+
+    restorer = FaceRestorer(MODELS / "GFPGANv1.4.pth", MODELS / "detection_Resnet50_Final.pth", "cpu")
+    image = pyvips.Image.new_from_file(str(MODELS / "faces.jpg")).colourspace("srgb")[:3].cast("float") / 255
+    faces = restorer.detect((image * 255).cast("uchar").numpy())
+    assert len(faces) >= 1 and all(f.score > 0.9 for f in faces)
+    out, count = restore_faces(image, restorer.detect, restorer.restore)
+    assert count == len(faces)
+    assert (out.width, out.height) == (image.width, image.height)
+    # Something changed around the faces and nothing far from them.
+    assert (out - image).abs().max() > 0.05
+    assert (out - image).abs().crop(0, 0, 40, 40).max() == 0

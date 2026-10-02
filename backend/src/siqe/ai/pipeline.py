@@ -74,6 +74,34 @@ class OutputCanvas:
             self.path.unlink(missing_ok=True)
 
 
+def save_png(rgb: pyvips.Image, work: Working, scale: int, out_png: Path) -> None:
+    """Quantise a float RGB result to the source's bit depth, reattach (scaled) alpha, write PNG."""
+    peak = 65535.0 if work.depth == 16 else 255.0
+    fmt = "ushort" if work.depth == 16 else "uchar"
+    out = (rgb.clamp(min=0.0, max=1.0) * peak).rint().cast(fmt)
+    if work.alpha is not None:
+        alpha = work.alpha if scale == 1 else work.alpha.resize(scale, kernel="lanczos3")
+        alpha = alpha.crop(0, 0, out.width, out.height)
+        out = out.bandjoin((alpha.clamp(min=0.0, max=1.0) * peak).rint().cast(fmt))
+    out = out.copy(interpretation="rgb16" if work.depth == 16 else "srgb")
+    staging = out_png.with_name(out_png.name + ".partial.png")
+    out.pngsave(str(staging), compression=3)
+    staging.replace(out_png)
+
+
+def run_post_on_file(
+    src: Path,
+    out_png: Path,
+    post: Callable[[pyvips.Image], pyvips.Image],
+    *,
+    max_megapixels: int | None = None,
+) -> tuple[int, int]:
+    """Run an image-level step (such as face restoration) at the source's own size."""
+    work = to_working(open_image(src, max_megapixels=max_megapixels))
+    save_png(post(work.rgb), work, 1, out_png)
+    return work.width, work.height
+
+
 def _region(image: pyvips.Image, r: Rect) -> np.ndarray:
     data = np.asarray(image.crop(r.x, r.y, r.w, r.h).numpy(), dtype=np.float32)
     return data.reshape(r.h, r.w, -1)
@@ -103,7 +131,9 @@ def run_model_on_file(
     on_progress: ProgressFn = lambda f, m, d: None,
     should_stop: Callable[[], bool] = lambda: False,
     max_megapixels: int | None = None,
+    post: Callable[[pyvips.Image], pyvips.Image] | None = None,
 ) -> RunOutput:
+    """Tile ``backend`` over ``src``; ``post`` may change the float RGB result before it is saved."""
     work: Working = to_working(open_image(src, max_megapixels=max_megapixels))
     width, height = work.width, work.height
     out_w, out_h = width * scale, height * scale
@@ -135,24 +165,15 @@ def run_model_on_file(
             on_progress=progress,
             should_stop=should_stop,
         )
-        on_progress(0.9, "Saving the result", None)
         result = canvas.image().cast("float") / canvas.max
         if channels == "y":
             cb_up = cb.resize(scale, kernel="lanczos3").crop(0, 0, out_w, out_h)
             cr_up = cr.resize(scale, kernel="lanczos3").crop(0, 0, out_w, out_h)
             result = ycbcr_to_rgb(result, cb_up, cr_up)
-        out = (
-            (result.clamp(min=0.0, max=1.0) * canvas.max)
-            .rint()
-            .cast("ushort" if work.depth == 16 else "uchar")
-        )
-        if work.alpha is not None:
-            alpha = work.alpha.resize(scale, kernel="lanczos3").crop(0, 0, out_w, out_h)
-            out = out.bandjoin((alpha.clamp(min=0.0, max=1.0) * canvas.max).rint().cast(out.format))
-        out = out.copy(interpretation="rgb16" if work.depth == 16 else "srgb")
-        staging = out_png.with_name(out_png.name + ".partial.png")
-        out.pngsave(str(staging), compression=3)
-        staging.replace(out_png)
+        if post is not None:
+            result = post(result)
+        on_progress(0.95, "Saving the result", None)
+        save_png(result, work, scale, out_png)
     except BaseException:
         canvas.close(delete=False)  # keep it so a retry can continue
         raise

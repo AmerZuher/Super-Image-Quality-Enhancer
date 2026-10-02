@@ -34,6 +34,7 @@ function runLabel(task: ModelTask, model: Model | undefined): string {
   if (task === "upscale") return model ? `Upscale ×${model.scale}` : "Upscale";
   if (task === "denoise") return "Denoise";
   if (task === "background") return "Remove background";
+  if (task === "face") return "Restore faces";
   return "Restore faces";
 }
 
@@ -68,6 +69,7 @@ function PlanCard({ plan }: { plan: AiPlan }) {
   } else if (plan.device === "cuda" && plan.tile) {
     rows.push(["GPU memory", "measured on the first run"]);
   }
+  if (plan.restore_faces) rows.push(["Faces", "restored with GFPGAN"]);
   rows.push(["Disk", `up to ${formatBytes(plan.disk_bytes)}`]);
   return (
     <div
@@ -247,12 +249,17 @@ export function RunPanel({
   const [task, setTask] = useState<ModelTask>("upscale");
   const [modelId, setModelId] = useState<string | undefined>();
   const [device, setDevice] = useState<"auto" | "cpu">("auto");
+  const [faces, setFaces] = useState(false);
+  const faceModel = models.find((m) => m.task === "face");
   const forTask = models.filter((m) => m.task === task);
   const installed = forTask.filter((m) => m.status === "installed");
   const chosen =
     installed.find((m) => m.id === modelId) ?? installed.find((m) => m.recommended) ?? installed[0];
   const ready = asset.status === "ready";
-  const plan = usePlan(chosen && ready ? { asset_id: asset.id, model_id: chosen.id, device } : null);
+  const withFaces = task === "upscale" && faces && faceModel?.status === "installed";
+  const request =
+    chosen && ready ? { asset_id: asset.id, model_id: chosen.id, device, restore_faces: withFaces } : null;
+  const plan = usePlan(request);
   const start = useStartRun();
   const planError = plan.error ? errorMessage(plan.error) : null;
   const runError = start.error ? errorMessage(start.error) : null;
@@ -261,7 +268,7 @@ export function RunPanel({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <fieldset className="grid gap-2">
         <legend className="eyebrow mb-2">What to do</legend>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {TASKS.map((t) => (
             <button
               key={t.id}
@@ -318,6 +325,27 @@ export function RunPanel({
         )}
       </fieldset>
 
+      {task === "upscale" && faceModel && (
+        <div className="flex items-center justify-between gap-2 text-[12.5px] text-fg-2">
+          {faceModel.status === "installed" ? (
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={faces}
+                onChange={(e) => setFaces(e.target.checked)}
+                className="size-4 accent-[var(--gold)]"
+              />
+              Also restore faces
+            </label>
+          ) : (
+            <>
+              <span>Restore faces needs {faceModel.name}</span>
+              <ModelControl model={faceModel} compact />
+            </>
+          )}
+        </div>
+      )}
+
       {task !== "background" && (
         <label className="flex items-center justify-between gap-2 text-[12.5px] text-fg-2">
           Run on
@@ -348,7 +376,7 @@ export function RunPanel({
         icon={TASK_ICON[task]}
         disabled={!chosen || !ready || Boolean(planError)}
         loading={start.isPending}
-        onClick={() => chosen && start.mutate({ asset_id: asset.id, model_id: chosen.id, device })}
+        onClick={() => request && start.mutate(request)}
       >
         {chosen ? runLabel(task, chosen) : "Download a model first"}
       </Button>

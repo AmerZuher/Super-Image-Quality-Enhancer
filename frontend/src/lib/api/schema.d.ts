@@ -489,6 +489,8 @@ export interface components {
             estimated_memory_bytes: number | null;
             /** Disk Bytes */
             disk_bytes: number;
+            /** Restore Faces */
+            restore_faces: boolean;
             /** Warnings */
             warnings: string[];
         };
@@ -505,6 +507,12 @@ export interface components {
              * @enum {string}
              */
             device: "auto" | "cpu";
+            /**
+             * Restore Faces
+             * @description After upscaling, restore faces with GFPGAN (it must be installed).
+             * @default false
+             */
+            restore_faces: boolean;
         };
         /** AiRunStartOut */
         AiRunStartOut: {

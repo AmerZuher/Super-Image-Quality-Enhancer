@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 Task = Literal["upscale", "denoise", "background", "face"]
-Arch = Literal["spandrel", "siqe_classic", "isnet_onnx"]
+Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan"]
 Speed = Literal["fast", "balanced", "slow"]
 
 COMMERCIAL_SAFE = frozenset({"MIT", "BSD-3-Clause", "Apache-2.0"})
@@ -223,6 +223,41 @@ MODELS: tuple[ModelSpec, ...] = (
     ),
 )
 
+MODELS = (
+    *MODELS,
+    ModelSpec(
+        id="gfpgan-v1.4",
+        name="GFPGAN v1.4 faces",
+        task="face",
+        arch="gfpgan",
+        scale=1,
+        summary=(
+            "Finds faces with RetinaFace (MIT) and restores blurry or damaged ones; also an upscale option."
+        ),
+        license="Apache-2.0",
+        license_url="https://github.com/TencentARC/GFPGAN/blob/master/LICENSE",
+        homepage="https://github.com/TencentARC/GFPGAN",
+        files=(
+            ModelFile(
+                "GFPGANv1.4.pth",
+                "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth",
+                "e2cd4703ab14f4d01fd1383a8a8b266f9a5833dacee8e6a79d3bf21a1b6be5ad",
+                348632874,
+            ),
+            ModelFile(
+                "detection_Resnet50_Final.pth",
+                "https://github.com/xinntao/facexlib/releases/download/v0.1.0/detection_Resnet50_Final.pth",
+                "6d1de9c2944f2ccddca5f5e010ea5ae64a39845a86311af6fdf30841b0a5a16d",
+                109497761,
+            ),
+        ),
+        context=0,
+        recommended=True,
+        tags=("faces", "portraits"),
+    ),
+)
+
+FACE_MODEL_ID = "gfpgan-v1.4"
 MODELS_BY_ID = {m.id: m for m in MODELS}
 TASK_LABELS: dict[Task, str] = {
     "upscale": "Upscale",

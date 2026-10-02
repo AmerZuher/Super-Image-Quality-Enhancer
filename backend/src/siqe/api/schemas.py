@@ -244,6 +244,9 @@ class AiRunIn(BaseModel):
     device: Literal["auto", "cpu"] = Field(
         default="auto", description="`cpu` forces the CPU even with a GPU."
     )
+    restore_faces: bool = Field(
+        default=False, description="After upscaling, restore faces with GFPGAN (it must be installed)."
+    )
 
 
 class AiPlanOut(BaseModel):
@@ -265,6 +268,7 @@ class AiPlanOut(BaseModel):
     calibrated: bool = Field(description="True when the tile size comes from memory measured on this GPU.")
     estimated_memory_bytes: float | None
     disk_bytes: int
+    restore_faces: bool
     warnings: list[str]
 
 

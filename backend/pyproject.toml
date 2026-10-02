@@ -84,13 +84,14 @@ mypy_path = "src"
 packages = ["siqe"]
 
 [[tool.mypy.overrides]]
-module = ["pyvips.*", "torch.*", "pynvml.*", "asyncpg.*", "spandrel.*", "h5py.*", "onnxruntime.*"]
+module = ["pyvips.*", "torch.*", "torchvision.*", "pynvml.*", "asyncpg.*", "spandrel.*", "h5py.*", "onnxruntime.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # torch is only installed in the ai image; its nn.Module is Any to mypy elsewhere.
 module = ["siqe.ai.archs.*", "siqe.ai.runtime"]
 disallow_subclassing_any = false
+disallow_untyped_decorators = false
 warn_return_any = false
 
 [tool.pytest.ini_options]

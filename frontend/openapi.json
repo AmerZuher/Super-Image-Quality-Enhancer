@@ -1220,6 +1220,10 @@
             "type": "integer",
             "title": "Disk Bytes"
           },
+          "restore_faces": {
+            "type": "boolean",
+            "title": "Restore Faces"
+          },
           "warnings": {
             "items": {
               "type": "string"
@@ -1248,6 +1252,7 @@
           "calibrated",
           "estimated_memory_bytes",
           "disk_bytes",
+          "restore_faces",
           "warnings"
         ],
         "title": "AiPlanOut"
@@ -1271,6 +1276,12 @@
             "title": "Device",
             "description": "`cpu` forces the CPU even with a GPU.",
             "default": "auto"
+          },
+          "restore_faces": {
+            "type": "boolean",
+            "title": "Restore Faces",
+            "description": "After upscaling, restore faces with GFPGAN (it must be installed).",
+            "default": false
           }
         },
         "type": "object",

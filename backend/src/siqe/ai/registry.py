@@ -45,6 +45,10 @@ def weights_path(spec: ModelSpec) -> Path:
     return model_dir(spec) / spec.weights.stored_name
 
 
+def file_path(spec: ModelSpec, index: int) -> Path:
+    return model_dir(spec) / spec.files[index].stored_name
+
+
 def files_present(spec: ModelSpec) -> bool:
     return all((model_dir(spec) / f.stored_name).is_file() for f in spec.files)
 

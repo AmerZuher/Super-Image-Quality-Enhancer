@@ -5,7 +5,7 @@ from fastapi import APIRouter, status
 
 from siqe.activities.ai import AiRunRequest
 from siqe.ai.governor import Calibration
-from siqe.ai.manifest import TASK_LABELS
+from siqe.ai.manifest import FACE_MODEL_ID, TASK_LABELS
 from siqe.ai.plan import current_device, plan_run
 from siqe.ai.registry import get_spec, require_installed
 from siqe.api.deps import SessionDep, SettingsDep, TemporalDep
@@ -42,6 +42,9 @@ async def _plan(body: AiRunIn, session: SessionDep, settings: Settings) -> tuple
             fix="Wait for the preview to appear, or upload the file again.",
         )
     row = await require_installed(session, spec)
+    faces = body.restore_faces and spec.task == "upscale"
+    if faces:
+        await require_installed(session, get_spec(FACE_MODEL_ID))
     device = await current_device(session, body.device, settings.worker_heartbeat_seconds)
     plan = plan_run(
         spec,
@@ -52,6 +55,7 @@ async def _plan(body: AiRunIn, session: SessionDep, settings: Settings) -> tuple
         device=device,
         calibration=Calibration.from_dict((row.calibration or {}).get(device.key)),
         reserve_mb=settings.gpu_vram_reserve_mb,
+        restore_faces=faces,
     )
     if plan["output_megapixels"] > settings.max_output_megapixels:
         raise AppError(
@@ -85,12 +89,24 @@ async def start_run(
     title = f"{TASK_LABELS[spec.task]} {asset.original_name}"
     if spec.task == "upscale":
         title += f" ×{spec.scale} with {spec.name}"
+        if result["restore_faces"]:
+            title += " and face restoration"
     job = await create_job(
         session,
         kind="ai.run",
         title=title,
-        params={"asset_id": str(asset.id), "model_id": spec.id, "device": body.device},
+        params={
+            "asset_id": str(asset.id),
+            "model_id": spec.id,
+            "device": body.device,
+            "restore_faces": bool(result["restore_faces"]),
+        },
     )
-    request = AiRunRequest(asset_id=str(asset.id), model_id=spec.id, device=body.device)
+    request = AiRunRequest(
+        asset_id=str(asset.id),
+        model_id=spec.id,
+        device=body.device,
+        restore_faces=bool(result["restore_faces"]) and spec.task == "upscale",
+    )
     await start_workflow(session, temporal, job, AiRunWorkflow.run, [str(job.id), request])
     return AiRunStartOut(job=JobOut.model_validate(job_to_dict(job)), plan=AiPlanOut.model_validate(result))

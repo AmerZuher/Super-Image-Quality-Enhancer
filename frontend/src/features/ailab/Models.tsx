@@ -22,6 +22,7 @@ export const TASKS: { id: ModelTask; label: string }[] = [
   { id: "upscale", label: "Upscale" },
   { id: "denoise", label: "Denoise" },
   { id: "background", label: "Remove background" },
+  { id: "face", label: "Restore faces" },
 ];
 
 const SPEED: Record<Model["speed"], string> = { fast: "Fast", balanced: "Balanced", slow: "Slow" };

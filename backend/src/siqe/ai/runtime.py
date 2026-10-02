@@ -8,7 +8,7 @@ import contextlib
 import gc
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -128,3 +128,35 @@ def calibrate(backend: TorchBackend, *, context: int, multiple: int) -> Calibrat
         samples.append((size * size, float(torch.cuda.max_memory_allocated())))
     backend.release()
     return fit_calibration(samples)
+
+
+class FaceRestorer:
+    """GFPGAN v1.4 on faces found by RetinaFace; plugs into ``siqe.ai.faces.restore_faces``."""
+
+    def __init__(self, gfpgan_path: Path, detector_path: Path, device: Device) -> None:
+        from siqe.ai.archs.retinaface import RetinaFace, load_state
+
+        self.device: str = device
+        self.gfpgan = load_spandrel(gfpgan_path).module.eval().to(device)
+        try:
+            state = torch.load(detector_path, map_location="cpu", weights_only=True)
+        except Exception as exc:
+            raise ModelLoadError(f"{detector_path.name} can't be loaded safely: {exc}") from exc
+        self.detector = load_state(RetinaFace(), state).to(device)
+
+    def detect(self, rgb: np.ndarray) -> list[Any]:
+        from siqe.ai.archs.retinaface import detect
+        from siqe.ai.faces import Face
+
+        return [Face(s, b, lm) for s, b, lm in detect(self.detector, rgb, self.device)]
+
+    def restore(self, face: np.ndarray) -> np.ndarray:
+        with torch.inference_mode():
+            x = torch.from_numpy(np.ascontiguousarray(face.transpose(2, 0, 1)))[None].to(self.device) * 2 - 1
+            y = self.gfpgan(x, return_rgb=False, randomize_noise=False)[0]
+            return ((y.float() + 1) / 2).clamp_(0, 1)[0].permute(1, 2, 0).cpu().numpy()
+
+    def release(self) -> None:
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

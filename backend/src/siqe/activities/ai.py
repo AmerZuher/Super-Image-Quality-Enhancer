@@ -18,10 +18,10 @@ from temporalio.exceptions import ApplicationError
 
 from siqe.activities.threaded import ThreadProgress, run_threaded
 from siqe.ai.governor import Calibration, choose_settings, cpu_settings
-from siqe.ai.manifest import ModelSpec
+from siqe.ai.manifest import FACE_MODEL_ID, ModelSpec
 from siqe.ai.oom import InsufficientMemoryError
 from siqe.ai.plan import device_key
-from siqe.ai.registry import get_row, get_spec, require_installed, weights_path
+from siqe.ai.registry import file_path, get_row, get_spec, require_installed, weights_path
 from siqe.ai.tiling import Rect, TileSettings
 from siqe.assets.records import get_asset, megapixel_limit, publish_asset
 from siqe.core.config import get_settings
@@ -34,7 +34,7 @@ from siqe.storage.store import StagedUpload, get_store
 
 log = get_logger(__name__)
 
-TORCH_ARCHS = frozenset({"spandrel", "siqe_classic"})
+TORCH_ARCHS = frozenset({"spandrel", "siqe_classic", "gfpgan"})
 _SAFE_NAME = re.compile(r"[^\w.\- ()×]+")
 
 
@@ -43,6 +43,7 @@ class AiRunRequest:
     asset_id: str
     model_id: str
     device: str = "auto"
+    restore_faces: bool = False
 
 
 def _paths(job_id: str) -> tuple[Path, Path]:
@@ -88,6 +89,44 @@ def _backend(spec: ModelSpec, device: str) -> Any:
     return backend
 
 
+_faces: dict[str, Any] = {}
+
+
+def _face_restorer(device: str) -> Any:
+    from siqe.ai import runtime
+
+    cached = _faces.get(device)
+    if cached is None:
+        _faces.clear()
+        spec = get_spec(FACE_MODEL_ID)
+        cached = runtime.FaceRestorer(file_path(spec, 0), file_path(spec, 1), device)  # type: ignore[arg-type]
+        _faces[device] = cached
+    return cached
+
+
+def _face_post(device: str, state: ThreadProgress, start: float, span: float) -> Any:
+    from siqe.ai.faces import restore_faces
+
+    restorer = _face_restorer(device)
+
+    def post(rgb: Any) -> Any:
+        state.update(start, "Looking for faces")
+        out, _count = restore_faces(
+            rgb,
+            restorer.detect,
+            restorer.restore,
+            on_face=lambda i, n: state.update(start + span * i / n, f"Restoring face {i + 1} of {n}"),
+        )
+        return out
+
+    return post
+
+
+async def _faces_installed() -> None:
+    async with session_scope() as session:
+        await require_installed(session, get_spec(FACE_MODEL_ID))
+
+
 def _resume_details() -> dict[str, Any] | None:
     details = activity.info().heartbeat_details if activity.in_activity() else ()
     last = details[-1] if details else None
@@ -117,6 +156,10 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
     reporter = ProgressReporter(job_id, start=0.0, span=0.85)
     await reporter.report(0.0, f"Loading {spec.name}", force=True)
     device = runtime.pick_device(request.device)
+    if spec.arch == "gfpgan":
+        return await _run_faces(job_id, spec, src, limit, device, reporter)
+    if request.restore_faces:
+        await _faces_installed()
     try:
         backend = await asyncio.to_thread(_backend, spec, device)
     except (AppError, runtime.ModelLoadError) as exc:
@@ -168,6 +211,7 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
             on_progress=lambda f, m, d: state.update(f, m, d),
             should_stop=state.cancelled.is_set,
             max_megapixels=limit,
+            post=_face_post(device, state, 0.9, 0.05) if request.restore_faces else None,
         )
 
     try:
@@ -194,6 +238,56 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
         "tiles": out.tiled.tiles_run,
         "seconds": round(out.tiled.seconds, 1),
         "fallbacks": [s.detail for s in out.tiled.steps],
+        "restore_faces": request.restore_faces,
+    }
+
+
+async def _run_faces(
+    job_id: str, spec: ModelSpec, src: Path, limit: int | None, device: str, reporter: ProgressReporter
+) -> dict[str, Any]:
+    from siqe.ai import runtime
+    from siqe.ai.faces import restore_faces
+    from siqe.ai.pipeline import run_post_on_file
+
+    _, out_png = _paths(job_id)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    count = 0
+
+    def work(state: ThreadProgress) -> tuple[int, int]:
+        nonlocal count
+        restorer = _face_restorer(device)
+
+        def post(rgb: Any) -> Any:
+            nonlocal count
+            state.update(0.1, "Looking for faces")
+            out, count = restore_faces(
+                rgb,
+                restorer.detect,
+                restorer.restore,
+                on_face=lambda i, n: state.update(0.1 + 0.8 * i / n, f"Restoring face {i + 1} of {n}"),
+            )
+            return out
+
+        return run_post_on_file(src, out_png, post, max_megapixels=limit)
+
+    try:
+        width, height = await run_threaded(work, reporter)
+    except (AppError, runtime.ModelLoadError) as exc:
+        message = exc.detail if isinstance(exc, AppError) else str(exc)
+        raise _non_retryable(getattr(exc, "code", "model.load_failed"), message) from exc
+    return {
+        "path": str(out_png),
+        "width": width,
+        "height": height,
+        "device": device,
+        "device_name": runtime.device_name(device),
+        "tile": None,
+        "batch": None,
+        "tiles": 1,
+        "seconds": round(loop.time() - start, 1),
+        "fallbacks": [],
+        "faces": count,
     }
 
 
@@ -242,7 +336,7 @@ def derived_name(original: str, spec: ModelSpec) -> str:
     elif spec.task == "denoise":
         label = f"{stem} denoised"
     else:
-        label = f"{stem} restored"
+        label = f"{stem} faces restored"
     return (_SAFE_NAME.sub("_", label).strip(" .") or "image")[:190] + ".png"
 
 

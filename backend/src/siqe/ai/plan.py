@@ -73,13 +73,14 @@ def plan_run(
     device: DeviceInfo,
     calibration: Calibration | None,
     reserve_mb: int,
+    restore_faces: bool = False,
 ) -> dict[str, Any]:
     out_w, out_h = output_size(spec, width, height)
     alpha = has_alpha or spec.task == "background"
     channels = 4 if alpha else 3
     sample_bytes = 2 if bit_depth == 16 else 1
     raw_bytes = out_w * out_h * channels * sample_bytes
-    tiled = spec.task != "background"
+    tiled = spec.task not in ("background", "face")
     if not tiled:
         settings = None
     elif device.kind == "cuda":
@@ -126,5 +127,6 @@ def plan_run(
             else None
         ),
         "disk_bytes": raw_bytes * 2,
+        "restore_faces": restore_faces or spec.task == "face",
         "warnings": warnings,
     }
