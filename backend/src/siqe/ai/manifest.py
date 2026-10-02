@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 Task = Literal["upscale", "denoise", "background", "face", "embed"]
-Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan", "clip"]
+Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan", "clip", "forge"]
 Speed = Literal["fast", "balanced", "slow"]
 
 COMMERCIAL_SAFE = frozenset({"MIT", "BSD-3-Clause", "Apache-2.0"})

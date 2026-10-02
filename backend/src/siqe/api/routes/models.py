@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response, status
 from siqe.ai.registry import (
     all_rows,
     catalog,
+    files_present,
     get_row,
     get_spec,
     model_to_dict,
@@ -16,6 +17,7 @@ from siqe.ai.registry import (
 from siqe.api.deps import SessionDep, SettingsDep, TemporalDep
 from siqe.api.schemas import JobOut, ModelInstallOut, ModelOut
 from siqe.core.errors import AppError
+from siqe.db.base import utcnow
 from siqe.db.models import AiModel, Job, ModelStatus
 from siqe.jobs.records import job_to_dict
 from siqe.jobs.start import create_job, start_workflow
@@ -47,6 +49,23 @@ async def install_model(
     row = await get_row(session, model_id, for_update=True)
     current = status_of(spec, row)
     if current == "installed":
+        return ModelInstallOut(model=ModelOut.model_validate(model_to_dict(spec, row)), job=None)
+    if spec.arch == "forge":
+        # Trained here, not downloaded: register the files if they're still on the data volume.
+        if not files_present(spec):
+            raise AppError(
+                "forge.model_files_missing",
+                f"{spec.name}'s weights are no longer on the data volume.",
+                status=409,
+                title="Files missing",
+                fix="Publish the training run from Forge again.",
+            )
+        if row is None:
+            row = AiModel(id=spec.id, source="forge")
+            session.add(row)
+        row.status = ModelStatus.installed
+        row.installed_at = utcnow()
+        await publish_model(session, spec, row)
         return ModelInstallOut(model=ModelOut.model_validate(model_to_dict(spec, row)), job=None)
     if current == "downloading" and row is not None and row.job_id:
         job = await session.get(Job, row.job_id)

@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Response, status
 from fastapi.responses import FileResponse
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -28,7 +28,7 @@ from siqe.api.schemas import (
 from siqe.core.config import Settings
 from siqe.core.errors import AppError, NotFoundError
 from siqe.db.base import utcnow
-from siqe.db.models import Album, Asset, AssetStatus, Flow, FlowRun, FlowRunItem, JobState, RunKind
+from siqe.db.models import Flow, FlowRun, FlowRunItem, JobState, RunKind
 from siqe.flows.catalog import NODES_BY_TYPE, catalog
 from siqe.flows.document import FlowDocument, check
 from siqe.flows.recipes import RECIPES, RECIPES_BY_ID, validated
@@ -44,8 +44,7 @@ from siqe.flows.records import (
 )
 from siqe.flows.start import RUN_TIMEOUT, create_run, workflow_args
 from siqe.jobs.start import start_workflow
-from siqe.library.rules import compile_rules
-from siqe.library.search import album_clause
+from siqe.library.selection import select_images
 from siqe.workflows.flows import FlowRunWorkflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
@@ -241,30 +240,14 @@ async def import_flow(body: FlowFileIO, session: SessionDep) -> FlowOut:
 
 async def _images(session: AsyncSession, body: FlowRunIn) -> tuple[list[uuid.UUID], dict[str, Any]]:
     source = body.source
-    described: dict[str, Any]
-    base = and_(Asset.status == AssetStatus.ready, Asset.quarantined_at.is_(None))
-    if source.kind == "assets":
-        ids = [_uuid(a) for a in source.asset_ids]
-        found = set((await session.execute(select(Asset.id).where(Asset.id.in_(ids), base))).scalars())
-        return [i for i in ids if i in found], {"kind": "assets", "count": len(ids)}
-    if source.kind == "album":
-        album = await session.get(Album, _uuid(source.album_id, "album"))
-        if album is None:
-            raise NotFoundError("album.not_found", "That album doesn't exist.", title="Album not found")
-        where, described = and_(base, album_clause(album)), {"kind": "album", "album": album.name}
-    elif source.kind == "rules":
-        if source.rules is None:
-            raise AppError("flow.no_images", "Add some filters to choose images.", status=422)
-        where, described = (
-            and_(base, compile_rules(source.rules)),
-            {"kind": "rules", "rules": source.rules.model_dump()},
-        )
-    else:
-        where, described = base, {"kind": "all"}
-    ids = list(
-        (await session.execute(select(Asset.id).where(where).order_by(Asset.created_at.desc()))).scalars()
+    return await select_images(
+        session,
+        source.kind,
+        asset_ids=source.asset_ids,
+        album_id=source.album_id,
+        rules=source.rules,
+        empty_code="flow.no_images",
     )
-    return ids, described
 
 
 async def _start(

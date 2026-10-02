@@ -6,6 +6,7 @@ manifest. Nothing is ever loaded from an unverified file.
 """
 
 import hashlib
+import json
 import shutil
 from collections.abc import Callable
 from pathlib import Path
@@ -27,10 +28,76 @@ CHUNK = 1024 * 1024
 
 
 def get_spec(model_id: str) -> ModelSpec:
-    spec = MODELS_BY_ID.get(model_id)
+    spec = MODELS_BY_ID.get(model_id) or forge_spec(model_id)
     if spec is None:
         raise NotFoundError("model.not_found", f"No model called '{model_id}'.", title="Model not found")
     return spec
+
+
+# ------------------------------------------------------------------- models from Forge
+
+FORGE_FILE = "forge.json"
+FORGE_WEIGHTS = "model.safetensors"
+_forge_cache: dict[str, tuple[float, ModelSpec, dict[str, Any]]] = {}
+
+
+def _read_forge(model_id: str) -> tuple[ModelSpec, dict[str, Any]] | None:
+    """A published Forge model, from the descriptor next to its weights on the data volume.
+
+    The descriptor lives with the files, so the API and both workers see a model as soon as it
+    is published, and removing the folder removes the model.
+    """
+    if not model_id.startswith("forge-") or "/" in model_id or ".." in model_id:
+        return None
+    path = models_root() / model_id / FORGE_FILE
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        _forge_cache.pop(model_id, None)
+        return None
+    cached = _forge_cache.get(model_id)
+    if cached and cached[0] == mtime:
+        return cached[1], cached[2]
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+        spec = ModelSpec(
+            id=model_id,
+            name=str(info["name"]),
+            task="upscale" if int(info["scale"]) > 1 else "denoise",
+            arch="forge",
+            scale=int(info["scale"]),
+            summary=str(info.get("summary", "Trained in Forge.")),
+            license="Your own",
+            license_url="",
+            homepage="",
+            files=(ModelFile(FORGE_WEIGHTS, "", str(info["sha256"]), int(info["size"])),),
+            context=int(info.get("context", 24)),
+            channels="y" if info.get("color") == "y" else "rgb",
+            speed="fast",
+            tags=("forge",),
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    _forge_cache[model_id] = (mtime, spec, info)
+    return spec, info
+
+
+def forge_spec(model_id: str) -> ModelSpec | None:
+    found = _read_forge(model_id)
+    return found[0] if found else None
+
+
+def forge_info(model_id: str) -> dict[str, Any]:
+    found = _read_forge(model_id)
+    return found[1] if found else {}
+
+
+def forge_specs() -> list[ModelSpec]:
+    root = models_root()
+    if not root.is_dir():
+        return []
+    found = [_read_forge(p.parent.name) for p in sorted(root.glob(f"forge-*/{FORGE_FILE}"))]
+    return [f[0] for f in found if f]
 
 
 def models_root() -> Path:
@@ -84,6 +151,8 @@ def model_to_dict(spec: ModelSpec, row: AiModel | None) -> dict[str, Any]:
         "installed_at": row.installed_at.isoformat() if row and row.installed_at else None,
         "runs": row.runs if row else 0,
         "calibrated": sorted((row.calibration or {}).keys()) if row else [],
+        "source": "forge" if spec.arch == "forge" else "catalog",
+        "benchmark": forge_info(spec.id).get("benchmark") if spec.arch == "forge" else None,
     }
 
 
@@ -118,7 +187,7 @@ async def require_installed(session: AsyncSession, spec: ModelSpec) -> AiModel:
 
 
 def catalog() -> tuple[ModelSpec, ...]:
-    return MODELS
+    return (*MODELS, *forge_specs())
 
 
 # ------------------------------------------------------------------------- download

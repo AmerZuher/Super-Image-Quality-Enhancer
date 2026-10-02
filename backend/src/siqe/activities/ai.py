@@ -21,7 +21,7 @@ from siqe.ai.governor import Calibration, choose_settings, cpu_settings
 from siqe.ai.manifest import FACE_MODEL_ID, ModelSpec
 from siqe.ai.oom import InsufficientMemoryError
 from siqe.ai.plan import device_key
-from siqe.ai.registry import file_path, get_row, get_spec, require_installed, weights_path
+from siqe.ai.registry import file_path, forge_info, get_row, get_spec, require_installed, weights_path
 from siqe.ai.tiling import Rect, TileSettings
 from siqe.assets.records import get_asset, megapixel_limit, publish_asset
 from siqe.core.config import get_settings
@@ -34,7 +34,7 @@ from siqe.storage.store import StagedUpload, get_store
 
 log = get_logger(__name__)
 
-TORCH_ARCHS = frozenset({"spandrel", "siqe_classic", "gfpgan"})
+TORCH_ARCHS = frozenset({"spandrel", "siqe_classic", "gfpgan", "forge"})
 _SAFE_NAME = re.compile(r"[^\w.\- ()×]+")
 
 
@@ -81,7 +81,12 @@ def _backend(spec: ModelSpec, device: str) -> Any:
     for old in list(_loaded):
         _loaded.pop(old).release()
     path = weights_path(spec)
-    model = runtime.load_siqe_classic(path) if spec.arch == "siqe_classic" else runtime.load_spandrel(path)
+    if spec.arch == "forge":
+        model = runtime.load_forge(path, forge_info(spec.id))
+    elif spec.arch == "siqe_classic":
+        model = runtime.load_siqe_classic(path)
+    else:
+        model = runtime.load_spandrel(path)
     if model.scale != spec.scale:
         raise AppError("model.unexpected", f"{spec.name} has scale ×{model.scale}, expected ×{spec.scale}.")
     backend = runtime.TorchBackend(model, device)  # type: ignore[arg-type]

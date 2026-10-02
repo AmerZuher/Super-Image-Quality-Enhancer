@@ -79,6 +79,27 @@ def load_siqe_classic(path: Path) -> LoadedModel:
     return LoadedModel(module=module.eval(), scale=3, in_channels=1, out_channels=1, multiple=1, half_ok=True)
 
 
+def load_forge(path: Path, info: dict[str, Any]) -> LoadedModel:
+    """A model published from Forge: rebuilt from its plan, weights from safetensors."""
+    from siqe.ai.archs.forge import GraphNet
+
+    channels = 1 if info.get("color") == "y" else 3
+    module = GraphNet(list(info["plan"]), int(info["scale"]), channels)
+    try:
+        module.load_state_dict(load_file(str(path), device="cpu"))
+    except Exception as exc:
+        raise ModelLoadError(f"{path.parent.name} doesn't match its saved design: {exc}") from exc
+    return LoadedModel(
+        module=module.eval(),
+        scale=int(info["scale"]),
+        in_channels=channels,
+        out_channels=channels,
+        multiple=int(info.get("multiple", 1)),
+        # Your own models run in full precision: we can't know they're safe in float16.
+        half_ok=False,
+    )
+
+
 class TorchBackend:
     """``siqe.ai.tiling.Backend`` for a PyTorch module."""
 

@@ -251,6 +251,12 @@ class ModelOut(BaseModel):
     installed_at: str | None
     runs: int
     calibrated: list[str] = Field(description="Devices this model has measured its memory use on.")
+    source: Literal["catalog", "forge"] = Field(
+        default="catalog", description="forge: a model you trained and published from Forge."
+    )
+    benchmark: dict[str, Any] | None = Field(
+        default=None, description="For Forge models: PSNR, SSIM and speed measured when it was published."
+    )
 
 
 class ModelInstallOut(BaseModel):

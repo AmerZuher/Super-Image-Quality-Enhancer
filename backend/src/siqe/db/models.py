@@ -204,6 +204,10 @@ class AiModel(TimestampMixin, Base):
     # Per device: the tile and batch that last worked, after any fallback.
     last_settings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     runs: Mapped[int] = mapped_column(Integer, default=0)
+    # "catalog" for siqe.ai.manifest models; "forge" for models you trained and published.
+    source: Mapped[str] = mapped_column(String(16), default="catalog")
+    # For Forge models: the ModelSpec fields, the graph's plan and the benchmark.
+    spec: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class AlbumKind(enum.StrEnum):
@@ -354,3 +358,102 @@ class ApiKey(Base):
     )
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+_JOB_STATE = Enum(
+    JobState, name="job_state", values_callable=lambda e: [m.value for m in e], create_type=False
+)
+
+
+class ForgeProject(TimestampMixin, Base):
+    """A model you are designing: its graph of blocks."""
+
+    __tablename__ = "forge_projects"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(Text, default="")
+    graph: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    template: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class ForgeDataset(TimestampMixin, Base):
+    """High-resolution crops taken from Library images, plus how to damage them for training."""
+
+    __tablename__ = "forge_datasets"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(120))
+    source: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    degradation: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    state: Mapped[JobState] = mapped_column(_JOB_STATE, default=JobState.queued)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    images: Mapped[int] = mapped_column(Integer, default=0)
+    skipped: Mapped[int] = mapped_column(Integer, default=0)
+    train_crops: Mapped[int] = mapped_column(Integer, default=0)
+    val_crops: Mapped[int] = mapped_column(Integer, default=0)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
+
+class ForgeRun(TimestampMixin, Base):
+    """One training run: a snapshot of the graph, the settings, and where it has got to."""
+
+    __tablename__ = "forge_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("forge_projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    project_name: Mapped[str] = mapped_column(String(120))
+    dataset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("forge_datasets.id", ondelete="SET NULL"), nullable=True
+    )
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    graph: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    plan: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    scale: Mapped[int] = mapped_column(Integer, default=1)
+    color: Mapped[str] = mapped_column(String(8), default="rgb")
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    state: Mapped[JobState] = mapped_column(_JOB_STATE, default=JobState.queued)
+    paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    step: Mapped[int] = mapped_column(Integer, default=0)
+    total_steps: Mapped[int] = mapped_column(Integer, default=0)
+    batch: Mapped[int] = mapped_column(Integer, default=0)
+    accumulate: Mapped[int] = mapped_column(Integer, default=1)
+    device: Mapped[str] = mapped_column(String(80), default="")
+    last_loss: Mapped[float | None] = mapped_column(Float, nullable=True)
+    best_psnr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    best_ssim: Mapped[float | None] = mapped_column(Float, nullable=True)
+    best_step: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bicubic_psnr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    notes: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    model_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ForgeMetric(Base):
+    """A point on a run's charts: training loss, or a validation score."""
+
+    __tablename__ = "forge_metrics"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("forge_runs.id", ondelete="CASCADE")
+    )  # indexed with step: ix_forge_metrics_run_id
+    step: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(8))  # "train" or "val"
+    loss: Mapped[float | None] = mapped_column(Float, nullable=True)
+    psnr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ssim: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=utcnow
+    )

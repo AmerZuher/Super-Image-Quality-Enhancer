@@ -31,6 +31,14 @@ from siqe.activities.flows import (
     flow_run_start,
     flow_trigger,
 )
+from siqe.activities.forge import (
+    forge_build_dataset,
+    forge_dataset_failed,
+    forge_publish,
+    forge_run_finish,
+    forge_run_start,
+    forge_train_chunk,
+)
 from siqe.activities.jobs import update_job
 from siqe.activities.library import (
     group_duplicates,
@@ -53,6 +61,7 @@ from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
 from siqe.workflows.ai import AiRunWorkflow
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 from siqe.workflows.flows import FlowItemWorkflow, FlowRunWorkflow
+from siqe.workflows.forge import ForgeDatasetWorkflow, ForgePublishWorkflow, ForgeTrainWorkflow
 from siqe.workflows.library import ImportFolderWorkflow, LibraryIndexWorkflow, RemoveLocationWorkflow
 from siqe.workflows.models import ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
@@ -70,6 +79,9 @@ WORKFLOWS = [
     ImportFolderWorkflow,
     FlowRunWorkflow,
     FlowItemWorkflow,
+    ForgeDatasetWorkflow,
+    ForgeTrainWorkflow,
+    ForgePublishWorkflow,
 ]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
@@ -98,8 +110,19 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     flow_ai_cpu,
     flow_output,
     flow_trigger,
+    forge_build_dataset,
+    forge_dataset_failed,
+    forge_run_start,
+    forge_run_finish,
 ]
-GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model, flow_ai_gpu, count_faces_batch]
+GPU_ACTIVITIES: list[Callable[..., Any]] = [
+    gpu_probe,
+    run_model,
+    flow_ai_gpu,
+    count_faces_batch,
+    forge_train_chunk,
+    forge_publish,
+]
 
 
 def build_worker(client: Client, kind: WorkerKind) -> Worker:
