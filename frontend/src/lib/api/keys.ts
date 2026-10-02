@@ -28,6 +28,17 @@ export const keys = {
   runs: ["runs"] as const,
   flowRuns: (flowId: string) => ["runs", "flow", flowId] as const,
   run: (id: string) => ["runs", id] as const,
+  forge: ["forge"] as const,
+  forgeCatalog: ["forge", "catalog"] as const,
+  forgeTemplates: ["forge", "templates"] as const,
+  forgeProjects: ["forge", "projects"] as const,
+  forgeCheck: (graph: string) => ["forge", "check", graph] as const,
+  forgeCode: (projectId: string) => ["forge", "code", projectId] as const,
+  forgeDatasets: ["forge", "datasets"] as const,
+  forgePreview: (datasetId: string, scale: number, seed: number, version: string) =>
+    ["forge", "preview", datasetId, scale, seed, version] as const,
+  forgeRuns: ["forge", "runs"] as const,
+  forgeRun: (id: string) => ["forge", "run", id] as const,
 };
 
 /** Insert or replace a job in a newest-first list. */

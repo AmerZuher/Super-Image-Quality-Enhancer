@@ -1,10 +1,10 @@
 import { createRootRoute, createRoute, createRouter, Link, lazyRouteComponent } from "@tanstack/react-router";
 import type { FlowsSearch } from "@/features/flows/FlowsPage";
+import type { ForgeSearch } from "@/features/forge/ForgePage";
 import { JobsPage } from "@/features/jobs/JobsPage";
 import type { LibrarySearch } from "@/features/library/LibraryPage";
 import { OverviewPage } from "@/features/overview/OverviewPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import { WorkspacePreview } from "@/features/workspaces/WorkspacePreview";
 import { AppShell } from "./shell/AppShell";
 
 function NotFound() {
@@ -70,7 +70,15 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/forge",
-    component: () => <WorkspacePreview id="forge" />,
+    validateSearch: (search: Record<string, unknown>): ForgeSearch => {
+      const out: ForgeSearch = {};
+      for (const key of ["project", "run", "dataset"] as const) {
+        if (typeof search[key] === "string" && search[key]) out[key] = search[key] as string;
+      }
+      if (search.tab === "code" || search.tab === "data" || search.tab === "train") out.tab = search.tab;
+      return out;
+    },
+    component: lazyRouteComponent(() => import("@/features/forge/ForgePage"), "ForgePage"),
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/jobs", component: JobsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),

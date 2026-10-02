@@ -44,6 +44,27 @@ export type FlowRun = components["schemas"]["FlowRunOut"];
 export type FlowRunItem = components["schemas"]["FlowRunItemOut"];
 export type FlowRunDetail = components["schemas"]["FlowRunDetailOut"];
 export type FlowRunRequest = components["schemas"]["FlowRunIn"];
+export type ForgeBlockType = components["schemas"]["ForgeBlockTypeOut"];
+export type ForgeParam = ForgeBlockType["params"][number];
+export type ForgeTemplate = components["schemas"]["ForgeTemplateOut"];
+export type ForgeGraph = components["schemas"]["ForgeGraph"];
+export type ForgeBlock = components["schemas"]["ForgeBlock"];
+export type ForgeLink = components["schemas"]["ForgeLink"];
+export type ForgeAnalysis = components["schemas"]["ForgeAnalysis"];
+export type ForgeProblem = components["schemas"]["ForgeProblem"];
+export type ForgeFix = components["schemas"]["ForgeFix"];
+export type ForgeShape = components["schemas"]["ForgeShape"];
+export type ForgeStats = components["schemas"]["ForgeStats"];
+export type ForgeProject = components["schemas"]["ForgeProjectOut"];
+export type ForgeDataset = components["schemas"]["ForgeDatasetOut"];
+export type ForgeDatasetRequest = components["schemas"]["ForgeDatasetIn"];
+export type ForgeImageSource = components["schemas"]["ForgeImageSourceIn"];
+export type Degradation = components["schemas"]["Degradation"];
+export type DatasetSettings = components["schemas"]["DatasetSettings"];
+export type TrainSettings = components["schemas"]["TrainSettings"];
+export type ForgeRun = components["schemas"]["ForgeRunOut"];
+export type ForgeMetric = components["schemas"]["ForgeMetricOut"];
+export type ForgeRunDetail = components["schemas"]["ForgeRunDetailOut"];
 
 /** RFC 9457 problem details returned by every failing endpoint. */
 export interface Problem {

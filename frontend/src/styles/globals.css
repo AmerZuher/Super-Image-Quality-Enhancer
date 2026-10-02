@@ -252,6 +252,12 @@
 .flow-canvas .react-flow__edge-textbg {
   fill: var(--panel);
 }
+.flow-canvas .forge-edge-err .react-flow__edge-path {
+  stroke: var(--err);
+}
+.flow-canvas .forge-edge-err .react-flow__edge-text {
+  fill: var(--err);
+}
 .flow-canvas .react-flow__arrowhead polyline {
   stroke: var(--line-2);
   fill: var(--line-2);

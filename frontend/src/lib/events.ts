@@ -4,6 +4,10 @@ import type {
   Asset,
   FlowRun,
   FlowRunDetail,
+  ForgeDataset,
+  ForgeMetric,
+  ForgeRun,
+  ForgeRunDetail,
   Job,
   Model,
   Rendition,
@@ -40,6 +44,13 @@ function refreshLibrary(client: QueryClient): void {
     libraryTimer = undefined;
     void client.invalidateQueries({ queryKey: keys.library });
   }, 400);
+}
+
+/** Append streamed points, skipping any already loaded (a refetch can race the stream). */
+export function mergeMetrics(current: ForgeMetric[], points: ForgeMetric[]): ForgeMetric[] {
+  const seen = new Set(current.map((m) => `${m.kind}:${m.step}`));
+  const fresh = points.filter((m) => !seen.has(`${m.kind}:${m.step}`));
+  return fresh.length ? [...current, ...fresh] : current;
 }
 
 export function applyEvent(client: QueryClient, event: ServerEvent): void {
@@ -134,6 +145,39 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
         void client.invalidateQueries({ queryKey: keys.run(run.id) });
         void client.invalidateQueries({ queryKey: keys.flows });
       }
+      return;
+    }
+    case "forge.project":
+      void client.invalidateQueries({ queryKey: keys.forgeProjects });
+      return;
+    case "forge.dataset": {
+      const dataset = event.data as unknown as ForgeDataset & { deleted?: boolean };
+      client.setQueryData<ForgeDataset[]>(keys.forgeDatasets, (list) =>
+        dataset.deleted ? removeById(list, dataset.id) : list ? upsertById(list, dataset) : list,
+      );
+      return;
+    }
+    case "forge.run": {
+      const run = event.data as unknown as ForgeRun & { deleted?: boolean };
+      if (run.deleted) {
+        client.setQueryData<ForgeRun[]>(keys.forgeRuns, (list) => removeById(list, run.id));
+        return;
+      }
+      // Events leave out the settings; merge so cached copies keep them.
+      client.setQueryData<ForgeRun[]>(keys.forgeRuns, (list) => (list ? upsertById(list, run, true) : list));
+      client.setQueryData<ForgeRunDetail>(keys.forgeRun(run.id), (detail) =>
+        detail ? { ...detail, run: { ...detail.run, ...run } } : detail,
+      );
+      if (run.state !== "queued" && run.state !== "running") {
+        void client.invalidateQueries({ queryKey: keys.forgeProjects });
+      }
+      return;
+    }
+    case "forge.metrics": {
+      const { run_id: runId, points } = event.data as { run_id: string; points: ForgeMetric[] };
+      client.setQueryData<ForgeRunDetail>(keys.forgeRun(runId), (detail) =>
+        detail ? { ...detail, metrics: mergeMetrics(detail.metrics, points) } : detail,
+      );
       return;
     }
     case "events.resync":

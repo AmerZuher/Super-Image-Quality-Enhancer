@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
+import { ForgeIcon } from "@/components/ui/Logo";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { errorMessage, type Model, type ModelTask } from "@/lib/api/client";
 import { useCancelJob } from "@/lib/api/queries";
@@ -108,7 +109,18 @@ export function ModelControl({ model, compact = false }: { model: Model; compact
   );
 }
 
+interface Benchmark {
+  psnr: number;
+  gain_db: number;
+}
+
+function benchmarkOf(model: Model): Benchmark | null {
+  const b = model.benchmark as Partial<Benchmark> | null | undefined;
+  return typeof b?.psnr === "number" && typeof b.gain_db === "number" ? (b as Benchmark) : null;
+}
+
 export function ModelCard({ model }: { model: Model }) {
+  const bench = benchmarkOf(model);
   return (
     <li
       className={clsx(
@@ -130,15 +142,30 @@ export function ModelCard({ model }: { model: Model }) {
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
           {model.scale > 1 && <span className="font-mono text-fg-2">×{model.scale}</span>}
           <span>{SPEED[model.speed]}</span>
-          <a
-            href={model.license_url}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="inline-flex items-center gap-0.5 hover:text-fg hover:underline"
-          >
-            {model.license}
-            <ExternalLink className="size-2.5" aria-hidden="true" />
-          </a>
+          {model.license_url ? (
+            <a
+              href={model.license_url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-0.5 hover:text-fg hover:underline"
+            >
+              {model.license}
+              <ExternalLink className="size-2.5" aria-hidden="true" />
+            </a>
+          ) : (
+            <span>{model.license}</span>
+          )}
+          {model.source === "forge" && (
+            <Chip tone="gold" icon={<ForgeIcon className="size-3" />}>
+              Trained in Forge
+            </Chip>
+          )}
+          {bench && (
+            <span className="font-mono text-fg-2" title="Measured on held-out crops when it was published">
+              {bench.psnr.toFixed(2)} dB ({bench.gain_db >= 0 ? "+" : ""}
+              {bench.gain_db.toFixed(2)} vs bicubic)
+            </span>
+          )}
           {model.tags.includes("yours") && <Chip tone="gold">Your model</Chip>}
           {model.recommended && <Chip tone="gold">Recommended</Chip>}
         </div>
