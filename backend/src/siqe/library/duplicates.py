@@ -4,7 +4,9 @@ Two images are near-duplicates when their perceptual hashes are close (the same 
 resized, recompressed or lightly edited) or when CLIP sees them as almost the same picture
 (crops, colour edits, burst shots). Groups are connected components, so A~B and B~C put all
 three together. Measured on the sample set: copies score a pHash distance of 0-2 and a
-similarity of 0.95 or more; different photos 18+ and 0.79 or less.
+similarity of 0.95 or more; different photos 18+ and 0.79 or less. Abstract images (flat
+gradients, colour blobs) can look alike to CLIP, so an embedding match also needs the hashes to
+be loosely similar.
 """
 
 import math
@@ -14,7 +16,10 @@ import numpy as np
 
 PHASH_MAX = 10
 DHASH_MAX = 14
-EMBEDDING_MIN = 0.94
+EMBEDDING_MIN = 0.95
+# An embedding match must also share some structure: unrelated images differ in about 32 of
+# the 64 pHash bits, crops and colour edits of one photo in under 20.
+EMBEDDING_PHASH_MAX = 22
 LOSSLESS = frozenset({"png", "tiff", "heif"})
 
 
@@ -58,7 +63,8 @@ def pairs(items: list[Candidate], *, block: int = 256) -> list[tuple[int, int]]:
         close = (pd <= PHASH_MAX) & (dd <= DHASH_MAX)
         if have.any():
             sim = emb[start:stop] @ emb.T
-            close |= have[start:stop, None] & have[None, :] & (sim >= EMBEDDING_MIN)
+            alike = have[start:stop, None] & have[None, :] & (sim >= EMBEDDING_MIN)
+            close |= alike & (pd <= EMBEDDING_PHASH_MAX)
         close &= ~(ok[start:stop, None] & ok[None, :])
         rows, cols = np.nonzero(close)
         found.extend((start + int(r), int(c)) for r, c in zip(rows, cols, strict=True) if start + r < c)

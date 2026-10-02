@@ -48,7 +48,7 @@ def _block(x: np.ndarray, w: Weights, p: str, heads: int, mask: np.ndarray | Non
     x = x + o @ w[f"{p}attn.out_proj.weight"].T + w[f"{p}attn.out_proj.bias"]
     h = _layer_norm(x, w[f"{p}ln_2.weight"], w[f"{p}ln_2.bias"])
     h = h @ w[f"{p}mlp.c_fc.weight"].T + w[f"{p}mlp.c_fc.bias"]
-    h = h * (1.0 / (1.0 + np.exp(-1.702 * h)))  # QuickGELU
+    h = h * (0.5 + 0.5 * np.tanh(0.851 * h))  # QuickGELU: x·sigmoid(1.702x), without overflow
     return x + h @ w[f"{p}mlp.c_proj.weight"].T + w[f"{p}mlp.c_proj.bias"]
 
 
