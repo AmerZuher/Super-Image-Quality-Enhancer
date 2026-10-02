@@ -6,6 +6,7 @@ import {
   Download,
   Eraser,
   Maximize2,
+  ScanSearch,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -21,13 +22,14 @@ import { useCancelJob, useJobs } from "@/lib/api/queries";
 import { formatBytes, relativeTime } from "@/lib/format";
 import { formatDimensions } from "../studio/format";
 import { usePlan, useRemoveResult, useStartRun } from "./api";
-import { ModelControl, TASKS } from "./Models";
+import { ModelControl, RUN_TASKS } from "./Models";
 
 const TASK_ICON: Record<ModelTask, ReactNode> = {
   upscale: <Maximize2 />,
   denoise: <Wand2 />,
   background: <Eraser />,
   face: <Sparkles />,
+  embed: <ScanSearch />,
 };
 
 function runLabel(task: ModelTask, model: Model | undefined): string {
@@ -269,7 +271,7 @@ export function RunPanel({
       <fieldset className="grid gap-2">
         <legend className="eyebrow mb-2">What to do</legend>
         <div className="grid grid-cols-2 gap-1.5">
-          {TASKS.map((t) => (
+          {RUN_TASKS.map((t) => (
             <button
               key={t.id}
               type="button"

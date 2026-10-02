@@ -13,6 +13,12 @@ export const keys = {
   children: (assetId: string) => ["assets", assetId, "children"] as const,
   models: ["models"] as const,
   plan: (assetId: string, modelId: string, device: string) => ["plan", assetId, modelId, device] as const,
+  library: ["library"] as const,
+  libraryPage: (params: Record<string, unknown>) => ["library", "page", params] as const,
+  libraryStatus: ["library", "status"] as const,
+  albums: ["library", "albums"] as const,
+  assetAlbums: (assetId: string) => ["library", "asset-albums", assetId] as const,
+  importStatus: ["library", "import"] as const,
 };
 
 /** Insert or replace a job in a newest-first list. */

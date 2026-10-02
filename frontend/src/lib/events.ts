@@ -22,8 +22,22 @@ interface ServerEvent {
   data: Record<string, unknown>;
 }
 
+let libraryTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Library lists are paged queries; refetch them at most a few times a second. */
+function refreshLibrary(client: QueryClient): void {
+  if (libraryTimer) return;
+  libraryTimer = setTimeout(() => {
+    libraryTimer = undefined;
+    void client.invalidateQueries({ queryKey: keys.library });
+  }, 400);
+}
+
 export function applyEvent(client: QueryClient, event: ServerEvent): void {
   switch (event.type) {
+    case "library.updated":
+      refreshLibrary(client);
+      return;
     case "job.updated": {
       const job = event.data as unknown as Job & { truncated?: boolean };
       if (job.truncated) {
@@ -49,6 +63,12 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
         void client.invalidateQueries({ queryKey: keys.assets, exact: true });
         return;
       }
+      refreshLibrary(client);
+      if (asset.quarantined_at) {
+        // Quarantined images leave Studio and AI Lab until they're restored.
+        client.setQueryData<Asset[]>(keys.assets, (list) => removeById(list, asset.id));
+        return;
+      }
       // Events leave out the edit document; merge so a cached copy keeps it.
       client.setQueryData<Asset[]>(keys.assets, (list) => upsertById(list, asset, true));
       if (asset.parent_id) {
@@ -66,6 +86,7 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
       return;
     }
     case "asset.deleted":
+      refreshLibrary(client);
       client.setQueryData<Asset[]>(keys.assets, (list) => removeById(list, String(event.data.id)));
       void client.invalidateQueries({ predicate: (q) => q.queryKey[2] === "children" });
       return;

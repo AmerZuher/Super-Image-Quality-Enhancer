@@ -23,7 +23,11 @@ export const TASKS: { id: ModelTask; label: string }[] = [
   { id: "denoise", label: "Denoise" },
   { id: "background", label: "Remove background" },
   { id: "face", label: "Restore faces" },
+  { id: "embed", label: "Library search and tags" },
 ];
+
+/** Tasks AI Lab can run on an image (the search model only powers the Library). */
+export const RUN_TASKS = TASKS.filter((t) => t.id !== "embed");
 
 const SPEED: Record<Model["speed"], string> = { fast: "Fast", balanced: "Balanced", slow: "Slow" };
 

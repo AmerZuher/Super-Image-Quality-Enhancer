@@ -19,6 +19,17 @@ const sizes: Record<Size, string> = {
   md: "h-9 px-3.5 text-[13px] gap-2",
 };
 
+/** Button styling for elements that aren't buttons, such as router links. */
+export function buttonClasses(variant: Variant = "outline", size: Size = "md", className?: string): string {
+  return clsx(
+    "inline-flex items-center justify-center whitespace-nowrap rounded-lg border transition",
+    "disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
+    variants[variant],
+    sizes[size],
+    className,
+  );
+}
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
@@ -41,13 +52,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={clsx(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-lg border transition",
-        "disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0",
-        variants[variant],
-        sizes[size],
-        className,
-      )}
+      className={buttonClasses(variant, size, className)}
       {...rest}
     >
       {loading ? <Spinner /> : icon}

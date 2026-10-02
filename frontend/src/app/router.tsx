@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, createRouter, Link, lazyRouteComponent } from "@tanstack/react-router";
 import { JobsPage } from "@/features/jobs/JobsPage";
+import type { LibrarySearch } from "@/features/library/LibraryPage";
 import { OverviewPage } from "@/features/overview/OverviewPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { WorkspacePreview } from "@/features/workspaces/WorkspacePreview";
@@ -40,7 +41,17 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/library",
-    component: () => <WorkspacePreview id="library" />,
+    validateSearch: (search: Record<string, unknown>): LibrarySearch => {
+      const out: LibrarySearch = {};
+      if (search.view === "duplicates" || search.view === "quarantine" || search.view === "album") {
+        out.view = search.view;
+      }
+      for (const key of ["album", "q", "similar"] as const) {
+        if (typeof search[key] === "string" && search[key]) out[key] = search[key] as string;
+      }
+      return out;
+    },
+    component: lazyRouteComponent(() => import("@/features/library/LibraryPage"), "LibraryPage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

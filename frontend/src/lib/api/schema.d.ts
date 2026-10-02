@@ -333,6 +333,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse, filter and search the library */
+        get: operations["library_assets_api_library_assets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts, indexing state and top tags */
+        get: operations["library_status_api_library_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyse new images and regroup duplicates now */
+        post: operations["reindex_api_library_reindex_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hide images in quarantine (undoable) */
+        post: operations["quarantine_api_library_quarantine_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring images back from quarantine */
+        post: operations["restore_api_library_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Permanently delete quarantined images and their files
+         * @description Only images already in quarantine are deleted; others are left alone.
+         */
+        post: operations["delete_quarantined_api_library_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/remove-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace images with copies that have no GPS location
+         * @description Pixels and other camera data are kept byte for byte. Each original moves to quarantine, so the change can be undone by restoring it.
+         */
+        post: operations["start_remove_location_api_library_remove_location_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/duplicates/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep the best copy of each duplicate group and quarantine the rest */
+        post: operations["resolve_duplicates_api_library_duplicates_resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/duplicates/{group_id}/keep-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** These aren't duplicates: keep every image and stop grouping them */
+        post: operations["keep_all_api_library_duplicates__group_id__keep_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add or remove your own tags on images */
+        post: operations["edit_tags_api_library_tags_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Albums with their image counts */
+        get: operations["list_albums_api_library_albums_get"];
+        put?: never;
+        /** New album */
+        post: operations["create_album_api_library_albums_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/albums/{album_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an album (its images stay in the library) */
+        delete: operations["delete_album_api_library_albums__album_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename an album or change its rules */
+        patch: operations["update_album_api_library_albums__album_id__patch"];
+        trace?: never;
+    };
+    "/api/library/albums/{album_id}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add images to or remove them from an album */
+        post: operations["album_members_api_library_albums__album_id__assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/assets/{asset_id}/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ids of the hand-picked albums an image is in */
+        get: operations["asset_albums_api_library_assets__asset_id__albums_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The import folder and what it has imported */
+        get: operations["import_status_api_library_import_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/import/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the import folder now */
+        post: operations["scan_now_api_library_import_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -450,7 +730,7 @@ export interface components {
              * Task
              * @enum {string}
              */
-            task: "upscale" | "denoise" | "background" | "face";
+            task: "upscale" | "denoise" | "background" | "face" | "embed";
             /** Scale */
             scale: number;
             /**
@@ -519,6 +799,59 @@ export interface components {
             job: components["schemas"]["JobOut"];
             plan: components["schemas"]["AiPlanOut"];
         };
+        /** AlbumIn */
+        AlbumIn: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @default smart
+             * @enum {string}
+             */
+            kind: "manual" | "smart";
+            rules?: components["schemas"]["RuleSet"];
+        };
+        /** AlbumMembersIn */
+        AlbumMembersIn: {
+            /** Asset Ids */
+            asset_ids: string[];
+            /**
+             * Action
+             * @default add
+             * @enum {string}
+             */
+            action: "add" | "remove";
+        };
+        /** AlbumOut */
+        AlbumOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "manual" | "smart";
+            rules: components["schemas"]["RuleSet"];
+            /** Count */
+            count: number;
+            /** Position */
+            position: number;
+        };
+        /** AlbumPatchIn */
+        AlbumPatchIn: {
+            /** Name */
+            name?: string | null;
+            rules?: components["schemas"]["RuleSet"] | null;
+            /** Position */
+            position?: number | null;
+        };
+        /** AssetIdsIn */
+        AssetIdsIn: {
+            /** Asset Ids */
+            asset_ids: string[];
+        };
         /** AssetOut */
         AssetOut: {
             /** Id */
@@ -585,6 +918,66 @@ export interface components {
             derivation?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Tags
+             * @description Tags you added.
+             */
+            tags: string[];
+            /**
+             * Auto Tags
+             * @description Tags CLIP chose (Library search).
+             */
+            auto_tags: string[];
+            /** Analysed */
+            analysed: boolean;
+            /**
+             * Sharpness
+             * @description 0 (blurred) to 1 (crisp).
+             */
+            sharpness?: number | null;
+            /**
+             * Color
+             * @description Main colour family, or 'neutral'.
+             */
+            color?: string | null;
+            /** Color Hex */
+            color_hex?: string | null;
+            /**
+             * Taken At
+             * @description When the photo was taken (EXIF).
+             */
+            taken_at?: string | null;
+            /**
+             * Gps
+             * @description Latitude and longitude, if recorded.
+             */
+            gps?: number[] | null;
+            /**
+             * Duplicate Group
+             * @description Near-duplicates share a group.
+             */
+            duplicate_group?: string | null;
+            /**
+             * Duplicate Rank
+             * @description 0 is the copy worth keeping.
+             */
+            duplicate_rank?: number | null;
+            /** Quarantined At */
+            quarantined_at?: string | null;
+            /** Quarantine Reason */
+            quarantine_reason?: string | null;
+            /**
+             * Source
+             * @description Where the file came from.
+             */
+            source?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Score
+             * @description Search or similarity score, when searching.
+             */
+            score?: number | null;
         };
         /** CatalogOut */
         CatalogOut: {
@@ -599,6 +992,11 @@ export interface components {
             /** Accepted Extensions */
             accepted_extensions: string;
         };
+        /** ChangedOut */
+        ChangedOut: {
+            /** Changed */
+            changed: number;
+        };
         /** CropIn */
         CropIn: {
             /** X */
@@ -609,6 +1007,14 @@ export interface components {
             w: number;
             /** H */
             h: number;
+        };
+        /** DuplicatesResolveIn */
+        DuplicatesResolveIn: {
+            /**
+             * Groups
+             * @description Groups to resolve; leave out to resolve every group.
+             */
+            groups?: string[] | null;
         };
         /**
          * EditDocumentIn
@@ -693,6 +1099,52 @@ export interface components {
                 [key: string]: boolean;
             };
         };
+        /** ImportFailureOut */
+        ImportFailureOut: {
+            /** Path */
+            path: string;
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+        };
+        /** ImportStatusOut */
+        ImportStatusOut: {
+            /**
+             * Enabled
+             * @description Whether the folder is checked on a schedule.
+             */
+            enabled: boolean;
+            /**
+             * Available
+             * @description Whether the folder was found at the last check.
+             */
+            available: boolean | null;
+            /**
+             * Folder
+             * @description The folder on your computer (SIQE_IMPORT_PATH).
+             */
+            folder: string;
+            /** Every Seconds */
+            every_seconds: number;
+            /** Last Scan */
+            last_scan: string | null;
+            /**
+             * Files
+             * @description Image files found at the last check.
+             */
+            files: number | null;
+            /** Imported */
+            imported: number;
+            /** Duplicates */
+            duplicates: number;
+            /** Waiting */
+            waiting: number;
+            /** Failed */
+            failed: number;
+            /** Failures */
+            failures: components["schemas"]["ImportFailureOut"][];
+        };
         /** JobOut */
         JobOut: {
             /** Id */
@@ -729,6 +1181,55 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /** LibraryCountsOut */
+        LibraryCountsOut: {
+            /** All */
+            all: number;
+            /** Duplicates */
+            duplicates: number;
+            /** Duplicate Groups */
+            duplicate_groups: number;
+            /** Quarantine */
+            quarantine: number;
+        };
+        /** LibraryPageOut */
+        LibraryPageOut: {
+            /** Items */
+            items: components["schemas"]["AssetOut"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /**
+             * Mode
+             * @description How the list was made: browsing, search by description, by name only, or similar.
+             * @enum {string}
+             */
+            mode: "browse" | "text" | "name" | "similar";
+        };
+        /** LibraryStatusOut */
+        LibraryStatusOut: {
+            counts: components["schemas"]["LibraryCountsOut"];
+            /**
+             * Pending
+             * @description Images waiting to be analysed.
+             */
+            pending: number;
+            /**
+             * Search Model
+             * @description Install state of the CLIP model behind search.
+             * @enum {string}
+             */
+            search_model: "available" | "downloading" | "installed" | "failed";
+            /** Search Model Id */
+            search_model_id: string;
+            /** Indexing */
+            indexing: boolean;
+            /** Tags */
+            tags: components["schemas"]["TagCountOut"][];
+        };
         /** ModelInstallOut */
         ModelInstallOut: {
             model: components["schemas"]["ModelOut"];
@@ -745,7 +1246,7 @@ export interface components {
              * Task
              * @enum {string}
              */
-            task: "upscale" | "denoise" | "background" | "face";
+            task: "upscale" | "denoise" | "background" | "face" | "embed";
             /** Task Label */
             task_label: string;
             /** Arch */
@@ -864,6 +1365,13 @@ export interface components {
             /** Sixteen Bit */
             sixteen_bit: boolean;
         };
+        /** QuarantineIn */
+        QuarantineIn: {
+            /** Asset Ids */
+            asset_ids: string[];
+            /** Reason */
+            reason?: string | null;
+        };
         /** ReleaseOut */
         ReleaseOut: {
             /** Tag */
@@ -918,6 +1426,32 @@ export interface components {
             /** Download Url */
             download_url: string | null;
         };
+        /** Rule */
+        Rule: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "orientation" | "width" | "height" | "megapixels" | "aspect" | "format" | "color" | "tag" | "sharpness" | "has_gps" | "ai_result" | "duplicate" | "taken" | "added_days" | "name" | "folder";
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "is" | "is_not" | "gte" | "lte" | "approx" | "has" | "after" | "before" | "contains" | "starts_with";
+            /** Value */
+            value: string | number | boolean;
+        };
+        /** RuleSet */
+        RuleSet: {
+            /**
+             * Match
+             * @default all
+             * @enum {string}
+             */
+            match: "all" | "any";
+            /** Rules */
+            rules?: components["schemas"]["Rule"][];
+        };
         /** ServicesOut */
         ServicesOut: {
             /** Database */
@@ -940,6 +1474,22 @@ export interface components {
             };
             /** Workers */
             workers: components["schemas"]["WorkerOut"][];
+        };
+        /** TagCountOut */
+        TagCountOut: {
+            /** Tag */
+            tag: string;
+            /** Count */
+            count: number;
+        };
+        /** TagsIn */
+        TagsIn: {
+            /** Asset Ids */
+            asset_ids: string[];
+            /** Add */
+            add?: string[];
+            /** Remove */
+            remove?: string[];
         };
         /** UpdateStatusOut */
         UpdateStatusOut: {
@@ -1235,6 +1785,8 @@ export interface operations {
                 limit?: number;
                 /** @description Only images made from this one by AI runs. */
                 parent_id?: string | null;
+                /** @description Also list images in the Library's quarantine. */
+                include_quarantined?: boolean;
             };
             header?: never;
             path?: never;
@@ -1670,6 +2222,536 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    library_assets_api_library_assets_get: {
+        parameters: {
+            query?: {
+                view?: "all" | "duplicates" | "quarantine" | "album";
+                album_id?: string | null;
+                /** @description Search by description or name. */
+                q?: string | null;
+                /** @description Images that look like this one. */
+                similar_to?: string | null;
+                /** @description Filter rule set as JSON. */
+                rules?: string | null;
+                sort?: "added" | "taken" | "name" | "size" | "resolution" | "sharpness";
+                order?: "asc" | "desc";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    library_status_api_library_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryStatusOut"];
+                };
+            };
+        };
+    };
+    reindex_api_library_reindex_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    quarantine_api_library_quarantine_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuarantineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_api_library_restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetIdsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_quarantined_api_library_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetIdsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_remove_location_api_library_remove_location_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetIdsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_duplicates_api_library_duplicates_resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicatesResolveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keep_all_api_library_duplicates__group_id__keep_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_tags_api_library_tags_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_albums_api_library_albums_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlbumOut"][];
+                };
+            };
+        };
+    };
+    create_album_api_library_albums_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlbumIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlbumOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_album_api_library_albums__album_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_album_api_library_albums__album_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlbumPatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlbumOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    album_members_api_library_albums__album_id__assets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlbumMembersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_albums_api_library_assets__asset_id__albums_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_status_api_library_import_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportStatusOut"];
+                };
+            };
+        };
+    };
+    scan_now_api_library_import_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -42,6 +42,16 @@
   --hist-b: rgb(84 150 255 / 0.75);
   --hist-l: rgb(227 235 250 / 0.55);
   --stage: #050913;
+  /* Library colour families: data colours for swatches, the same in both themes. */
+  --swatch-red: #e5484d;
+  --swatch-orange: #f08c3a;
+  --swatch-yellow: #e9c84a;
+  --swatch-green: #46a758;
+  --swatch-teal: #12a594;
+  --swatch-blue: #3e7bdc;
+  --swatch-purple: #8e4ec6;
+  --swatch-pink: #d6409f;
+  --swatch-neutral: #8b8d98;
 }
 
 @media (prefers-color-scheme: light) {

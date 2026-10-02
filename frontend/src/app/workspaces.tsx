@@ -24,7 +24,7 @@ export interface Workspace {
 }
 
 /** Phases that have shipped; workspaces from later phases show a preview page. */
-export const CURRENT_PHASE = 2;
+export const CURRENT_PHASE = 3;
 
 export function isAvailable(workspace: Workspace): boolean {
   return workspace.phase <= CURRENT_PHASE;
@@ -74,11 +74,11 @@ export const WORKSPACES: Workspace[] = [
     ai: false,
     summary: "Organise thousands of photos automatically.",
     capabilities: [
-      "Duplicate clusters that keep the sharpest copy, with quarantine and undo",
+      "Duplicate groups that keep the best copy, with quarantine and undo",
       "Find similar images, or search by describing the photo",
-      "Smart albums from rules: orientation, size, colour, tags, faces",
-      "EXIF viewer and one-click GPS privacy scrub",
-      "Hot-folder import that ignores half-copied files",
+      "Smart albums from rules: orientation, size, colour, tags, sharpness, location",
+      "Camera details, and removing location without touching the pixels",
+      "An import folder that waits for half-copied files",
     ],
   },
   {

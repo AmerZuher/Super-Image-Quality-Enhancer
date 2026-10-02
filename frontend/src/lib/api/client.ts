@@ -23,6 +23,12 @@ export type Model = components["schemas"]["ModelOut"];
 export type ModelTask = Model["task"];
 export type AiPlan = components["schemas"]["AiPlanOut"];
 export type AiRunRequest = components["schemas"]["AiRunIn"];
+export type LibraryPage = components["schemas"]["LibraryPageOut"];
+export type LibraryStatus = components["schemas"]["LibraryStatusOut"];
+export type Album = components["schemas"]["AlbumOut"];
+export type RuleSet = components["schemas"]["RuleSet"];
+export type Rule = components["schemas"]["Rule"];
+export type ImportStatus = components["schemas"]["ImportStatusOut"];
 
 /** RFC 9457 problem details returned by every failing endpoint. */
 export interface Problem {

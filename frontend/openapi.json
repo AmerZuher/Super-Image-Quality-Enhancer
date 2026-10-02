@@ -355,6 +355,18 @@
               "title": "Parent Id"
             },
             "description": "Only images made from this one by AI runs."
+          },
+          {
+            "name": "include_quarantined",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also list images in the Library's quarantine.",
+              "default": false,
+              "title": "Include Quarantined"
+            },
+            "description": "Also list images in the Library's quarantine."
           }
         ],
         "responses": {
@@ -881,6 +893,795 @@
         }
       }
     },
+    "/api/library/assets": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Browse, filter and search the library",
+        "operationId": "library_assets_api_library_assets_get",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "duplicates",
+                "quarantine",
+                "album"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "View"
+            }
+          },
+          {
+            "name": "album_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Album Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search by description or name.",
+              "title": "Q"
+            },
+            "description": "Search by description or name."
+          },
+          {
+            "name": "similar_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Images that look like this one.",
+              "title": "Similar To"
+            },
+            "description": "Images that look like this one."
+          },
+          {
+            "name": "rules",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter rule set as JSON.",
+              "title": "Rules"
+            },
+            "description": "Filter rule set as JSON."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "added",
+                "taken",
+                "name",
+                "size",
+                "resolution",
+                "sharpness"
+              ],
+              "type": "string",
+              "default": "added",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string",
+              "default": "desc",
+              "title": "Order"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/status": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Counts, indexing state and top tags",
+        "operationId": "library_status_api_library_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/reindex": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Analyse new images and regroup duplicates now",
+        "operationId": "reindex_api_library_reindex_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/library/quarantine": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Hide images in quarantine (undoable)",
+        "operationId": "quarantine_api_library_quarantine_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuarantineIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/restore": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Bring images back from quarantine",
+        "operationId": "restore_api_library_restore_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetIdsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/delete": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Permanently delete quarantined images and their files",
+        "description": "Only images already in quarantine are deleted; others are left alone.",
+        "operationId": "delete_quarantined_api_library_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetIdsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/remove-location": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Replace images with copies that have no GPS location",
+        "description": "Pixels and other camera data are kept byte for byte. Each original moves to quarantine, so the change can be undone by restoring it.",
+        "operationId": "start_remove_location_api_library_remove_location_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetIdsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/duplicates/resolve": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Keep the best copy of each duplicate group and quarantine the rest",
+        "operationId": "resolve_duplicates_api_library_duplicates_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicatesResolveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/duplicates/{group_id}/keep-all": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "These aren't duplicates: keep every image and stop grouping them",
+        "operationId": "keep_all_api_library_duplicates__group_id__keep_all_post",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/tags": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Add or remove your own tags on images",
+        "operationId": "edit_tags_api_library_tags_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/albums": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Albums with their image counts",
+        "operationId": "list_albums_api_library_albums_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Albums Api Library Albums Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "New album",
+        "operationId": "create_album_api_library_albums_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/albums/{album_id}": {
+      "patch": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Rename an album or change its rules",
+        "operationId": "update_album_api_library_albums__album_id__patch",
+        "parameters": [
+          {
+            "name": "album_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Album Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPatchIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Delete an album (its images stay in the library)",
+        "operationId": "delete_album_api_library_albums__album_id__delete",
+        "parameters": [
+          {
+            "name": "album_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Album Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/albums/{album_id}/assets": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Add images to or remove them from an album",
+        "operationId": "album_members_api_library_albums__album_id__assets_post",
+        "parameters": [
+          {
+            "name": "album_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Album Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumMembersIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/assets/{asset_id}/albums": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Ids of the hand-picked albums an image is in",
+        "operationId": "asset_albums_api_library_assets__asset_id__albums_get",
+        "parameters": [
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Asset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Asset Albums Api Library Assets  Asset Id  Albums Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/import": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "The import folder and what it has imported",
+        "operationId": "import_status_api_library_import_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/import/scan": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Check the import folder now",
+        "operationId": "scan_now_api_library_import_scan_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
     "/api/models": {
       "get": {
         "tags": [
@@ -1126,7 +1927,8 @@
               "upscale",
               "denoise",
               "background",
-              "face"
+              "face",
+              "embed"
             ],
             "title": "Task"
           },
@@ -1307,6 +2109,159 @@
         ],
         "title": "AiRunStartOut"
       },
+      "AlbumIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "smart"
+            ],
+            "title": "Kind",
+            "default": "smart"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/RuleSet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "AlbumIn"
+      },
+      "AlbumMembersIn": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Asset Ids"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove"
+            ],
+            "title": "Action",
+            "default": "add"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_ids"
+        ],
+        "title": "AlbumMembersIn"
+      },
+      "AlbumOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "smart"
+            ],
+            "title": "Kind"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/RuleSet"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "rules",
+          "count",
+          "position"
+        ],
+        "title": "AlbumOut"
+      },
+      "AlbumPatchIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "rules": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RuleSet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "title": "AlbumPatchIn"
+      },
+      "AssetIdsIn": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Asset Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_ids"
+        ],
+        "title": "AssetIdsIn"
+      },
       "AssetOut": {
         "properties": {
           "id": {
@@ -1472,6 +2427,161 @@
             ],
             "title": "Derivation",
             "description": "How an AI result was made."
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags you added."
+          },
+          "auto_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Auto Tags",
+            "description": "Tags CLIP chose (Library search)."
+          },
+          "analysed": {
+            "type": "boolean",
+            "title": "Analysed"
+          },
+          "sharpness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sharpness",
+            "description": "0 (blurred) to 1 (crisp)."
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color",
+            "description": "Main colour family, or 'neutral'."
+          },
+          "color_hex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Hex"
+          },
+          "taken_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taken At",
+            "description": "When the photo was taken (EXIF)."
+          },
+          "gps": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps",
+            "description": "Latitude and longitude, if recorded."
+          },
+          "duplicate_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Group",
+            "description": "Near-duplicates share a group."
+          },
+          "duplicate_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Rank",
+            "description": "0 is the copy worth keeping."
+          },
+          "quarantined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quarantined At"
+          },
+          "quarantine_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quarantine Reason"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Where the file came from."
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Search or similarity score, when searching."
           }
         },
         "type": "object",
@@ -1494,7 +2604,10 @@
           "thumb_url",
           "preview_url",
           "dzi_url",
-          "original_url"
+          "original_url",
+          "tags",
+          "auto_tags",
+          "analysed"
         ],
         "title": "AssetOut"
       },
@@ -1537,6 +2650,19 @@
         ],
         "title": "CatalogOut"
       },
+      "ChangedOut": {
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "title": "Changed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changed"
+        ],
+        "title": "ChangedOut"
+      },
       "CropIn": {
         "properties": {
           "x": {
@@ -1564,6 +2690,27 @@
           "h"
         ],
         "title": "CropIn"
+      },
+      "DuplicatesResolveIn": {
+        "properties": {
+          "groups": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groups",
+            "description": "Groups to resolve; leave out to resolve every group."
+          }
+        },
+        "type": "object",
+        "title": "DuplicatesResolveIn"
       },
       "EditDocumentIn": {
         "properties": {
@@ -1735,6 +2882,121 @@
         ],
         "title": "HealthOut"
       },
+      "ImportFailureOut": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "code",
+          "message"
+        ],
+        "title": "ImportFailureOut"
+      },
+      "ImportStatusOut": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether the folder is checked on a schedule."
+          },
+          "available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available",
+            "description": "Whether the folder was found at the last check."
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder",
+            "description": "The folder on your computer (SIQE_IMPORT_PATH)."
+          },
+          "every_seconds": {
+            "type": "integer",
+            "title": "Every Seconds"
+          },
+          "last_scan": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scan"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files",
+            "description": "Image files found at the last check."
+          },
+          "imported": {
+            "type": "integer",
+            "title": "Imported"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "waiting": {
+            "type": "integer",
+            "title": "Waiting"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "failures": {
+            "items": {
+              "$ref": "#/components/schemas/ImportFailureOut"
+            },
+            "type": "array",
+            "title": "Failures"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "available",
+          "folder",
+          "every_seconds",
+          "last_scan",
+          "files",
+          "imported",
+          "duplicates",
+          "waiting",
+          "failed",
+          "failures"
+        ],
+        "title": "ImportStatusOut"
+      },
       "JobOut": {
         "properties": {
           "id": {
@@ -1853,6 +3115,125 @@
         ],
         "title": "JobOut"
       },
+      "LibraryCountsOut": {
+        "properties": {
+          "all": {
+            "type": "integer",
+            "title": "All"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "duplicate_groups": {
+            "type": "integer",
+            "title": "Duplicate Groups"
+          },
+          "quarantine": {
+            "type": "integer",
+            "title": "Quarantine"
+          }
+        },
+        "type": "object",
+        "required": [
+          "all",
+          "duplicates",
+          "duplicate_groups",
+          "quarantine"
+        ],
+        "title": "LibraryCountsOut"
+      },
+      "LibraryPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssetOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "browse",
+              "text",
+              "name",
+              "similar"
+            ],
+            "title": "Mode",
+            "description": "How the list was made: browsing, search by description, by name only, or similar."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit",
+          "mode"
+        ],
+        "title": "LibraryPageOut"
+      },
+      "LibraryStatusOut": {
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/LibraryCountsOut"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending",
+            "description": "Images waiting to be analysed."
+          },
+          "search_model": {
+            "type": "string",
+            "enum": [
+              "available",
+              "downloading",
+              "installed",
+              "failed"
+            ],
+            "title": "Search Model",
+            "description": "Install state of the CLIP model behind search."
+          },
+          "search_model_id": {
+            "type": "string",
+            "title": "Search Model Id"
+          },
+          "indexing": {
+            "type": "boolean",
+            "title": "Indexing"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/TagCountOut"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "counts",
+          "pending",
+          "search_model",
+          "search_model_id",
+          "indexing",
+          "tags"
+        ],
+        "title": "LibraryStatusOut"
+      },
       "ModelInstallOut": {
         "properties": {
           "model": {
@@ -1893,7 +3274,8 @@
               "upscale",
               "denoise",
               "background",
-              "face"
+              "face",
+              "embed"
             ],
             "title": "Task"
           },
@@ -2200,6 +3582,36 @@
         ],
         "title": "OutputFormatOut"
       },
+      "QuarantineIn": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Asset Ids"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_ids"
+        ],
+        "title": "QuarantineIn"
+      },
       "ReleaseOut": {
         "properties": {
           "tag": {
@@ -2381,6 +3793,92 @@
         ],
         "title": "RenditionOut"
       },
+      "Rule": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "orientation",
+              "width",
+              "height",
+              "megapixels",
+              "aspect",
+              "format",
+              "color",
+              "tag",
+              "sharpness",
+              "has_gps",
+              "ai_result",
+              "duplicate",
+              "taken",
+              "added_days",
+              "name",
+              "folder"
+            ],
+            "title": "Field"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "is",
+              "is_not",
+              "gte",
+              "lte",
+              "approx",
+              "has",
+              "after",
+              "before",
+              "contains",
+              "starts_with"
+            ],
+            "title": "Op"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "op",
+          "value"
+        ],
+        "title": "Rule"
+      },
+      "RuleSet": {
+        "properties": {
+          "match": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "title": "Match",
+            "default": "all"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Rules"
+          }
+        },
+        "type": "object",
+        "title": "RuleSet"
+      },
       "ServicesOut": {
         "properties": {
           "database": {
@@ -2439,6 +3937,58 @@
           "workers"
         ],
         "title": "SystemOut"
+      },
+      "TagCountOut": {
+        "properties": {
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tag",
+          "count"
+        ],
+        "title": "TagCountOut"
+      },
+      "TagsIn": {
+        "properties": {
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Asset Ids"
+          },
+          "add": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Add"
+          },
+          "remove": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Remove"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_ids"
+        ],
+        "title": "TagsIn"
       },
       "UpdateStatusOut": {
         "properties": {
