@@ -15,6 +15,7 @@ from typing import Any
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from siqe.activities.ai import discard_run_files, register_result, run_background, run_model
 from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
 from siqe.activities.jobs import update_job
 from siqe.activities.models import install_model, mark_model_failed
@@ -26,13 +27,14 @@ from siqe.orchestration.client import connect
 from siqe.storage.store import get_store
 from siqe.system.resources import cpu_info
 from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
+from siqe.workflows.ai import AiRunWorkflow
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 from siqe.workflows.models import ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
 
 log = get_logger(__name__)
 
-WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow, ModelInstallWorkflow]
+WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow, ModelInstallWorkflow, AiRunWorkflow]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
     cpu_probe,
@@ -42,8 +44,11 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     mark_rendition_failed,
     install_model,
     mark_model_failed,
+    run_background,
+    register_result,
+    discard_run_files,
 ]
-GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe]
+GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model]
 
 
 def build_worker(client: Client, kind: WorkerKind) -> Worker:

@@ -229,6 +229,7 @@ def install_files(
         if f.convert_to:
             staging = final.with_name(final.name + ".partial")
             siqe_classic_from_h5(raw, staging)
+            staging.chmod(0o644)  # safetensors writes 0600; the GPU worker may be another user
             staging.replace(final)
             raw.unlink()
         finished += f.size

@@ -9,6 +9,7 @@ evaluation, so the thread ends promptly instead of finishing a doomed render.
 import asyncio
 import threading
 from collections.abc import Callable
+from typing import Any
 
 from siqe.jobs.progress import ProgressReporter
 
@@ -17,14 +18,19 @@ class ThreadProgress:
     def __init__(self) -> None:
         self.fraction = 0.0
         self.message: str | None = None
+        self.details: dict[str, Any] | None = None
         self.cancelled = threading.Event()
 
-    def update(self, fraction: float, message: str | None = None) -> None:
+    def update(
+        self, fraction: float, message: str | None = None, details: dict[str, Any] | None = None
+    ) -> None:
         if self.cancelled.is_set():
             raise InterruptedError("cancelled")
         self.fraction = max(self.fraction, min(1.0, fraction))
         if message is not None:
             self.message = message
+        if details is not None:
+            self.details = details
 
 
 async def run_threaded[T](
@@ -34,7 +40,7 @@ async def run_threaded[T](
     task = asyncio.create_task(asyncio.to_thread(work, state))
     try:
         while not task.done():
-            await reporter.report(state.fraction, state.message)
+            await reporter.report(state.fraction, state.message, details=state.details)
             await asyncio.wait({task}, timeout=interval)
         return task.result()
     except asyncio.CancelledError:

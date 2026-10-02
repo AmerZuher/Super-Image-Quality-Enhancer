@@ -11,7 +11,7 @@ from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from siqe.activities.threaded import ThreadProgress, run_threaded
-from siqe.assets.records import get_asset, get_rendition, publish_asset, publish_rendition
+from siqe.assets.records import get_asset, get_rendition, megapixel_limit, publish_asset, publish_rendition
 from siqe.core.config import get_settings
 from siqe.core.errors import AppError
 from siqe.db.base import utcnow
@@ -50,26 +50,26 @@ def _attach_progress(
     image.signal_connect("eval", on_eval)
 
 
-def _small(src: Path, side: int) -> pyvips.Image:
+def _small(src: Path, side: int, limit: int | None = None) -> pyvips.Image:
     """Shrink-on-load thumbnail in the working space, as 8-bit sRGB (alpha kept)."""
-    open_image(src)  # admission check
+    open_image(src, max_megapixels=limit)  # admission check
     thumb = pyvips.Image.thumbnail(str(src), side, size="down", export_profile="srgb")
     return from_working(to_working(thumb), depth=8)
 
 
-def _prepare(src: Path, out_dir: Path, state: ThreadProgress) -> dict[str, int]:
+def _prepare(src: Path, out_dir: Path, state: ThreadProgress, limit: int | None = None) -> dict[str, int]:
     staging = out_dir.with_name(out_dir.name + ".partial")
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
     try:
         state.update(0.05, "Making a thumbnail")
-        _small(src, THUMB_SIDE).write_to_file(str(staging / "thumb.webp"), Q=80, keep="none")
+        _small(src, THUMB_SIDE, limit).write_to_file(str(staging / "thumb.webp"), Q=80, keep="none")
 
         state.update(0.15, "Making a preview")
-        preview = _small(src, PREVIEW_SIDE)
+        preview = _small(src, PREVIEW_SIDE, limit)
         preview.write_to_file(str(staging / "preview.webp"), Q=90, keep="none")
 
-        full = from_working(to_working(open_image(src)), depth=8)
+        full = from_working(to_working(open_image(src, max_megapixels=limit)), depth=8)
         _attach_progress(full, state, 0.25, 0.75, "Building the zoom pyramid")
         full.dzsave(str(staging / "image"), suffix=".webp[Q=82]", tile_size=510, overlap=1, keep="none")
 
@@ -82,15 +82,16 @@ def _prepare(src: Path, out_dir: Path, state: ThreadProgress) -> dict[str, int]:
 
 
 @activity.defn
-async def prepare_asset(job_id: str, asset_id: str) -> dict[str, int]:
+async def prepare_asset(job_id: str, asset_id: str, start: float = 0.0, span: float = 1.0) -> dict[str, int]:
     store = get_store()
-    reporter = ProgressReporter(job_id)
+    reporter = ProgressReporter(job_id, start=start, span=span)
     async with session_scope() as session:
         asset = await get_asset(session, uuid.UUID(asset_id))
         src = store.original(asset.sha256, asset.extension)
         out_dir = store.previews(asset.id)
+        limit = megapixel_limit(asset)
     try:
-        sizes = await run_threaded(lambda state: _prepare(src, out_dir, state), reporter)
+        sizes = await run_threaded(lambda state: _prepare(src, out_dir, state, limit), reporter)
     except AppError as exc:
         await _mark_asset_failed(asset_id, {"code": exc.code, "message": exc.detail})
         raise _non_retryable(exc) from exc
@@ -129,11 +130,17 @@ async def mark_asset_failed(failure: AssetFailure) -> None:
 
 
 def _export(
-    src: Path, edits: dict[str, Any], options: ExportOptions, out: Path, tmp: Path, state: ThreadProgress
+    src: Path,
+    edits: dict[str, Any],
+    options: ExportOptions,
+    out: Path,
+    tmp: Path,
+    state: ThreadProgress,
+    limit: int | None = None,
 ) -> ExportResult:
     doc = parse_document(edits)
     state.update(0.02, "Rendering edits")
-    work = resize_to(render_working(to_working(open_image(src)), doc), options.max_side)
+    work = resize_to(render_working(to_working(open_image(src, max_megapixels=limit)), doc), options.max_side)
 
     def progress(fraction: float) -> None:
         state.update(fraction, "Rendering edits" if fraction < 0.8 else "Encoding")
@@ -153,10 +160,13 @@ async def export_rendition(job_id: str, rendition_id: str) -> dict[str, Any]:
         options = ExportOptions.model_validate(rendition.options)
         edits = dict(rendition.edits)
         out = store.rendition(asset.id, rendition.id, Path(rendition.filename).suffix)
+        limit = megapixel_limit(asset)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = settings.data_dir / "tmp"
     try:
-        result = await run_threaded(lambda state: _export(src, edits, options, out, tmp, state), reporter)
+        result = await run_threaded(
+            lambda state: _export(src, edits, options, out, tmp, state, limit), reporter
+        )
     except AppError as exc:
         await _finish_rendition(rendition_id, failed=True)
         raise _non_retryable(exc) from exc

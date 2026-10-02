@@ -196,8 +196,15 @@ async def _existing_upload(
 
 
 @router.get("/assets", response_model=list[AssetOut], summary="Images in the library, newest first")
-async def list_assets(session: SessionDep, limit: int = Query(200, ge=1, le=1000)) -> list[AssetOut]:
-    rows = (await session.execute(select(Asset).order_by(Asset.created_at.desc()).limit(limit))).scalars()
+async def list_assets(
+    session: SessionDep,
+    limit: int = Query(200, ge=1, le=1000),
+    parent_id: uuid.UUID | None = Query(None, description="Only images made from this one by AI runs."),
+) -> list[AssetOut]:
+    stmt = select(Asset).order_by(Asset.created_at.desc()).limit(limit)
+    if parent_id is not None:
+        stmt = stmt.where(Asset.parent_id == parent_id)
+    rows = (await session.execute(stmt)).scalars()
     return [_asset_out(a) for a in rows]
 
 

@@ -43,6 +43,10 @@ def pick_device(preference: str = "auto") -> Device:
     return "cpu"
 
 
+def device_name(device: str) -> str:
+    return str(torch.cuda.get_device_name(0)) if device == "cuda" else "CPU"
+
+
 def load_spandrel(path: Path) -> LoadedModel:
     if path.suffix == ".safetensors":
         state = load_file(str(path), device="cpu")

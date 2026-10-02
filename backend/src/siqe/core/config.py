@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Resource limits (see docs/robustness.md)
     max_input_megapixels: int = 250
     max_upload_mb: int = Field(default=2048, description="Largest single upload, in MB.")
+    max_output_megapixels: int = Field(
+        default=1000, description="Largest AI result, in megapixels (8K ×4 is 531 MP)."
+    )
     gpu_vram_reserve_mb: int = Field(
         default=1536, description="VRAM kept free for the driver and fragmentation."
     )

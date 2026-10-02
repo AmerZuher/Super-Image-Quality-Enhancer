@@ -27,9 +27,17 @@ class ProgressReporter:
         if activity.in_activity():
             activity.heartbeat(details)
 
-    async def report(self, fraction: float, message: str | None = None, *, force: bool = False) -> None:
+    async def report(
+        self,
+        fraction: float,
+        message: str | None = None,
+        *,
+        force: bool = False,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        """``details`` ride along in the heartbeat; a retried activity reads them to resume."""
         overall = self.start + self.span * max(0.0, min(1.0, fraction))
-        self._heartbeat({"progress": overall, "message": message})
+        self._heartbeat({"progress": overall, "message": message, **(details or {})})
         now = time.monotonic()
         if not force and now - self._last_write < self.min_interval:
             return

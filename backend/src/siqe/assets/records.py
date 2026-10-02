@@ -1,11 +1,13 @@
 """Reading, serialising and updating asset and rendition rows (shared by API and activities)."""
 
+import math
 import uuid
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from siqe.core.config import get_settings
 from siqe.core.errors import NotFoundError
 from siqe.db.models import Asset, Rendition
 from siqe.events.bus import publish
@@ -43,6 +45,13 @@ def asset_to_dict(asset: Asset) -> dict[str, Any]:
         "parent_id": str(asset.parent_id) if asset.parent_id else None,
         "derivation": asset.derivation,
     }
+
+
+def megapixel_limit(asset: Asset) -> int | None:
+    """Admission limit for this asset's file. AI results may legitimately exceed the upload limit."""
+    if asset.parent_id is None:
+        return None
+    return max(get_settings().max_input_megapixels, math.ceil(asset.width * asset.height / 1e6) + 1)
 
 
 def rendition_to_dict(rendition: Rendition) -> dict[str, Any]:

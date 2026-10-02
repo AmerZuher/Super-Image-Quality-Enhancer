@@ -236,3 +236,38 @@ class ModelOut(BaseModel):
 class ModelInstallOut(BaseModel):
     model: ModelOut
     job: JobOut | None = Field(description="The download job; null when the model was already installed.")
+
+
+class AiRunIn(BaseModel):
+    asset_id: str
+    model_id: str
+    device: Literal["auto", "cpu"] = Field(
+        default="auto", description="`cpu` forces the CPU even with a GPU."
+    )
+
+
+class AiPlanOut(BaseModel):
+    model_id: str
+    task: ModelTask
+    scale: int
+    device: Literal["cuda", "cpu"]
+    device_name: str
+    input_width: int
+    input_height: int
+    output_width: int
+    output_height: int
+    output_megapixels: float
+    bit_depth: int
+    has_alpha: bool
+    tile: int | None
+    batch: int | None
+    tiles: int
+    calibrated: bool = Field(description="True when the tile size comes from memory measured on this GPU.")
+    estimated_memory_bytes: float | None
+    disk_bytes: int
+    warnings: list[str]
+
+
+class AiRunStartOut(BaseModel):
+    job: JobOut
+    plan: AiPlanOut

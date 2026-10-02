@@ -336,6 +336,25 @@
               "default": 200,
               "title": "Limit"
             }
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only images made from this one by AI runs.",
+              "title": "Parent Id"
+            },
+            "description": "Only images made from this one by AI runs."
           }
         ],
         "responses": {
@@ -965,6 +984,88 @@
         }
       }
     },
+    "/api/ai/plan": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "What a run would produce, and how it would run",
+        "operationId": "plan_api_ai_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiRunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiPlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/runs": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Run a model on an image; the result becomes a new image",
+        "operationId": "start_run_api_ai_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiRunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRunStartOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/updates": {
       "get": {
         "tags": [
@@ -1013,6 +1114,188 @@
   },
   "components": {
     "schemas": {
+      "AiPlanOut": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "task": {
+            "type": "string",
+            "enum": [
+              "upscale",
+              "denoise",
+              "background",
+              "face"
+            ],
+            "title": "Task"
+          },
+          "scale": {
+            "type": "integer",
+            "title": "Scale"
+          },
+          "device": {
+            "type": "string",
+            "enum": [
+              "cuda",
+              "cpu"
+            ],
+            "title": "Device"
+          },
+          "device_name": {
+            "type": "string",
+            "title": "Device Name"
+          },
+          "input_width": {
+            "type": "integer",
+            "title": "Input Width"
+          },
+          "input_height": {
+            "type": "integer",
+            "title": "Input Height"
+          },
+          "output_width": {
+            "type": "integer",
+            "title": "Output Width"
+          },
+          "output_height": {
+            "type": "integer",
+            "title": "Output Height"
+          },
+          "output_megapixels": {
+            "type": "number",
+            "title": "Output Megapixels"
+          },
+          "bit_depth": {
+            "type": "integer",
+            "title": "Bit Depth"
+          },
+          "has_alpha": {
+            "type": "boolean",
+            "title": "Has Alpha"
+          },
+          "tile": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tile"
+          },
+          "batch": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch"
+          },
+          "tiles": {
+            "type": "integer",
+            "title": "Tiles"
+          },
+          "calibrated": {
+            "type": "boolean",
+            "title": "Calibrated",
+            "description": "True when the tile size comes from memory measured on this GPU."
+          },
+          "estimated_memory_bytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Memory Bytes"
+          },
+          "disk_bytes": {
+            "type": "integer",
+            "title": "Disk Bytes"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_id",
+          "task",
+          "scale",
+          "device",
+          "device_name",
+          "input_width",
+          "input_height",
+          "output_width",
+          "output_height",
+          "output_megapixels",
+          "bit_depth",
+          "has_alpha",
+          "tile",
+          "batch",
+          "tiles",
+          "calibrated",
+          "estimated_memory_bytes",
+          "disk_bytes",
+          "warnings"
+        ],
+        "title": "AiPlanOut"
+      },
+      "AiRunIn": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "title": "Asset Id"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "device": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "cpu"
+            ],
+            "title": "Device",
+            "description": "`cpu` forces the CPU even with a GPU.",
+            "default": "auto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_id",
+          "model_id"
+        ],
+        "title": "AiRunIn"
+      },
+      "AiRunStartOut": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AiPlanOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job",
+          "plan"
+        ],
+        "title": "AiRunStartOut"
+      },
       "AssetOut": {
         "properties": {
           "id": {

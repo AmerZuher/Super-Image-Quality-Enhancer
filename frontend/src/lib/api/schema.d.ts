@@ -387,6 +387,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a run would produce, and how it would run */
+        post: operations["plan_api_ai_plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a model on an image; the result becomes a new image */
+        post: operations["start_run_api_ai_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/updates": {
         parameters: {
             query?: never;
@@ -408,6 +442,75 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AiPlanOut */
+        AiPlanOut: {
+            /** Model Id */
+            model_id: string;
+            /**
+             * Task
+             * @enum {string}
+             */
+            task: "upscale" | "denoise" | "background" | "face";
+            /** Scale */
+            scale: number;
+            /**
+             * Device
+             * @enum {string}
+             */
+            device: "cuda" | "cpu";
+            /** Device Name */
+            device_name: string;
+            /** Input Width */
+            input_width: number;
+            /** Input Height */
+            input_height: number;
+            /** Output Width */
+            output_width: number;
+            /** Output Height */
+            output_height: number;
+            /** Output Megapixels */
+            output_megapixels: number;
+            /** Bit Depth */
+            bit_depth: number;
+            /** Has Alpha */
+            has_alpha: boolean;
+            /** Tile */
+            tile: number | null;
+            /** Batch */
+            batch: number | null;
+            /** Tiles */
+            tiles: number;
+            /**
+             * Calibrated
+             * @description True when the tile size comes from memory measured on this GPU.
+             */
+            calibrated: boolean;
+            /** Estimated Memory Bytes */
+            estimated_memory_bytes: number | null;
+            /** Disk Bytes */
+            disk_bytes: number;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** AiRunIn */
+        AiRunIn: {
+            /** Asset Id */
+            asset_id: string;
+            /** Model Id */
+            model_id: string;
+            /**
+             * Device
+             * @description `cpu` forces the CPU even with a GPU.
+             * @default auto
+             * @enum {string}
+             */
+            device: "auto" | "cpu";
+        };
+        /** AiRunStartOut */
+        AiRunStartOut: {
+            job: components["schemas"]["JobOut"];
+            plan: components["schemas"]["AiPlanOut"];
+        };
         /** AssetOut */
         AssetOut: {
             /** Id */
@@ -1122,6 +1225,8 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                /** @description Only images made from this one by AI runs. */
+                parent_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -1628,6 +1733,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_api_ai_plan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiPlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_ai_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRunStartOut"];
+                };
             };
             /** @description Validation Error */
             422: {
