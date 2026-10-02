@@ -286,3 +286,100 @@ test("ai lab, cutout @gallery", async ({ page }) => {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/ailab-cutout.png` });
 });
+
+// --------------------------------------------------------------------------------- Library
+
+const LIBRARY_SAMPLES = [
+  "lake-pier.jpg",
+  "car.jpg",
+  "lotus.jpg",
+  "valley.jpg",
+  "mountain-road.jpg",
+  "teton-reflection.jpg",
+  "turquoise-lake.jpg",
+  "feather-blue.jpg",
+  "moose-lake.jpg",
+  "rose-blue.jpg",
+  "leaf-macro.jpg",
+  "lime-splash.jpg",
+  "mountain-lake.png",
+  "feather-teal.jpg",
+];
+
+test("prepare: library with a duplicate and search @gallery", async ({ request }) => {
+  test.setTimeout(900_000);
+  await install(request, "clip-vit-b32");
+  const ids: Record<string, string> = {};
+  for (const name of LIBRARY_SAMPLES) ids[name] = await upload(request, name);
+  // A smaller, recompressed copy of the pier, made through an export, as a duplicate to find.
+  const pier = ids["lake-pier.jpg"] as string;
+  const started = await (
+    await request.post(`/api/assets/${pier}/exports`, {
+      data: { format: "jpeg", quality: 55, max_side: 640, strip_metadata: true },
+    })
+  ).json();
+  await waitForJob(request, started.job.id);
+  const copy = await (await request.get(`/api/renditions/${started.rendition.id}/download`)).body();
+  await request.post(`/api/assets?filename=${encodeURIComponent("lake-pier (copy).jpg")}`, {
+    data: copy,
+    headers: { "Content-Type": "application/octet-stream" },
+  });
+  await expect
+    .poll(
+      async () => {
+        const status = await (await request.get("/api/library/status")).json();
+        return status.pending === 0 && status.counts.duplicate_groups > 0;
+      },
+      { timeout: 600_000, intervals: [2_000] },
+    )
+    .toBe(true);
+});
+
+test("library, grid with details @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto("/library");
+  await expect(page.getByTestId("library-card").first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /^turquoise-lake\.jpg/ }).click();
+  await expect(page.getByTestId("library-inspector")).toBeVisible();
+  await settle(page);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/library-dark.png` });
+});
+
+test("library, search by description @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/library?q=${encodeURIComponent("mountains reflected in a lake")}`);
+  await expect(page.getByText(/Best matches for/)).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/library-search.png` });
+});
+
+test("library, duplicates in light @gallery", async ({ page }) => {
+  await useTheme(page, "light");
+  await page.goto("/library?view=duplicates");
+  await expect(page.getByTestId("duplicate-group").first()).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/library-duplicates.png` });
+});
+
+test("library, smart album editor @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto("/library");
+  await page.getByRole("button", { name: "Edit album Desktop wallpapers" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/library-album.png` });
+});
+
+test("library on a phone @gallery", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await useTheme(page, "dark");
+  await page.goto("/library");
+  await expect(page.getByTestId("library-card").first()).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/library-phone.png` });
+  await context.close();
+});

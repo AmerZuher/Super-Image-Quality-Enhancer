@@ -99,14 +99,14 @@ test("upload, tag, filter into a smart album, quarantine and restore", async ({ 
     .getByRole("navigation", { name: "Library views" })
     .first()
     .getByRole("button", {
-      name: new RegExp(`Squares ${TAG}`),
+      name: new RegExp(`^Squares ${TAG}`),
     });
   await expect(albumLink).toContainText("1");
   await albumLink.click();
   await expect(page.getByTestId("library-card")).toHaveCount(1);
 
   // Delete the album (the image stays).
-  await page.getByRole("button", { name: `Edit album Squares ${TAG}` }).click({ force: true });
+  await page.getByRole("button", { name: `Edit album Squares ${TAG}` }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete album" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete album?" }).click();
   await expect(albumLink).toHaveCount(0);
