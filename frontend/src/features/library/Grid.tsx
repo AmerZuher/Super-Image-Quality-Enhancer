@@ -75,21 +75,21 @@ export function Card({
         )}
         <span className="absolute top-1.5 right-1.5 flex gap-1">
           {asset.parent_id && (
-            <span className="flex items-center gap-0.5 rounded bg-[var(--overlay)] px-1 py-0.5 font-mono text-[9.5px] font-semibold text-gold backdrop-blur-sm">
+            <span className="flex items-center gap-0.5 rounded bg-panel/85 px-1 py-0.5 font-mono text-[9.5px] font-semibold text-gold backdrop-blur-sm">
               <Sparkles className="size-2.5" aria-hidden="true" />
               AI
             </span>
           )}
           {asset.gps && (
             <span
-              className="grid place-items-center rounded bg-[var(--overlay)] p-0.5 text-fg backdrop-blur-sm"
+              className="grid place-items-center rounded bg-panel/85 p-0.5 text-fg backdrop-blur-sm"
               title="Has location"
             >
               <MapPin className="size-3" aria-label="Has location" />
             </span>
           )}
           {duplicates !== undefined && duplicates > 1 && (
-            <span className="flex items-center gap-0.5 rounded bg-[var(--overlay)] px-1 py-0.5 font-mono text-[9.5px] font-semibold text-warn backdrop-blur-sm">
+            <span className="flex items-center gap-0.5 rounded bg-panel/85 px-1 py-0.5 font-mono text-[9.5px] font-semibold text-warn backdrop-blur-sm">
               <Copy className="size-2.5" aria-hidden="true" />
               DUP ×{duplicates}
             </span>
@@ -97,13 +97,13 @@ export function Card({
         </span>
         <span className="absolute bottom-1.5 left-1.5 flex gap-1">
           {shape && (
-            <span className="rounded bg-[var(--overlay)] px-1 py-0.5 font-mono text-[9.5px] tracking-wide text-fg uppercase backdrop-blur-sm">
+            <span className="rounded bg-panel/85 px-1 py-0.5 font-mono text-[9.5px] tracking-wide text-fg uppercase backdrop-blur-sm">
               {SHAPE_TEXT[shape]}
             </span>
           )}
           {asset.score != null && (
             <span
-              className="rounded bg-[var(--overlay)] px-1 py-0.5 font-mono text-[9.5px] text-gold backdrop-blur-sm"
+              className="rounded bg-panel/85 px-1 py-0.5 font-mono text-[9.5px] text-gold backdrop-blur-sm"
               title="Match score"
             >
               {asset.score.toFixed(2)}
@@ -113,7 +113,7 @@ export function Card({
       </button>
       <label
         className={clsx(
-          "absolute top-1.5 left-1.5 grid size-5 cursor-pointer place-items-center rounded bg-[var(--overlay)] backdrop-blur-sm transition",
+          "absolute top-1.5 left-1.5 grid size-5 cursor-pointer place-items-center rounded bg-panel/85 backdrop-blur-sm transition",
           selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
         )}
       >
@@ -141,9 +141,12 @@ export function Card({
                 Keep
               </Chip>
             ) : (
-              <Chip tone="warn" icon={<ShieldAlert />}>
-                Quarantine · {verdict.reason}
-              </Chip>
+              <span className="grid justify-items-start gap-0.5">
+                <Chip tone="warn" icon={<ShieldAlert />}>
+                  Quarantine
+                </Chip>
+                <span className="text-[11px] text-fg-2">{verdict.reason}</span>
+              </span>
             )}
           </span>
         )}

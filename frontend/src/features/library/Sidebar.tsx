@@ -66,7 +66,7 @@ function Item({
           type="button"
           onClick={onEdit}
           aria-label={`Edit album ${label}`}
-          className="absolute top-1/2 right-1 hidden -translate-y-1/2 rounded p-1 text-muted group-hover/item:block hover:text-fg focus-visible:block"
+          className="absolute top-1/2 right-1 -translate-y-1/2 rounded p-1 text-muted opacity-0 transition group-hover/item:opacity-100 hover:text-fg focus-visible:opacity-100"
         >
           <Pencil className="size-3" />
         </button>
