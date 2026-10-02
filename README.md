@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 0 of 6 (foundation) is complete.** The platform runs end to end: job engine, workers, live updates, hardware monitoring, self-test and the Update Center. The five workspaces arrive phase by phase; see the [roadmap](#roadmap).
+> **Status: Phase 1 of 6 is complete.** The foundation (job engine, workers, live updates, hardware monitoring, self-test, Update Center) and the **Studio** editor are ready to use. AI Lab, Library, Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
 
 ---
 
@@ -32,7 +32,7 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 
 | Workspace | What it does | Phase |
 |---|---|---|
-| **Studio** | Non-destructive editor with live GPU preview: curves, HSL, LUTs, compare views, smart export | 1 |
+| **Studio** | Non-destructive editor with a live GPU preview: light and colour adjustments, crop and rotate, compare views, histogram, export to any common format with a target size. **Ready now.** | 1 |
 | **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, erase objects, colorize, denoise. Includes **SIQE Classic**, the original model | 2 |
 | **Library** | Duplicates that keep the sharpest copy, similar-image and text search, smart albums, EXIF and GPS privacy tools | 3 |
 | **Flows** | Visual pipelines for batches and hot folders, runnable from the API and CLI | 4 |
@@ -42,8 +42,14 @@ Built for real hardware limits: images are planned before processing, large ones
 
 ## Screenshots
 
+<img src="gallery/studio-dark.png" alt="Studio: an edited lake photo in split compare view, with the edit stack and history on the left and adjustment sliders with a histogram on the right" width="100%" />
+
 | | |
 |---|---|
+| <img src="gallery/studio-crop.png" alt="Studio crop tool with a 3:2 frame, rule-of-thirds grid, rotate and flip buttons and aspect presets" /> | <img src="gallery/studio-export.png" alt="Studio export panel with format choice, quality, longest side, target size and a finished export ready to download" /> |
+| Crop, rotate and flip | Export with format checks and a target size |
+| <img src="gallery/studio-light.png" alt="Studio in the light theme showing side-by-side compare" /> | <img src="gallery/studio-inspect.png" alt="Full-resolution inspector zoomed into the original pixels" /> |
+| Side by side, light theme | Full-resolution inspector |
 | <img src="gallery/overview-light.png" alt="Overview in the light theme" /> | <img src="gallery/update-center.png" alt="Update Center drawer listing a newer release with release notes and update commands" /> |
 | Overview, light theme | Update Center (example release notes) |
 | <img src="gallery/command-palette.png" alt="Command palette open over the Overview" /> | <img src="gallery/jobs.png" alt="Jobs page with job states, progress and durations" /> |
@@ -51,7 +57,7 @@ Built for real hardware limits: images are planned before processing, large ones
 | <img src="gallery/ai-lab-preview.png" alt="AI Lab workspace preview" /> | <img src="gallery/settings.png" alt="Settings page with theme, updates and about" /> |
 | AI Lab (arrives in Phase 2) | Settings |
 
-<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="260" /></p>
+<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /></p>
 
 All screenshots are regenerated with `make gallery`.
 
@@ -67,6 +73,8 @@ make up-gpu      # or: with your NVIDIA GPU
 ```
 
 Open **http://localhost:8080** and press **Run self-test** on the Overview. In about a second it confirms every service works and benchmarks your hardware.
+
+Then open **Studio** (second icon in the left rail) and drop a photo onto the page. Keyboard shortcuts there: `Ctrl Z` / `Ctrl Shift Z` undo and redo, hold `\` to see the original, `[` and `]` move between images, `I` inspects at full resolution.
 
 <details>
 <summary>Without <code>make</code> (for example on Windows)</summary>
@@ -114,6 +122,7 @@ All settings live in `.env` (created by `make env` from [.env.example](.env.exam
 | `SIQE_BIND` / `SIQE_PORT` | `127.0.0.1` / `8080` | Where the web app listens. Use `0.0.0.0` to open it to your network (there is no login). |
 | `SIQE_VERSION` | `latest` | Image tag to run; pin a version to stay on it |
 | `SIQE_MAX_INPUT_MEGAPIXELS` | `250` | Largest image accepted |
+| `SIQE_MAX_UPLOAD_MB` | `2048` | Largest single upload |
 | `SIQE_GPU_VRAM_RESERVE_MB` | `1536` | VRAM always left free |
 | `SIQE_GPU_WORKER_MEMORY` | `12g` | System RAM cap for the GPU worker |
 | `SIQE_UPDATE_REPO` | this repository | Where the Update Center looks for releases |
@@ -182,6 +191,9 @@ The first time images are published, make the three packages public in GitHub (P
 | Port 8080 already in use | Set `SIQE_PORT` in `.env`, then `make up` |
 | Update Center says it can't reach GitHub | Check internet access; set `SIQE_GITHUB_TOKEN` if you hit GitHub's rate limit |
 | `toomanyrequests` while pulling images | Docker Hub's anonymous limit: `docker login`, or wait an hour |
+| Studio says the live preview needs WebGL 2 | Turn on hardware acceleration in your browser's settings. Edits still apply to exports. |
+| An upload is refused as too large | Raise `SIQE_MAX_UPLOAD_MB` or `SIQE_MAX_INPUT_MEGAPIXELS` in `.env`, then `make up` |
+| Export refused with `format.dimension_limit` | WebP and AVIF stop at about 16,000 px per side: pick a smaller longest side, or PNG, TIFF or JPEG |
 
 Every API error has a stable code and a suggested fix; the full list is in [docs/robustness.md](docs/robustness.md#error-codes).
 
@@ -190,8 +202,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | Phase | Delivers | Status |
 |---|---|---|
 | P0 Foundation | Job engine, workers, live updates, Overview, self-test, Update Center, Docker stack, CI | ✅ Done |
-| P1 Studio | Storage, previews and deep zoom, classic edits, edit stack, WebGL preview, Compare, export | Next |
-| P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, restoration | |
+| P1 Studio | Storage, previews and deep zoom, classic edits, edit stack, WebGL preview, Compare, export | ✅ Done |
+| P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, restoration | Next |
 | P3 Library | Duplicates, similar and text search, smart albums, EXIF and GPS tools | |
 | P4 Flows | Pipelines, batches, hot folders, API keys, CLI | |
 | P5 Forge | Visual model builder, training with live charts, publish to AI Lab | |

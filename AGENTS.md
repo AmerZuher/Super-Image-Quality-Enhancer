@@ -9,7 +9,7 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 - Architecture and decisions: [docs/architecture.md](docs/architecture.md) and [docs/adr/](docs/adr/)
 - Limits, error codes, fallbacks: [docs/robustness.md](docs/robustness.md)
 - Product plan and UI mockups: [docs/plan/blueprint.html](docs/plan/blueprint.html)
-- Current phase: **P0 foundation done; P1 (Studio and storage) next.** Workspaces other than Overview are preview pages until their phase lands.
+- Current phase: **P1 (Studio and storage) done; P2 (AI Lab and governor) next.** AI Lab, Library, Flows and Forge are preview pages until their phase lands.
 
 ## Map
 
@@ -23,11 +23,14 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 | `backend/src/siqe/jobs/` | Job rows and throttled progress reporting |
 | `backend/src/siqe/workers/` | Worker processes (`siqe worker cpu|gpu`) and heartbeats |
 | `backend/src/siqe/events/` | PostgreSQL LISTEN/NOTIFY publisher and WebSocket hub |
+| `backend/src/siqe/imaging/` | Admission (`io.inspect`), working space, edit document, adjustment formulas, export |
+| `backend/src/siqe/storage/` | Content-addressed media store on the data volume |
+| `backend/src/siqe/assets/` | Asset and rendition rows, their events |
 | `backend/src/siqe/ai/` | GPU discovery, OOM handling; governor, tiling and model registry from P2 |
 | `backend/src/siqe/system/` | Container-aware CPU, memory and disk readings |
 | `backend/src/siqe/updates/` | GitHub release checks for the Update Center |
 | `frontend/src/app/` | Router, app shell, command palette, Update Center drawer |
-| `frontend/src/features/` | One folder per page or workspace |
+| `frontend/src/features/` | One folder per page or workspace; `studio/gl/` holds the WebGL preview |
 | `frontend/src/components/ui/` | Lattice design-system primitives |
 | `frontend/src/lib/api/` | Generated OpenAPI types (`schema.d.ts`), client, queries |
 | `frontend/e2e/` | Playwright tests; `gallery.spec.ts` captures README screenshots |
@@ -49,7 +52,7 @@ make gallery           # refresh gallery/*.png (stack must be running)
 make ops               # Temporal UI on http://localhost:8233
 ```
 
-Single tests: `cd backend && uv run pytest tests/unit/test_oom.py -k halves` · `cd frontend && pnpm vitest run src/lib/format.test.ts` · `cd frontend && pnpm exec playwright test e2e/smoke.spec.ts`.
+Single tests: `cd backend && uv run pytest tests/unit/test_oom.py -k halves` · `cd frontend && pnpm vitest run src/lib/format.test.ts` · `cd frontend && pnpm exec playwright test e2e/smoke.spec.ts`. `e2e/shader-parity.spec.ts` needs no running stack.
 
 ## Golden rules
 
@@ -58,13 +61,14 @@ Breaking one of these is a bug, even if tests pass.
 1. **Workflows are deterministic.** No I/O, network, database, file access, `datetime.now()`, randomness or threads in `siqe/workflows/`. Put that work in an activity. Import activity modules inside `workflow.unsafe.imports_passed_through()`. `tests/unit/test_workflows.py` runs every workflow through Temporal's sandbox; register new workflows in `siqe.workers.runner.WORKFLOWS`.
 2. **Activities are idempotent and report progress.** Use `siqe.jobs.progress.ProgressReporter` (it throttles writes and heartbeats). Write outputs to a temporary file and rename into place. Long activities must heartbeat so cancellation and crash detection work.
 3. **GPU work runs only in activities on the `siqe-gpu` queue.** Never run two GPU jobs concurrently, and never call `.cuda()` from API code. Wrap GPU work in `siqe.ai.oom.run_with_halving` (P2: the governor) so out-of-memory degrades instead of crashing.
-4. **Never load a full-resolution user image naively.** From P1, open images only through the imaging admission helper (header-only size check, streaming via libvips). Don't call `PIL.Image.open` or `cv2.imread` on user files.
+4. **Never load a full-resolution user image naively.** Check user files with `siqe.imaging.io.inspect` (header only) and open them with `siqe.imaging.io.open_image` (libvips, streamed). Don't call `PIL.Image.open` or `cv2.imread` on user files.
 5. **Errors are typed.** Raise `siqe.core.errors.AppError` (or a subclass) with a stable dotted `code` and a `fix` hint. Add new codes to `docs/robustness.md`. Never return ad-hoc error dicts or leak exception text from unexpected errors.
 6. **Schema changes go through Alembic.** Add a new migration in `siqe/db/migrations/versions/`. Never edit a migration that has been released.
-7. **The frontend only talks to the backend through the generated client.** After changing a route or schema, run `make gen-api` and commit `frontend/openapi.json` and `schema.d.ts`. CI fails on drift.
-8. **No model weights in git.** Models are added by manifest (source URL, sha256, license) from P2. Commercial-safe licenses only (no CodeFormer, no non-commercial Depth Anything sizes). Load `.pth` with `weights_only=True`; prefer safetensors or ONNX.
-9. **Gold means AI.** In the UI, gold (`--gold`, `variant="ai"`) marks things that run an AI model. Use cyan for everything else. Colours come from tokens in `frontend/src/styles/tokens.css`; never hard-code hex values in components. Every view must work in dark and light themes and at phone width.
-10. **Status needs more than colour.** States (ok, warning, error) always pair a colour with an icon and a label.
+7. **The frontend only talks to the backend through the generated client.** After changing a route or schema, run `make gen-api` and commit `frontend/openapi.json` and `schema.d.ts`. CI fails on drift. The one exception is the upload in `features/studio/uploads.ts`, which uses XHR for progress but takes its path and types from the schema.
+8. **Edit formulas live in three places that must agree:** `siqe/imaging/ops.py`, `features/studio/gl/glsl.ts` and `gl/reference.ts`. After changing one, change the others and run `uv run python -m siqe.imaging.parity` to regenerate the shared fixture; the backend, Vitest and Playwright parity tests check all three (ADR 0005).
+9. **No model weights in git.** Models are added by manifest (source URL, sha256, license) from P2. Commercial-safe licenses only (no CodeFormer, no non-commercial Depth Anything sizes). Load `.pth` with `weights_only=True`; prefer safetensors or ONNX.
+10. **Gold means AI.** In the UI, gold (`--gold`, `variant="ai"`) marks things that run an AI model. Use cyan for everything else. Colours come from tokens in `frontend/src/styles/tokens.css`; never hard-code hex values in components. Every view must work in dark and light themes and at phone width.
+11. **Status needs more than colour.** States (ok, warning, error) always pair a colour with an icon and a label.
 
 ## Definition of done
 

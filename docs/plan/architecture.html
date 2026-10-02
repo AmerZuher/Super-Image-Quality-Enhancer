@@ -88,11 +88,11 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tbody>
 <tr>
 <td><strong>Status</strong></td>
-<td>Approved. Phase 0 (foundation) implemented. Living document, v3.</td>
+<td>Approved. Phases 0 (foundation) and 1 (Studio) implemented. Living document, v3.</td>
 </tr>
 <tr>
 <td><strong>Updated</strong></td>
-<td>1 October 2026</td>
+<td>2 October 2026</td>
 </tr>
 <tr>
 <td><strong>Product plan</strong></td>
@@ -353,7 +353,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tbody>
 <tr>
 <td>Frontend</td>
-<td>Vite 8.3, React 19.3, TypeScript 5.9, TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, cmdk 1.1, Biome 2.5, Vitest 5, Playwright 1.63, pnpm 12.8, Node 24</td>
+<td>Vite 8.3, React 19.3, TypeScript 5.9, TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, cmdk 1.1, OpenSeadragon 6.1, Biome 2.5, Vitest 5, Playwright 1.63, pnpm 12.8, Node 24</td>
 </tr>
 <tr>
 <td>Backend</td>
@@ -465,12 +465,23 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <p>Image bytes live on the <code>data</code> volume, never in the database:</p>
 <pre><code class="language-text">/data
 ├── media/originals/ab/cd/&lt;sha256&gt;.&lt;ext&gt;   immutable uploads, stored once per content hash
-├── media/renditions/&lt;asset&gt;/&lt;job&gt;.&lt;ext&gt;   outputs are new files, never overwrites
-├── media/previews/&lt;sha256&gt;/               2048 px preview + deep-zoom tile pyramid
+├── media/previews/&lt;asset&gt;/                320 px thumbnail, 2048 px preview, deep-zoom tile pyramid
+├── media/renditions/&lt;asset&gt;/&lt;id&gt;.&lt;ext&gt;    exports are new files, written to a temp name and renamed
 ├── models/&lt;family&gt;/&lt;file&gt;                 downloaded weights, verified by sha256
 ├── checkpoints/&lt;run&gt;/                     Forge training checkpoints
 └── tmp/                                   scratch space, cleaned on start and by age
 </code></pre>
+<h3 id="44-edit-documents-and-the-live-preview">4.4 Edit documents and the live preview</h3>
+<p>Studio never changes the original. Each asset carries an <strong>edit document</strong> (JSONB): geometry first (rotate clockwise, flip, crop in normalised coordinates of the rotated image), then adjustments in a fixed order: temperature, tint, exposure, whites, blacks, highlights, shadows, contrast, vibrance, saturation, black and white, sharpen, vignette.</p>
+<pre class="mermaid">flowchart LR
+  D[(Edit document)] --&gt; G[Browser: WebGL 2 on the 2048 px preview]
+  D --&gt; S[Server: libvips at full resolution]
+  F[ops_parity.json] -.checks.-&gt; G
+  F -.checks.-&gt; S
+  S --&gt; E[Export: JPEG, PNG, WebP, AVIF, TIFF]
+</pre>
+<p>The browser redraws on every slider move; the export workflow streams the same formulas through libvips. A shared fixture keeps them identical, and a Playwright test runs the actual shader on the GPU against it. Details and trade-offs: <a href="adr/0005-edit-documents-and-preview.md">ADR 0005</a>.</p>
+<p>Import (<code>IngestAssetWorkflow</code>) makes a thumbnail, a 2048 px preview and a deep-zoom pyramid (510 px WebP tiles) used by the full-resolution inspector. Export (<code>ExportWorkflow</code>) checks format limits and free disk before it starts, can aim for a target file size by searching JPEG/WebP/AVIF quality, strips camera data and GPS by default (keeping the colour profile), and can be cancelled mid-encode.</p>
 <hr />
 <h2 id="5-robustness-and-resource-safety">5. Robustness and resource safety</h2>
 <p>The rules and current limits are listed in <a href="robustness.md">docs/robustness.md</a>. The design:</p>
@@ -493,7 +504,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
   F -- with changes --&gt; X[Offer fixes: lower scale, TIFF instead of WebP, CPU route]
   F -- no --&gt; E[Reject with the reason and the numbers]
 </pre>
-<p>Dimensions are read from the header without decoding, against <code>SIQE_MAX_INPUT_MEGAPIXELS</code> (default 250). Pillow's <code>MAX_IMAGE_PIXELS</code> is set to the same value as a second guard. Format ceilings are known to the planner: WebP stops at 16,383 px per side and JPEG at 65,535 px. A job needs twice its predicted output size in free disk. Uploads are chunked, resumable and hashed while streaming.</p>
+<p>Dimensions are read from the header without decoding, against <code>SIQE_MAX_INPUT_MEGAPIXELS</code> (default 250). Pillow's <code>MAX_IMAGE_PIXELS</code> is set to the same value as a second guard. Format ceilings are known to the planner: WebP stops at 16,383 px per side and JPEG at 65,535 px. A job needs twice its predicted output size in free disk. Uploads stream to disk in one request and are hashed on the way (never held in memory); the same file uploaded twice is recognised by its SHA-256. Resumable uploads may follow if very large files need them.</p>
 <h3 id="53-worked-example-8k-image-4-upscale">5.3 Worked example: 8K image, ×4 upscale</h3>
 <div class="tbl"><table>
 <thead>
@@ -719,7 +730,9 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <li>Database and Temporal ports are not published (except in <code>compose.dev.yaml</code>, on localhost).</li>
 <li>Containers run as a non-root user with memory limits.</li>
 <li>Release notes render without raw HTML.</li>
-<li>From later phases: hashed API keys, content-sniffed uploads with hash-based paths, <code>weights_only=True</code> for <code>.pth</code> files, and EXIF/GPS stripping on export.</li>
+<li>Uploads are identified by reading the file header, never by extension or client type, and stored under hash-based paths; user file names never become paths. Deep-zoom paths are resolved inside the image's folder only.</li>
+<li>Exports strip camera data and GPS location by default.</li>
+<li>From later phases: hashed API keys and <code>weights_only=True</code> for <code>.pth</code> files.</li>
 <li>CI runs a Trivy scan of the API image. Dependabot watches uv, npm, Docker and Actions. pnpm's minimum-release-age check stays on.</li>
 </ul>
 <hr />
@@ -739,14 +752,14 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <td><strong>Done</strong></td>
 </tr>
 <tr>
-<td>P1 Studio and storage</td>
+<td><strong>P1 Studio and storage</strong></td>
 <td>Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks</td>
-<td>Next</td>
+<td><strong>Done</strong></td>
 </tr>
 <tr>
 <td>P2 AI Lab and governor</td>
 <td>Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, erase, colorize, denoise, deblur</td>
-<td></td>
+<td>Next</td>
 </tr>
 <tr>
 <td>P3 Library</td>

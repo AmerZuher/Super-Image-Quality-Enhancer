@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phase 0 (foundation) implemented. Living document, v3. |
-| **Updated** | 1 October 2026 |
+| **Status** | Approved. Phases 0 (foundation) and 1 (Studio) implemented. Living document, v3. |
+| **Updated** | 2 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
 | **Limits and error codes** | [docs/robustness.md](robustness.md) |
@@ -101,7 +101,7 @@ Measured in Phase 0: a job runs API → Temporal → CPU worker → GPU worker i
 
 | Layer | Versions |
 |---|---|
-| Frontend | Vite 8.3, React 19.3, TypeScript 5.9, TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, cmdk 1.1, Biome 2.5, Vitest 5, Playwright 1.63, pnpm 12.8, Node 24 |
+| Frontend | Vite 8.3, React 19.3, TypeScript 5.9, TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, cmdk 1.1, OpenSeadragon 6.1, Biome 2.5, Vitest 5, Playwright 1.63, pnpm 12.8, Node 24 |
 | Backend | Python 3.12, FastAPI 0.142, Pydantic 2.13, SQLAlchemy 2.1 (asyncpg), Alembic 1.20, temporalio 1.34, structlog, Typer, uv, Ruff, mypy (strict), pytest |
 | Imaging | pyvips 3.2 with libvips 8.18 (binary wheel), OpenCV 5, Pillow 12 |
 | AI | PyTorch 2.14 (CUDA 13 build), nvidia-ml-py |
@@ -172,12 +172,29 @@ Image bytes live on the `data` volume, never in the database:
 ```text
 /data
 ├── media/originals/ab/cd/<sha256>.<ext>   immutable uploads, stored once per content hash
-├── media/renditions/<asset>/<job>.<ext>   outputs are new files, never overwrites
-├── media/previews/<sha256>/               2048 px preview + deep-zoom tile pyramid
+├── media/previews/<asset>/                320 px thumbnail, 2048 px preview, deep-zoom tile pyramid
+├── media/renditions/<asset>/<id>.<ext>    exports are new files, written to a temp name and renamed
 ├── models/<family>/<file>                 downloaded weights, verified by sha256
 ├── checkpoints/<run>/                     Forge training checkpoints
 └── tmp/                                   scratch space, cleaned on start and by age
 ```
+
+### 4.4 Edit documents and the live preview
+
+Studio never changes the original. Each asset carries an **edit document** (JSONB): geometry first (rotate clockwise, flip, crop in normalised coordinates of the rotated image), then adjustments in a fixed order: temperature, tint, exposure, whites, blacks, highlights, shadows, contrast, vibrance, saturation, black and white, sharpen, vignette.
+
+```mermaid
+flowchart LR
+  D[(Edit document)] --> G[Browser: WebGL 2 on the 2048 px preview]
+  D --> S[Server: libvips at full resolution]
+  F[ops_parity.json] -.checks.-> G
+  F -.checks.-> S
+  S --> E[Export: JPEG, PNG, WebP, AVIF, TIFF]
+```
+
+The browser redraws on every slider move; the export workflow streams the same formulas through libvips. A shared fixture keeps them identical, and a Playwright test runs the actual shader on the GPU against it. Details and trade-offs: [ADR 0005](adr/0005-edit-documents-and-preview.md).
+
+Import (`IngestAssetWorkflow`) makes a thumbnail, a 2048 px preview and a deep-zoom pyramid (510 px WebP tiles) used by the full-resolution inspector. Export (`ExportWorkflow`) checks format limits and free disk before it starts, can aim for a target file size by searching JPEG/WebP/AVIF quality, strips camera data and GPS by default (keeping the colour profile), and can be cancelled mid-encode.
 
 ---
 
@@ -207,7 +224,7 @@ flowchart LR
   F -- no --> E[Reject with the reason and the numbers]
 ```
 
-Dimensions are read from the header without decoding, against `SIQE_MAX_INPUT_MEGAPIXELS` (default 250). Pillow's `MAX_IMAGE_PIXELS` is set to the same value as a second guard. Format ceilings are known to the planner: WebP stops at 16,383 px per side and JPEG at 65,535 px. A job needs twice its predicted output size in free disk. Uploads are chunked, resumable and hashed while streaming.
+Dimensions are read from the header without decoding, against `SIQE_MAX_INPUT_MEGAPIXELS` (default 250). Pillow's `MAX_IMAGE_PIXELS` is set to the same value as a second guard. Format ceilings are known to the planner: WebP stops at 16,383 px per side and JPEG at 65,535 px. A job needs twice its predicted output size in free disk. Uploads stream to disk in one request and are hashed on the way (never held in memory); the same file uploaded twice is recognised by its SHA-256. Resumable uploads may follow if very large files need them.
 
 ### 5.3 Worked example: 8K image, ×4 upscale
 
@@ -393,7 +410,9 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 - Database and Temporal ports are not published (except in `compose.dev.yaml`, on localhost).
 - Containers run as a non-root user with memory limits.
 - Release notes render without raw HTML.
-- From later phases: hashed API keys, content-sniffed uploads with hash-based paths, `weights_only=True` for `.pth` files, and EXIF/GPS stripping on export.
+- Uploads are identified by reading the file header, never by extension or client type, and stored under hash-based paths; user file names never become paths. Deep-zoom paths are resolved inside the image's folder only.
+- Exports strip camera data and GPS location by default.
+- From later phases: hashed API keys and `weights_only=True` for `.pth` files.
 - CI runs a Trivy scan of the API image. Dependabot watches uv, npm, Docker and Actions. pnpm's minimum-release-age check stays on.
 
 ---
@@ -403,8 +422,8 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | Phase | Delivers | Status |
 |---|---|---|
 | **P0 Foundation** | Repo restructure, backend and frontend skeletons, Temporal pipeline, live events, Overview with hardware and self-test, Update Center, Compose stack, CI and release workflows, AGENTS.md, README, gallery | **Done** |
-| P1 Studio and storage | Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks | Next |
-| P2 AI Lab and governor | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, erase, colorize, denoise, deblur | |
+| **P1 Studio and storage** | Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks | **Done** |
+| P2 AI Lab and governor | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, erase, colorize, denoise, deblur | Next |
 | P3 Library | Import and hot folders, hashing and embeddings, duplicates with quarantine, similar and text search, smart albums, EXIF and GPS tools | |
 | P4 Flows | Node editor, batch runs with paged child workflows, recipes, API keys, `siqe` CLI commands | |
 | P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | |
