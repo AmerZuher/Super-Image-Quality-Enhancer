@@ -31,7 +31,11 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/ai-lab",
-    component: () => <WorkspacePreview id="ai-lab" />,
+    validateSearch: (search: Record<string, unknown>): { asset?: string; result?: string } => ({
+      ...(typeof search.asset === "string" ? { asset: search.asset } : {}),
+      ...(typeof search.result === "string" ? { result: search.result } : {}),
+    }),
+    component: lazyRouteComponent(() => import("@/features/ailab/AiLabPage"), "AiLabPage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

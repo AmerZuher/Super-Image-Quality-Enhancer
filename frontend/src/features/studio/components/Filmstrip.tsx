@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import { AlertTriangle, ImagePlus, X } from "lucide-react";
+import { AlertTriangle, ImagePlus, Sparkles, X } from "lucide-react";
 import { useRef } from "react";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
@@ -91,7 +91,7 @@ export function Filmstrip({
                 type="button"
                 onClick={() => onSelect(asset.id)}
                 aria-current={selected ? "true" : undefined}
-                aria-label={`${asset.original_name}${asset.status === "ready" ? "" : `, ${asset.status}`}`}
+                aria-label={`${asset.original_name}${asset.parent_id ? ", AI result" : ""}${asset.status === "ready" ? "" : `, ${asset.status}`}`}
                 title={asset.original_name}
                 className={clsx(
                   "relative block h-[58px] w-[84px] overflow-hidden rounded-md border bg-panel-2 transition",
@@ -100,6 +100,15 @@ export function Filmstrip({
                     : "border-line opacity-80 hover:border-line-2 hover:opacity-100",
                 )}
               >
+                {asset.parent_id && (
+                  <span
+                    className="absolute top-1 right-1 z-10 flex items-center gap-0.5 rounded bg-[var(--overlay)] px-1 font-mono text-[9px] font-semibold text-gold backdrop-blur-sm"
+                    title={`Made with ${String(asset.derivation?.model_name ?? "an AI model")}`}
+                  >
+                    <Sparkles className="size-2.5" aria-hidden="true" />
+                    AI
+                  </span>
+                )}
                 {asset.thumb_url ? (
                   <img src={asset.thumb_url} alt="" loading="lazy" className="size-full object-cover" />
                 ) : asset.status === "failed" ? (

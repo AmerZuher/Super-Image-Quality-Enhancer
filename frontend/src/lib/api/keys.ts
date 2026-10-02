@@ -10,6 +10,9 @@ export const keys = {
   asset: (id: string) => ["assets", id] as const,
   edits: (id: string) => ["assets", id, "edits"] as const,
   renditions: (assetId: string) => ["assets", assetId, "renditions"] as const,
+  children: (assetId: string) => ["assets", assetId, "children"] as const,
+  models: ["models"] as const,
+  plan: (assetId: string, modelId: string, device: string) => ["plan", assetId, modelId, device] as const,
 };
 
 /** Insert or replace a job in a newest-first list. */

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { clsx } from "clsx";
 import {
   AlertTriangle,
@@ -8,6 +9,7 @@ import {
   Redo2,
   RotateCcw,
   ScanSearch,
+  Sparkles,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -100,6 +102,12 @@ export function StudioHeader({ asset, onDeleted }: { asset: Asset; onDeleted: ()
           <span className="uppercase">{asset.format}</span>
           {asset.bit_depth === 16 && <span>16-bit</span>}
           <span>{formatBytes(asset.size_bytes)}</span>
+          {asset.parent_id && (
+            <span className="flex items-center gap-1 text-gold">
+              <Sparkles className="size-3" aria-hidden="true" />
+              {String(asset.derivation?.model_name ?? "AI result")}
+            </span>
+          )}
           {asset.has_gps && (
             <span className="flex items-center gap-1 text-warn" title="This photo records where it was taken">
               <MapPin className="size-3" aria-hidden="true" />
@@ -148,6 +156,17 @@ export function StudioHeader({ asset, onDeleted }: { asset: Asset; onDeleted: ()
           <span className="max-xl:sr-only">Inspect</span>
           <Kbd className="max-xl:hidden">I</Kbd>
         </Button>
+        <Link
+          to="/ai-lab"
+          search={asset.parent_id ? { asset: asset.parent_id, result: asset.id } : { asset: asset.id }}
+          className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-gold transition hover:bg-gold-soft"
+          title={
+            asset.parent_id ? "Compare with the original in AI Lab" : "Upscale, denoise or cut out in AI Lab"
+          }
+        >
+          <Sparkles className="size-4" aria-hidden="true" />
+          <span className="max-xl:sr-only">{asset.parent_id ? "Compare" : "AI Lab"}</span>
+        </Link>
         <a
           href={asset.original_url}
           download={asset.original_name}

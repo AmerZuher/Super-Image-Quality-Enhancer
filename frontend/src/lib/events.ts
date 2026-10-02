@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
-import type { Asset, Job, Rendition, SystemStatus, Worker } from "./api/client";
+import type { Asset, Job, Model, Rendition, SystemStatus, Worker } from "./api/client";
 import { keys, removeById, upsertById, upsertJob } from "./api/keys";
 
 type Status = "connecting" | "open" | "closed";
@@ -51,10 +51,23 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
       }
       // Events leave out the edit document; merge so a cached copy keeps it.
       client.setQueryData<Asset[]>(keys.assets, (list) => upsertById(list, asset, true));
+      if (asset.parent_id) {
+        client.setQueryData<Asset[]>(keys.children(asset.parent_id), (list) =>
+          list ? upsertById(list, asset, true) : list,
+        );
+      }
+      return;
+    }
+    case "model.updated": {
+      const model = event.data as unknown as Model;
+      client.setQueryData<Model[]>(keys.models, (list) => list?.map((m) => (m.id === model.id ? model : m)));
+      // Installing a model changes what a run would do.
+      void client.invalidateQueries({ queryKey: ["plan"] });
       return;
     }
     case "asset.deleted":
       client.setQueryData<Asset[]>(keys.assets, (list) => removeById(list, String(event.data.id)));
+      void client.invalidateQueries({ predicate: (q) => q.queryKey[2] === "children" });
       return;
     case "rendition.updated": {
       const rendition = event.data as unknown as Rendition & { truncated?: boolean };

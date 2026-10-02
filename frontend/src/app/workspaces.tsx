@@ -24,7 +24,7 @@ export interface Workspace {
 }
 
 /** Phases that have shipped; workspaces from later phases show a preview page. */
-export const CURRENT_PHASE = 1;
+export const CURRENT_PHASE = 2;
 
 export function isAvailable(workspace: Workspace): boolean {
   return workspace.phase <= CURRENT_PHASE;
@@ -56,13 +56,13 @@ export const WORKSPACES: Workspace[] = [
     icon: Sparkles,
     phase: 2,
     ai: true,
-    summary: "Run, compare and score AI models.",
+    summary: "Run and compare AI models on your images.",
     capabilities: [
       "Upscale ×2, ×3 and ×4 with tiled inference: any image size in fixed memory",
       "SIQE Classic, your original model, ported to PyTorch",
-      "Face restoration, background removal and object eraser",
-      "Colorize, denoise and deblur",
-      "VRAM planner and out-of-memory fallback ladder, tuned for your GPU",
+      "Denoise and background removal",
+      "Full-resolution before and after compare",
+      "Memory planner and out-of-memory fallback ladder, tuned for your GPU",
     ],
   },
   {

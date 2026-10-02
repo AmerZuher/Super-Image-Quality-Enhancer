@@ -106,8 +106,8 @@ export function OverviewPage() {
           </h2>
         </div>
         <p className="max-w-[52ch] text-[13px] text-fg-2">
-          Studio is ready: upload, edit and export your images. The other workspaces arrive phase by phase;
-          each card below says what's coming.
+          Studio and AI Lab are ready: edit, upscale, denoise and cut out your images. The other workspaces
+          arrive phase by phase; each card below says what's coming.
         </p>
       </header>
 

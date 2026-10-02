@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { clsx } from "clsx";
 import {
@@ -13,7 +12,7 @@ import {
   Square,
   UploadCloud,
 } from "lucide-react";
-import { type DragEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
 import { Spinner } from "@/components/ui/Spinner";
@@ -31,7 +30,7 @@ import { fromServer, outputSize } from "./doc";
 import { formatDimensions } from "./format";
 import type { CompareMode } from "./gl/renderer";
 import { type Panel, useEditor } from "./store";
-import { filterAccepted, startUploads } from "./uploads";
+import { useUploader } from "./useUploader";
 
 const PANELS: { id: Panel; label: string; icon: ReactNode }[] = [
   { id: "adjust", label: "Adjust", icon: <SlidersHorizontal /> },
@@ -52,25 +51,6 @@ function isTyping(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement && !["range", "checkbox", "radio", "button"].includes(target.type)
   );
-}
-
-function useUploader(onUploaded: (asset: Asset) => void) {
-  const client = useQueryClient();
-  const { data: catalog } = useCatalog();
-  const [rejected, setRejected] = useState<string[]>([]);
-  const extensions = useMemo(
-    () => (catalog?.accepted_extensions ?? "").split(/\s+/).filter(Boolean),
-    [catalog],
-  );
-  const upload = useCallback(
-    (files: Iterable<File>) => {
-      const [accepted, refused] = filterAccepted(files, extensions);
-      setRejected(refused);
-      startUploads(accepted, client, onUploaded);
-    },
-    [client, extensions, onUploaded],
-  );
-  return { upload, rejected, clearRejected: () => setRejected([]), accept: extensions.join(",") };
 }
 
 function DropOverlay() {

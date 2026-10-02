@@ -19,6 +19,10 @@ export type Crop = components["schemas"]["CropIn"];
 export type OpEntry = components["schemas"]["OpEntryIn"];
 export type ExportRequest = components["schemas"]["ExportIn"];
 export type Rendition = components["schemas"]["RenditionOut"];
+export type Model = components["schemas"]["ModelOut"];
+export type ModelTask = Model["task"];
+export type AiPlan = components["schemas"]["AiPlanOut"];
+export type AiRunRequest = components["schemas"]["AiRunIn"];
 
 /** RFC 9457 problem details returned by every failing endpoint. */
 export interface Problem {
