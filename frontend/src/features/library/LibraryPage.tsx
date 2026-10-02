@@ -19,6 +19,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Drawer } from "@/components/ui/Drawer";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Album, Asset } from "@/lib/api/client";
+import { useMedia } from "@/lib/media";
 import { useModels } from "../ailab/api";
 import { ModelControl } from "../ailab/Models";
 import { useUploader } from "../studio/useUploader";
@@ -48,14 +49,7 @@ export interface LibrarySearch {
 }
 
 function useWide(query = "(min-width: 1280px)"): boolean {
-  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const on = () => setWide(media.matches);
-    media.addEventListener("change", on);
-    return () => media.removeEventListener("change", on);
-  }, [query]);
-  return wide;
+  return useMedia(query);
 }
 
 function SearchSetup() {

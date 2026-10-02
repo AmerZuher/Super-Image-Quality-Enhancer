@@ -10,6 +10,8 @@ test("self-test runs end to end from the UI", async ({ page }) => {
   await page.goto("/");
   const panel = page.locator("section", { has: page.getByRole("heading", { name: "System self-test" }) });
   await panel.getByRole("button", { name: /Run (self-test|again)/ }).click();
+  // A previous run's result shows until the new run replaces it; wait for the new one.
+  await expect(panel.getByText("Done")).toBeHidden({ timeout: 15_000 });
   await expect(panel.getByText("Done")).toBeVisible({ timeout: 90_000 });
   await expect(panel.getByText(/MP in .* s/)).toBeVisible();
 });

@@ -1,6 +1,7 @@
-import { FolderPlus, MapPinOff, RotateCcw, ShieldAlert, Tag, Trash2, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { FolderPlus, MapPinOff, RotateCcw, ShieldAlert, Tag, Trash2, Workflow, X } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
 import { type Album, type Asset, errorMessage } from "@/lib/api/client";
 import {
   useAlbumMembers,
@@ -123,6 +124,10 @@ export function SelectionBar({
               Remove location ({withGps})
             </Button>
           )}
+          <Link to="/flows" search={{ source: "selection" }} className={buttonClasses("outline", "sm")}>
+            <Workflow />
+            Run a flow
+          </Link>
           <Button
             size="sm"
             variant="danger"

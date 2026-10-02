@@ -19,6 +19,15 @@ export const keys = {
   albums: ["library", "albums"] as const,
   assetAlbums: (assetId: string) => ["library", "asset-albums", assetId] as const,
   importStatus: ["library", "import"] as const,
+  auth: ["auth"] as const,
+  apiKeys: ["api-keys"] as const,
+  flows: ["flows"] as const,
+  flow: (id: string) => ["flows", id] as const,
+  flowCatalog: ["flows", "catalog"] as const,
+  recipes: ["flows", "recipes"] as const,
+  runs: ["runs"] as const,
+  flowRuns: (flowId: string) => ["runs", "flow", flowId] as const,
+  run: (id: string) => ["runs", id] as const,
 };
 
 /** Insert or replace a job in a newest-first list. */

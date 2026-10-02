@@ -1,4 +1,5 @@
 import { createRootRoute, createRoute, createRouter, Link, lazyRouteComponent } from "@tanstack/react-router";
+import type { FlowsSearch } from "@/features/flows/FlowsPage";
 import { JobsPage } from "@/features/jobs/JobsPage";
 import type { LibrarySearch } from "@/features/library/LibraryPage";
 import { OverviewPage } from "@/features/overview/OverviewPage";
@@ -56,7 +57,15 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/flows",
-    component: () => <WorkspacePreview id="flows" />,
+    validateSearch: (search: Record<string, unknown>): FlowsSearch => {
+      const out: FlowsSearch = {};
+      if (typeof search.flow === "string" && search.flow) out.flow = search.flow;
+      if (search.tab === "runs") out.tab = "runs";
+      if (typeof search.run === "string" && search.run) out.run = search.run;
+      if (search.source === "selection") out.source = "selection";
+      return out;
+    },
+    component: lazyRouteComponent(() => import("@/features/flows/FlowsPage"), "FlowsPage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

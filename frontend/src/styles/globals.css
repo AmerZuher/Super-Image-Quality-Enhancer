@@ -230,6 +230,58 @@
   }
 }
 
+/* Flows canvas (React Flow), drawn with the design tokens. */
+.flow-canvas .react-flow {
+  --xy-edge-stroke: var(--line-2);
+  --xy-edge-stroke-selected: var(--cyan);
+  --xy-connectionline-stroke: var(--cyan);
+  --xy-edge-label-background-color: var(--panel);
+  --xy-edge-label-color: var(--fg-2);
+  background: var(--bg);
+}
+.flow-canvas .react-flow__edge-path {
+  stroke-width: 2;
+}
+.flow-canvas .flow-edge-live .react-flow__edge-path {
+  stroke: var(--cyan);
+}
+.flow-canvas .react-flow__edge-text {
+  font-size: 10.5px;
+  fill: var(--fg-2);
+}
+.flow-canvas .react-flow__edge-textbg {
+  fill: var(--panel);
+}
+.flow-canvas .react-flow__arrowhead polyline {
+  stroke: var(--line-2);
+  fill: var(--line-2);
+}
+.flow-canvas .react-flow__controls {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.flow-canvas .react-flow__controls-button {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-2);
+  width: 28px;
+  height: 28px;
+}
+.flow-canvas .react-flow__controls-button:hover {
+  background: var(--panel-2);
+  color: var(--fg);
+}
+.flow-canvas .react-flow__controls-button svg {
+  fill: currentColor;
+}
+.flow-canvas .react-flow__node:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,10 +1,14 @@
 import { Outlet } from "@tanstack/react-router";
+import { useAuthStatus } from "@/features/access/api";
+import { SignIn } from "@/features/access/SignIn";
 import { CommandPalette } from "./CommandPalette";
 import { Rail } from "./Rail";
 import { TopBar } from "./TopBar";
 import { UpdatesDrawer } from "./UpdatesDrawer";
 
 export function AppShell() {
+  const { data: auth } = useAuthStatus();
+  if (auth?.mode === "keys" && !auth.signed_in) return <SignIn />;
   return (
     <div className="flex h-full min-h-0">
       <Rail />

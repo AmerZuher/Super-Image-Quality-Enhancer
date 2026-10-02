@@ -24,7 +24,7 @@ export interface Workspace {
 }
 
 /** Phases that have shipped; workspaces from later phases show a preview page. */
-export const CURRENT_PHASE = 3;
+export const CURRENT_PHASE = 4;
 
 export function isAvailable(workspace: Workspace): boolean {
   return workspace.phase <= CURRENT_PHASE;

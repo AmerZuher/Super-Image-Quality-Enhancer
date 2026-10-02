@@ -138,6 +138,7 @@ def _step(call: StepCall, started: float, note: str = "") -> dict[str, Any]:
     loop = asyncio.get_running_loop()
     return {
         "node": call.node_id,
+        "key": call.key,
         "label": call.label,
         "ms": round((loop.time() - started) * 1000),
         "note": note,

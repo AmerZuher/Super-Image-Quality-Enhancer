@@ -1,6 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
-import type { Asset, Job, Model, Rendition, SystemStatus, Worker } from "./api/client";
+import type {
+  Asset,
+  FlowRun,
+  FlowRunDetail,
+  Job,
+  Model,
+  Rendition,
+  SystemStatus,
+  Worker,
+} from "./api/client";
 import { keys, removeById, upsertById, upsertJob } from "./api/keys";
 
 type Status = "connecting" | "open" | "closed";
@@ -106,6 +115,27 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
         removeById(list, String(event.data.id)),
       );
       return;
+    case "flow.updated":
+      void client.invalidateQueries({ queryKey: keys.flows });
+      return;
+    case "flow.run": {
+      const run = event.data as unknown as FlowRun;
+      client.setQueryData<FlowRun[]>(keys.runs, (list) => (list ? upsertById(list, run, true) : list));
+      if (run.flow_id) {
+        client.setQueryData<FlowRun[]>(keys.flowRuns(run.flow_id), (list) =>
+          list ? upsertById(list, run, true) : list,
+        );
+      }
+      client.setQueryData<FlowRunDetail>(keys.run(run.id), (detail) =>
+        detail ? { ...detail, run: { ...detail.run, ...run } } : detail,
+      );
+      if (run.state !== "queued" && run.state !== "running") {
+        // Final counts and per-image results, and the flow's "last run" line.
+        void client.invalidateQueries({ queryKey: keys.run(run.id) });
+        void client.invalidateQueries({ queryKey: keys.flows });
+      }
+      return;
+    }
     case "events.resync":
       void client.invalidateQueries();
       return;

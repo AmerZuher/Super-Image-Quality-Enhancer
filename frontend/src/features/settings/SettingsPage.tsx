@@ -3,6 +3,7 @@ import { ArrowUpCircle, ExternalLink, Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
 import { Panel } from "@/components/ui/Panel";
+import { AccessPanel } from "@/features/access/AccessPanel";
 import { useUpdates } from "@/lib/api/queries";
 import { relativeTime } from "@/lib/format";
 import { type Theme, useUi } from "@/lib/ui-store";
@@ -86,6 +87,8 @@ export function SettingsPage() {
           SIQE_UPDATE_REPO and SIQE_UPDATE_INCLUDE_PRERELEASES in your .env file.
         </p>
       </Panel>
+
+      <AccessPanel />
 
       <Panel title="Keyboard">
         <ul className="grid gap-2 text-[13px] text-fg-2">

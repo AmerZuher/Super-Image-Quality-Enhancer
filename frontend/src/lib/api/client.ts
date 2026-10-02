@@ -29,6 +29,21 @@ export type Album = components["schemas"]["AlbumOut"];
 export type RuleSet = components["schemas"]["RuleSet"];
 export type Rule = components["schemas"]["Rule"];
 export type ImportStatus = components["schemas"]["ImportStatusOut"];
+export type AuthStatus = components["schemas"]["AuthStatusOut"];
+export type ApiKey = components["schemas"]["ApiKeyOut"];
+export type ApiKeyCreated = components["schemas"]["ApiKeyCreatedOut"];
+export type FlowNodeType = components["schemas"]["FlowNodeTypeOut"];
+export type FlowParam = FlowNodeType["params"][number];
+export type FlowDocument = components["schemas"]["FlowDocumentIO"];
+export type FlowNode = components["schemas"]["FlowNodeIO"];
+export type FlowEdge = components["schemas"]["FlowEdgeIO"];
+export type Flow = components["schemas"]["FlowOut"];
+export type FlowProblem = Flow["problems"][number];
+export type Recipe = components["schemas"]["RecipeOut"];
+export type FlowRun = components["schemas"]["FlowRunOut"];
+export type FlowRunItem = components["schemas"]["FlowRunItemOut"];
+export type FlowRunDetail = components["schemas"]["FlowRunDetailOut"];
+export type FlowRunRequest = components["schemas"]["FlowRunIn"];
 
 /** RFC 9457 problem details returned by every failing endpoint. */
 export interface Problem {

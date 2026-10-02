@@ -23,7 +23,7 @@ BASE = os.environ.get("SIQE_TEST_BASE_URL", "http://localhost:8080")
 
 @pytest.fixture(scope="module")
 def client() -> Iterator[httpx.Client]:
-    with httpx.Client(base_url=BASE, timeout=60) as c:
+    with httpx.Client(base_url=BASE, timeout=60, event_hooks={"response": [_remember]}) as c:
         deadline = time.monotonic() + 120
         while True:
             try:
@@ -35,6 +35,26 @@ def client() -> Iterator[httpx.Client]:
                 pytest.fail("stack did not become ready within 120 s")
             time.sleep(2)
         yield c
+        for flow_id in _created:  # leave no test flows behind in the app
+            c.delete(f"/api/flows/{flow_id}")
+
+
+_created: list[str] = []
+
+
+def _remember(response: httpx.Response) -> None:
+    request = response.request
+    if (
+        request.method == "POST"
+        and response.status_code == 201
+        and request.url.path
+        in (
+            "/api/flows",
+            "/api/flows/import",
+        )
+    ):
+        response.read()
+        _created.append(response.json()["id"])
 
 
 def _image(width: int, height: int) -> bytes:
