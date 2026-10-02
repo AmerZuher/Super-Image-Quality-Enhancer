@@ -1,7 +1,8 @@
 """Converting downloaded weights into the formats SIQE Studio loads. numpy only, no torch.
 
 SIQE Classic ships as the original Keras ``v10.h5``; it is converted once, at download time,
-to safetensors with PyTorch layer names and layout (out, in, kh, kw).
+to safetensors with PyTorch layer names and layout (out, in, kh, kw). CLIP ships as a PyTorch
+checkpoint; it is read without torch (``siqe.ai.pth``) and stored as float16 safetensors.
 """
 
 from pathlib import Path
@@ -9,6 +10,8 @@ from pathlib import Path
 import h5py
 import numpy as np
 from safetensors.numpy import save_file
+
+from siqe.ai import pth
 
 # Keras layer → PyTorch module, in network order (see siqe.ai.archs.siqe_classic).
 SIQE_CLASSIC_LAYERS = {
@@ -52,3 +55,21 @@ def siqe_classic_state(h5_path: Path) -> dict[str, np.ndarray]:
 
 def siqe_classic_from_h5(h5_path: Path, out_path: Path) -> None:
     save_file(siqe_classic_state(h5_path), str(out_path), metadata={"source": "SIQE v10 (Keras 2.10)"})
+
+
+def clip_from_pth(pth_path: Path, out_path: Path) -> None:
+    state = pth.state_dict(pth_path)
+    if "visual.proj" not in state or "token_embedding.weight" not in state:
+        raise ConversionError("not a CLIP checkpoint")
+    half = {k: np.ascontiguousarray(v.astype(np.float16)) for k, v in state.items()}
+    save_file(half, str(out_path), metadata={"source": "OpenCLIP ViT-B/32 quickgelu, LAION-400M e32"})
+
+
+CONVERTERS = {"siqe_classic": siqe_classic_from_h5, "clip": clip_from_pth}
+
+
+def convert(arch: str, src: Path, out_path: Path) -> None:
+    converter = CONVERTERS.get(arch)
+    if converter is None:
+        raise ConversionError(f"no converter for {arch}")
+    converter(src, out_path)

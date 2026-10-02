@@ -15,6 +15,7 @@ with workflow.unsafe.imports_passed_through():
         prepare_asset,
     )
     from siqe.activities.jobs import JobUpdate, update_job
+    from siqe.activities.library import start_indexing
     from siqe.core.config import CPU_TASK_QUEUE
 
 QUICK = RetryPolicy(maximum_attempts=5, initial_interval=timedelta(seconds=1))
@@ -35,6 +36,19 @@ async def _update(update: JobUpdate) -> None:
         start_to_close_timeout=timedelta(seconds=30),
         retry_policy=QUICK,
     )
+
+
+async def wake_indexer() -> None:
+    """Ask the Library indexer to look at new images. Best effort: never fails the caller."""
+    try:
+        await workflow.execute_activity(
+            start_indexing,
+            task_queue=CPU_TASK_QUEUE,
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=QUICK,
+        )
+    except ActivityError:
+        workflow.logger.warning("The Library indexer could not be started")
 
 
 @workflow.defn
@@ -70,6 +84,7 @@ class IngestAssetWorkflow:
             )
             raise ApplicationError(message, type=code, non_retryable=True) from exc
         await _update(JobUpdate(job_id, state="succeeded", message="Ready to edit", result=sizes))
+        await wake_indexer()
         return sizes
 
 

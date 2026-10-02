@@ -49,6 +49,18 @@ class Settings(BaseSettings):
     )
     min_free_disk_ratio: float = 0.05
 
+    # Library import folder (mounted read-only from the host; see SIQE_IMPORT_PATH in .env)
+    import_dir: Path = Field(default=Path("/import"), description="Import folder inside the containers.")
+    import_host_path: str = Field(
+        default="./import", description="The same folder on your computer, shown in the Library."
+    )
+    import_scan_seconds: int = Field(
+        default=60, description="How often the import folder is checked for new images; 0 turns it off."
+    )
+    import_settle_seconds: int = Field(
+        default=15, description="A file must be unchanged this long before it is imported."
+    )
+
     # Updates (GitHub releases)
     update_repo: str = "AmerZuher/Super-Image-Quality-Enhancer"
     update_check_hours: float = 6.0

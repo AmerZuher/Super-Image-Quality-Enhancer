@@ -6,6 +6,8 @@
 
 # Runtime data (Docker volumes bind here in dev)
 /data/
+# Library import folder (mounted into the worker)
+/import/
 
 # Python
 __pycache__/

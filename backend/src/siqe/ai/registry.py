@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from siqe.ai.convert import siqe_classic_from_h5
+from siqe.ai.convert import convert
 from siqe.ai.manifest import MODELS, MODELS_BY_ID, TASK_LABELS, ModelFile, ModelSpec
 from siqe.core.config import get_settings
 from siqe.core.errors import AppError, NotFoundError
@@ -232,7 +232,7 @@ def install_files(
         )
         if f.convert_to:
             staging = final.with_name(final.name + ".partial")
-            siqe_classic_from_h5(raw, staging)
+            convert(spec.arch, raw, staging)
             staging.chmod(0o644)  # safetensors writes 0600; the GPU worker may be another user
             staging.replace(final)
             raw.unlink()

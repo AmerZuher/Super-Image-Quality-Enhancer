@@ -29,6 +29,7 @@ dependencies = [
   "h5py>=3.16",
   "safetensors>=0.8",
   "onnxruntime>=1.30",
+  "pgvector>=0.4",
 ]
 
 [project.optional-dependencies]
@@ -89,7 +90,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # torch is only installed in the ai image; its nn.Module is Any to mypy elsewhere.
-module = ["siqe.ai.archs.*", "siqe.ai.runtime"]
+module = ["siqe.ai.archs.*", "siqe.ai.runtime", "siqe.ai.clip"]
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
 warn_return_any = false

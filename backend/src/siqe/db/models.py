@@ -5,8 +5,9 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from siqe.db.base import Base, TimestampMixin, utcnow
@@ -116,6 +117,31 @@ class Asset(TimestampMixin, Base):
     )
     derivation: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
+    # Library analysis (siqe.library.analysis); analysis_version 0 means not analysed yet.
+    analysis_version: Mapped[int] = mapped_column(Integer, default=0)
+    phash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    dhash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    sharpness: Mapped[float | None] = mapped_column(Float, nullable=True)
+    color: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    color_hex: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gps_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    embedding: Mapped[Any] = mapped_column(Vector(512), nullable=True, deferred=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String(64)), default=list)
+    auto_tags: Mapped[list[str]] = mapped_column(ARRAY(String(64)), default=list)
+    # Near-duplicates share a group; rank 0 is the copy worth keeping.
+    duplicate_group: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    duplicate_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # The user said this image isn't a duplicate of the others it was grouped with.
+    duplicate_ok: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Quarantined images are hidden everywhere except the Quarantine view, until restored or deleted.
+    quarantined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    quarantine_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Where the file came from, e.g. {"kind": "folder", "path": "Trips/2024/a.jpg"}.
+    source: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
 
 class RenditionStatus(enum.StrEnum):
     pending = "pending"
@@ -176,3 +202,56 @@ class AiModel(TimestampMixin, Base):
     # Per device: the tile and batch that last worked, after any fallback.
     last_settings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     runs: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AlbumKind(enum.StrEnum):
+    manual = "manual"
+    smart = "smart"
+
+
+class Album(TimestampMixin, Base):
+    """A view of the library: hand-picked images, or every image matching rules (no copies)."""
+
+    __tablename__ = "albums"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[AlbumKind] = mapped_column(_enum(AlbumKind, "album_kind"))
+    rules: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AlbumAsset(Base):
+    __tablename__ = "album_assets"
+
+    album_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("albums.id", ondelete="CASCADE"), primary_key=True
+    )
+    asset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=utcnow
+    )
+
+
+class ImportState(enum.StrEnum):
+    waiting = "waiting"  # seen once; imported when its size and time stop changing
+    imported = "imported"
+    duplicate = "duplicate"
+    failed = "failed"
+
+
+class ImportFile(TimestampMixin, Base):
+    """A file seen in the import folder, so each one is imported once and half-copied files wait."""
+
+    __tablename__ = "import_files"
+
+    path: Mapped[str] = mapped_column(Text, primary_key=True)
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    mtime: Mapped[float] = mapped_column(Float)
+    state: Mapped[ImportState] = mapped_column(_enum(ImportState, "import_state"))
+    asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True
+    )
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)

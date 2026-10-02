@@ -15,6 +15,7 @@ from PIL import Image as PILImage
 from siqe.core.config import get_settings
 from siqe.core.errors import AppError
 from siqe.imaging.formats import INPUT_EXTENSIONS, INPUT_LOADERS
+from siqe.imaging.metadata import gps_from_fields
 
 # Second guard for any code path that touches Pillow (pillow-heif, metadata helpers).
 PILImage.MAX_IMAGE_PIXELS = get_settings().max_input_megapixels * 1_000_000
@@ -44,6 +45,7 @@ class ImageInfo:
     pages: int
     exif: dict[str, Any] = field(default_factory=dict)
     has_gps: bool = False
+    gps: tuple[float, float] | None = None  # latitude, longitude
 
     @property
     def oriented_size(self) -> tuple[int, int]:
@@ -116,6 +118,13 @@ def inspect(path: Path, *, max_megapixels: int | None = None) -> ImageInfo:
         pages=int(image.get("n-pages")) if "n-pages" in fields else 1,
         exif=exif,
         has_gps=any(f.startswith("exif-ifd3-") for f in fields),
+        gps=gps_from_fields(
+            {
+                f.removeprefix("exif-ifd3-"): _clean_exif(str(image.get(f)))
+                for f in fields
+                if f.startswith("exif-ifd3-GPSL")
+            }
+        ),
     )
 
 

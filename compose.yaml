@@ -15,6 +15,8 @@ x-backend-env: &backend-env
   SIQE_UPDATE_REPO: ${SIQE_UPDATE_REPO:-AmerZuher/Super-Image-Quality-Enhancer}
   SIQE_UPDATE_INCLUDE_PRERELEASES: ${SIQE_UPDATE_INCLUDE_PRERELEASES:-false}
   SIQE_GITHUB_TOKEN: ${SIQE_GITHUB_TOKEN:-}
+  SIQE_IMPORT_HOST_PATH: ${SIQE_IMPORT_PATH:-./import}
+  SIQE_IMPORT_SCAN_SECONDS: ${SIQE_IMPORT_SCAN_SECONDS:-60}
 
 x-api-image: &api-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-api:${SIQE_VERSION:-latest}
 x-ai-image: &ai-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-ai:${SIQE_VERSION:-latest}
@@ -130,6 +132,8 @@ services:
     environment: *backend-env
     volumes:
       - data:/data
+      # Library import folder, read-only: files are copied in, never moved or deleted.
+      - ${SIQE_IMPORT_PATH:-./import}:/import:ro
     restart: unless-stopped
     mem_limit: ${SIQE_CPU_WORKER_MEMORY:-4g}
 

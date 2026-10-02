@@ -44,6 +44,19 @@ def asset_to_dict(asset: Asset) -> dict[str, Any]:
         "original_url": f"{base}/original",
         "parent_id": str(asset.parent_id) if asset.parent_id else None,
         "derivation": asset.derivation,
+        "tags": list(asset.tags or []),
+        "auto_tags": list(asset.auto_tags or []),
+        "analysed": asset.analysis_version > 0,
+        "sharpness": asset.sharpness,
+        "color": asset.color,
+        "color_hex": asset.color_hex,
+        "taken_at": asset.taken_at.isoformat() if asset.taken_at else None,
+        "gps": [asset.gps_lat, asset.gps_lon] if asset.gps_lat is not None else None,
+        "duplicate_group": str(asset.duplicate_group) if asset.duplicate_group else None,
+        "duplicate_rank": asset.duplicate_rank,
+        "quarantined_at": asset.quarantined_at.isoformat() if asset.quarantined_at else None,
+        "quarantine_reason": asset.quarantine_reason,
+        "source": asset.source,
     }
 
 

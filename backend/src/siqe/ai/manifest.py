@@ -9,8 +9,8 @@ download even where Hugging Face is blocked.
 from dataclasses import dataclass, field
 from typing import Literal
 
-Task = Literal["upscale", "denoise", "background", "face"]
-Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan"]
+Task = Literal["upscale", "denoise", "background", "face", "embed"]
+Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan", "clip"]
 Speed = Literal["fast", "balanced", "slow"]
 
 COMMERCIAL_SAFE = frozenset({"MIT", "BSD-3-Clause", "Apache-2.0"})
@@ -257,11 +257,53 @@ MODELS = (
     ),
 )
 
+_OPEN_CLIP = "https://github.com/mlfoundations/open_clip"
+
+MODELS = (
+    *MODELS,
+    ModelSpec(
+        id="clip-vit-b32",
+        name="CLIP ViT-B/32 search",
+        task="embed",
+        arch="clip",
+        scale=1,
+        summary=(
+            "Understands what a photo shows: powers Library search by description, similar images "
+            "and automatic tags. Runs on the CPU."
+        ),
+        license="MIT",
+        license_url=f"{_OPEN_CLIP}/blob/main/LICENSE",
+        homepage=_OPEN_CLIP,
+        files=(
+            ModelFile(
+                "vit_b_32-quickgelu-laion400m_e32-46683a32.pt",
+                f"{_OPEN_CLIP}/releases/download/v0.2-weights/vit_b_32-quickgelu-laion400m_e32-46683a32.pt",
+                "46683a32721d5c68911153698992361285d20ca690bb4f317c11e45c03d798fa",
+                605159845,
+                convert_to="clip-vit-b32.safetensors",
+            ),
+            ModelFile(
+                "bpe_simple_vocab_16e6.txt.gz",
+                "https://raw.githubusercontent.com/mlfoundations/open_clip/v2.24.0/"
+                "src/open_clip/bpe_simple_vocab_16e6.txt.gz",
+                "924691ac288e54409236115652ad4aa250f48203de50a9e4722a6ecd48d6804a",
+                1356917,
+            ),
+        ),
+        context=0,
+        speed="fast",
+        recommended=True,
+        tags=("library", "search"),
+    ),
+)
+
 FACE_MODEL_ID = "gfpgan-v1.4"
+CLIP_MODEL_ID = "clip-vit-b32"
 MODELS_BY_ID = {m.id: m for m in MODELS}
 TASK_LABELS: dict[Task, str] = {
     "upscale": "Upscale",
     "denoise": "Denoise",
     "background": "Remove background",
     "face": "Restore faces",
+    "embed": "Search and tags",
 }

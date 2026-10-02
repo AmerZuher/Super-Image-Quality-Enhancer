@@ -1,5 +1,4 @@
 import asyncio
-import re
 import uuid
 from pathlib import Path
 from typing import Annotated
@@ -7,7 +6,6 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 from siqe.api.deps import SessionDep, SettingsDep, TemporalDep
 from siqe.api.schemas import (
@@ -20,6 +18,7 @@ from siqe.api.schemas import (
     RenditionOut,
     UploadOut,
 )
+from siqe.assets.ingest import add_file
 from siqe.assets.records import (
     ASSET_DELETED_EVENT,
     RENDITION_DELETED_EVENT,
@@ -38,28 +37,20 @@ from siqe.db.models import Asset, AssetStatus, Rendition, RenditionStatus
 from siqe.imaging import edits as edit_model
 from siqe.imaging.export import ExportOptions, check_dimensions, check_disk, planned_size
 from siqe.imaging.formats import INPUT_EXTENSIONS, OUTPUT_FORMATS
-from siqe.imaging.io import inspect
 from siqe.imaging.pipeline import output_size
 from siqe.jobs.records import job_to_dict
 from siqe.jobs.start import create_job, start_workflow
-from siqe.storage.store import StagedUpload, get_store
+from siqe.storage.store import get_store
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 
 router = APIRouter(tags=["assets"])
 log = get_logger(__name__)
 
 IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
-_SAFE_NAME = re.compile(r"[^\w.\- ()]+")
-_EXTENSIONS = {"jpeg": ".jpg", "png": ".png", "webp": ".webp", "heif": ".heic", "tiff": ".tif", "gif": ".gif"}
 
 
 def _asset_out(asset: Asset) -> AssetOut:
     return AssetOut.model_validate(asset_to_dict(asset))
-
-
-def _clean_name(name: str) -> str:
-    name = Path(name.replace("\\", "/")).name
-    return (_SAFE_NAME.sub("_", name).strip(" .") or "image")[:200]
 
 
 # ----------------------------------------------------------------------------- catalog
@@ -118,78 +109,18 @@ async def upload_asset(
     store = get_store()
     store.ensure_space(settings)
     staged = await store.receive(request.stream(), settings.max_upload_mb * 1024 * 1024)
-    try:
-        existing = (
-            await session.execute(select(Asset).where(Asset.sha256 == staged.sha256))
-        ).scalar_one_or_none()
-        if existing is not None:
-            response.status_code = status.HTTP_200_OK
-            return await _existing_upload(session, temporal, existing, staged)
-        info = await asyncio.to_thread(inspect, staged.path)
-    except BaseException:
-        staged.path.unlink(missing_ok=True)
-        raise
-
-    extension = _EXTENSIONS.get(info.format, ".img")
-    await asyncio.to_thread(store.commit, staged, extension)
-    width, height = info.oriented_size
-    name = _clean_name(filename)
-    asset = Asset(
-        sha256=staged.sha256,
-        original_name=name,
-        extension=extension,
-        format=info.format,
-        width=width,
-        height=height,
-        bit_depth=16 if info.bit_depth == 16 else 8,
-        has_alpha=info.has_alpha,
-        size_bytes=staged.size_bytes,
-        status=AssetStatus.processing,
-        exif=info.exif,
-        has_gps=info.has_gps,
-        edits={},
-    )
-    session.add(asset)
-    try:
-        await session.flush()
-    except IntegrityError:
-        # The same file finished uploading in another request a moment ago.
-        await session.rollback()
-        existing = (await session.execute(select(Asset).where(Asset.sha256 == staged.sha256))).scalar_one()
+    added = await add_file(session, staged, filename, source={"kind": "upload"})
+    if added.duplicate:
         response.status_code = status.HTTP_200_OK
-        return UploadOut(asset=_asset_out(existing), duplicate=True, job=None)
-    await publish_asset(session, asset)
-    job = await create_job(
-        session, kind="asset.ingest", title=f"Prepare {name}", params={"asset_id": str(asset.id)}
+    if added.job is not None:
+        await start_workflow(
+            session, temporal, added.job, IngestAssetWorkflow.run, [str(added.job.id), str(added.asset.id)]
+        )
+    return UploadOut(
+        asset=_asset_out(added.asset),
+        duplicate=added.duplicate,
+        job=JobOut.model_validate(job_to_dict(added.job)) if added.job else None,
     )
-    await start_workflow(session, temporal, job, IngestAssetWorkflow.run, [str(job.id), str(asset.id)])
-    return UploadOut(asset=_asset_out(asset), duplicate=False, job=JobOut.model_validate(job_to_dict(job)))
-
-
-async def _existing_upload(
-    session: SessionDep, temporal: TemporalDep, asset: Asset, staged: StagedUpload
-) -> UploadOut:
-    """The same bytes are already in the library. Repair the image if its files went missing."""
-    store = get_store()
-    if store.original(asset.sha256, asset.extension).exists():
-        staged.path.unlink(missing_ok=True)
-    else:
-        await asyncio.to_thread(store.commit, staged, asset.extension)
-        log.warning("asset.original_restored", asset_id=str(asset.id))
-    previews_ok = (store.previews(asset.id) / "preview.webp").exists()
-    if asset.status == AssetStatus.processing or (asset.status == AssetStatus.ready and previews_ok):
-        return UploadOut(asset=_asset_out(asset), duplicate=True, job=None)
-    asset.status = AssetStatus.processing
-    asset.error = None
-    await publish_asset(session, asset)
-    job = await create_job(
-        session,
-        kind="asset.ingest",
-        title=f"Prepare {asset.original_name}",
-        params={"asset_id": str(asset.id)},
-    )
-    await start_workflow(session, temporal, job, IngestAssetWorkflow.run, [str(job.id), str(asset.id)])
-    return UploadOut(asset=_asset_out(asset), duplicate=True, job=JobOut.model_validate(job_to_dict(job)))
 
 
 # --------------------------------------------------------------------------- browsing
@@ -200,8 +131,11 @@ async def list_assets(
     session: SessionDep,
     limit: int = Query(200, ge=1, le=1000),
     parent_id: uuid.UUID | None = Query(None, description="Only images made from this one by AI runs."),
+    include_quarantined: bool = Query(False, description="Also list images in the Library's quarantine."),
 ) -> list[AssetOut]:
     stmt = select(Asset).order_by(Asset.created_at.desc()).limit(limit)
+    if not include_quarantined:
+        stmt = stmt.where(Asset.quarantined_at.is_(None))
     if parent_id is not None:
         stmt = stmt.where(Asset.parent_id == parent_id)
     rows = (await session.execute(stmt)).scalars()

@@ -30,6 +30,14 @@ async def _plan(body: AiRunIn, session: SessionDep, settings: Settings) -> tuple
             "asset.not_found", "No image with that id.", status=404, title="Image not found"
         ) from exc
     spec = get_spec(body.model_id)
+    if spec.task == "embed":
+        raise AppError(
+            "model.not_runnable",
+            f"{spec.name} powers Library search and doesn't make images.",
+            status=422,
+            title="Not an image model",
+            fix="Pick an upscale, denoise, background or face model.",
+        )
     asset = await get_asset(session, asset_id)
     if asset.status != AssetStatus.ready:
         raise AppError(

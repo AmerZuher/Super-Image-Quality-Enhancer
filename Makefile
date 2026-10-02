@@ -14,7 +14,8 @@ help: ## Show this list
 	@cp .env.example .env
 	@pw=$$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))'); \
 	  sed -i.bak "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$pw/" .env && rm -f .env.bak
-	@echo "Created .env with a random database password."
+	@mkdir -p import
+	@echo "Created .env with a random database password, and ./import for the Library's import folder."
 
 .PHONY: env
 env: .env ## Create .env from .env.example with a generated password

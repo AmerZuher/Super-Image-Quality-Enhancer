@@ -19,7 +19,7 @@ with workflow.unsafe.imports_passed_through():
     from siqe.activities.jobs import JobUpdate
     from siqe.ai.manifest import MODELS_BY_ID
     from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE
-    from siqe.workflows.assets import HEAVY, QUICK, _failure, _update
+    from siqe.workflows.assets import HEAVY, QUICK, _failure, _update, wake_indexer
 
 # A crashed or restarted worker resumes the run from its last heartbeat (finished tiles).
 RUN = RetryPolicy(maximum_attempts=3, initial_interval=timedelta(seconds=10))
@@ -88,4 +88,5 @@ class AiRunWorkflow:
         if result.get("nonfinite"):
             message += f"; the model produced {result['nonfinite']:,} invalid values, which were replaced"
         await _update(JobUpdate(job_id, state="succeeded", progress=1.0, message=message, result=summary))
+        await wake_indexer()
         return summary

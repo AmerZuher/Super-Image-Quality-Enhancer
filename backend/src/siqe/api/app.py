@@ -1,14 +1,16 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
-from siqe.api.routes import ai, assets, events, health, jobs, models, system, updates
+from siqe.api.routes import ai, assets, events, health, jobs, library, models, system, updates
 from siqe.core.config import get_settings
 from siqe.core.errors import register_error_handlers
 from siqe.core.logging import configure_logging, get_logger
 from siqe.db.session import dispose_engine
 from siqe.events.bus import EventHub
+from siqe.library import embedder
 from siqe.orchestration.client import TemporalGateway
 
 log = get_logger(__name__)
@@ -19,12 +21,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = app.state.settings
     hub: EventHub = app.state.events
     await hub.start()
+    warm = asyncio.create_task(_warm_search())
     log.info("api.started", version=settings.version, environment=settings.environment)
     try:
         yield
     finally:
+        warm.cancel()
         await hub.stop()
         await dispose_engine()
+
+
+async def _warm_search() -> None:
+    """Load the search model's text half in the background, so the first search is quick."""
+    try:
+        if embedder.installed():
+            await asyncio.to_thread(embedder.query_vector, "a photo")
+            log.info("library.search_ready")
+    except Exception as exc:
+        log.warning("library.search_warmup_failed", error=str(exc))
 
 
 def create_app() -> FastAPI:
@@ -45,7 +59,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
 
     api = APIRouter(prefix="/api")
-    for module in (health, system, jobs, assets, models, ai, updates, events):
+    for module in (health, system, jobs, assets, library, models, ai, updates, events):
         api.include_router(module.router)
     app.include_router(api)
     return app

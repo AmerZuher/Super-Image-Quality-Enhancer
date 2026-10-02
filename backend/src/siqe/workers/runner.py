@@ -18,23 +18,42 @@ from temporalio.worker import Worker
 from siqe.activities.ai import discard_run_files, register_result, run_background, run_model
 from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
 from siqe.activities.jobs import update_job
+from siqe.activities.library import (
+    group_duplicates,
+    index_batch,
+    remove_location_batch,
+    scan_import_folder,
+    start_indexing,
+)
 from siqe.activities.models import install_model, mark_model_failed
 from siqe.activities.selftest import cpu_probe, gpu_probe
 from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE, get_settings
 from siqe.core.logging import configure_logging, get_logger
 from siqe.db.session import dispose_engine
+from siqe.library.schedule import ensure_import_schedule
+from siqe.library.trigger import request_index
 from siqe.orchestration.client import connect
 from siqe.storage.store import get_store
 from siqe.system.resources import cpu_info
 from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
 from siqe.workflows.ai import AiRunWorkflow
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
+from siqe.workflows.library import ImportFolderWorkflow, LibraryIndexWorkflow, RemoveLocationWorkflow
 from siqe.workflows.models import ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
 
 log = get_logger(__name__)
 
-WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow, ModelInstallWorkflow, AiRunWorkflow]
+WORKFLOWS = [
+    SelfTestWorkflow,
+    IngestAssetWorkflow,
+    ExportWorkflow,
+    ModelInstallWorkflow,
+    AiRunWorkflow,
+    LibraryIndexWorkflow,
+    RemoveLocationWorkflow,
+    ImportFolderWorkflow,
+]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
     cpu_probe,
@@ -47,6 +66,11 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     run_background,
     register_result,
     discard_run_files,
+    index_batch,
+    group_duplicates,
+    start_indexing,
+    remove_location_batch,
+    scan_import_folder,
 ]
 GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model]
 
@@ -72,6 +96,18 @@ def build_worker(client: Client, kind: WorkerKind) -> Worker:
     )
 
 
+async def _catch_up(client: Client) -> None:
+    """Index anything added while the worker was down, and keep the import schedule current."""
+    try:
+        await request_index(client)
+    except Exception as exc:
+        log.warning("library.index_not_started", error=str(exc))
+    try:
+        await ensure_import_schedule(client, get_settings())
+    except Exception as exc:
+        log.warning("library.import_schedule_failed", error=str(exc))
+
+
 async def run_worker(kind: WorkerKind) -> None:
     settings = get_settings()
     configure_logging(settings)
@@ -94,6 +130,8 @@ async def run_worker(kind: WorkerKind) -> None:
     try:
         async with worker:
             log.info("worker.ready", kind=kind, task_queue=worker.task_queue)
+            if kind == "cpu":
+                await _catch_up(client)
             await stop.wait()
             log.info("worker.stopping", kind=kind)
     finally:

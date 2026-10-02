@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from siqe.library.rules import RuleSet
+
 JobStateName = Literal["queued", "running", "succeeded", "failed", "cancelled"]
 
 
@@ -101,6 +103,20 @@ class AssetOut(BaseModel):
     original_url: str
     parent_id: str | None = Field(default=None, description="The image this one was made from by an AI run.")
     derivation: dict[str, Any] | None = Field(default=None, description="How an AI result was made.")
+    tags: list[str] = Field(description="Tags you added.")
+    auto_tags: list[str] = Field(description="Tags CLIP chose (Library search).")
+    analysed: bool
+    sharpness: float | None = Field(default=None, description="0 (blurred) to 1 (crisp).")
+    color: str | None = Field(default=None, description="Main colour family, or 'neutral'.")
+    color_hex: str | None = None
+    taken_at: datetime | None = Field(default=None, description="When the photo was taken (EXIF).")
+    gps: list[float] | None = Field(default=None, description="Latitude and longitude, if recorded.")
+    duplicate_group: str | None = Field(default=None, description="Near-duplicates share a group.")
+    duplicate_rank: int | None = Field(default=None, description="0 is the copy worth keeping.")
+    quarantined_at: datetime | None = None
+    quarantine_reason: str | None = None
+    source: dict[str, Any] | None = Field(default=None, description="Where the file came from.")
+    score: float | None = Field(default=None, description="Search or similarity score, when searching.")
 
 
 class UploadOut(BaseModel):
@@ -206,7 +222,7 @@ class ExportStartOut(BaseModel):
 
 
 ModelStatusName = Literal["available", "downloading", "installed", "failed"]
-ModelTask = Literal["upscale", "denoise", "background", "face"]
+ModelTask = Literal["upscale", "denoise", "background", "face", "embed"]
 
 
 class ModelOut(BaseModel):
@@ -275,3 +291,105 @@ class AiPlanOut(BaseModel):
 class AiRunStartOut(BaseModel):
     job: JobOut
     plan: AiPlanOut
+
+
+# ------------------------------------------------------------------------------ library
+
+
+class LibraryPageOut(BaseModel):
+    items: list[AssetOut]
+    total: int
+    offset: int
+    limit: int
+    mode: Literal["browse", "text", "name", "similar"] = Field(
+        description="How the list was made: browsing, search by description, by name only, or similar."
+    )
+
+
+class AlbumOut(BaseModel):
+    id: str
+    name: str
+    kind: Literal["manual", "smart"]
+    rules: RuleSet
+    count: int
+    position: int
+
+
+class AlbumIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    kind: Literal["manual", "smart"] = "smart"
+    rules: RuleSet = Field(default_factory=RuleSet)
+
+
+class AlbumPatchIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    rules: RuleSet | None = None
+    position: int | None = None
+
+
+class AssetIdsIn(BaseModel):
+    asset_ids: list[str] = Field(min_length=1, max_length=1000)
+
+
+class QuarantineIn(AssetIdsIn):
+    reason: str | None = Field(default=None, max_length=200)
+
+
+class TagsIn(AssetIdsIn):
+    add: list[str] = Field(default_factory=list, max_length=30)
+    remove: list[str] = Field(default_factory=list, max_length=30)
+
+
+class AlbumMembersIn(AssetIdsIn):
+    action: Literal["add", "remove"] = "add"
+
+
+class DuplicatesResolveIn(BaseModel):
+    groups: list[str] | None = Field(
+        default=None, description="Groups to resolve; leave out to resolve every group."
+    )
+
+
+class ChangedOut(BaseModel):
+    changed: int
+
+
+class TagCountOut(BaseModel):
+    tag: str
+    count: int
+
+
+class LibraryCountsOut(BaseModel):
+    all: int
+    duplicates: int
+    duplicate_groups: int
+    quarantine: int
+
+
+class LibraryStatusOut(BaseModel):
+    counts: LibraryCountsOut
+    pending: int = Field(description="Images waiting to be analysed.")
+    search_model: ModelStatusName = Field(description="Install state of the CLIP model behind search.")
+    search_model_id: str
+    indexing: bool
+    tags: list[TagCountOut]
+
+
+class ImportFailureOut(BaseModel):
+    path: str
+    code: str
+    message: str
+
+
+class ImportStatusOut(BaseModel):
+    enabled: bool = Field(description="Whether the folder is checked on a schedule.")
+    available: bool | None = Field(description="Whether the folder was found at the last check.")
+    folder: str = Field(description="The folder on your computer (SIQE_IMPORT_PATH).")
+    every_seconds: int
+    last_scan: datetime | None
+    files: int | None = Field(description="Image files found at the last check.")
+    imported: int
+    duplicates: int
+    waiting: int
+    failed: int
+    failures: list[ImportFailureOut]
