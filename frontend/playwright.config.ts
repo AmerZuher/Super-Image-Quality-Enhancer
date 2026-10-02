@@ -10,6 +10,9 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
+  // One file at a time: the stack runs one AI job at a time, so parallel files would queue
+  // behind each other's runs and time out.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: {

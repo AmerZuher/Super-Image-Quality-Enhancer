@@ -5,7 +5,7 @@ const SAMPLE = fileURLToPath(new URL("../../samples/rose-blue.jpg", import.meta.
 
 test.describe.configure({ mode: "serial" });
 
-test("download a model, upscale an image and compare the result", async ({ page }) => {
+test("download a model, upscale an image and compare the result", async ({ page, request }) => {
   test.setTimeout(600_000);
   await page.goto("/ai-lab");
 
@@ -38,6 +38,20 @@ test("download a model, upscale an image and compare the result", async ({ page 
   await expect(page.getByRole("button", { name: "Side by side" })).toBeEnabled();
   await page.getByRole("button", { name: "Side by side" }).click();
   await expect(page.getByTestId("compare-after")).toBeVisible();
+
+  // Let this run finish so it doesn't hold the AI worker for later tests.
+  await expect
+    .poll(
+      async () => {
+        const jobs: { kind: string; state: string }[] = await (
+          await request.get("/api/jobs?limit=50")
+        ).json();
+        return jobs.filter((j) => j.kind === "ai.run" && (j.state === "queued" || j.state === "running"))
+          .length;
+      },
+      { timeout: 600_000, intervals: [2_000] },
+    )
+    .toBe(0);
 
   // Results open in Studio as ordinary images.
   await page.getByRole("link", { name: "Edit in Studio" }).first().click();
