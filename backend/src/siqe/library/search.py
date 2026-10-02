@@ -20,8 +20,9 @@ from siqe.library.rules import RuleSet, compile_rules, parse
 View = Literal["all", "duplicates", "quarantine", "album"]
 Sort = Literal["added", "taken", "name", "size", "resolution", "sharpness"]
 
-TEXT_FLOOR = 0.05
-TEXT_WINDOW = 0.1
+# Bias-corrected scores: nonsense queries top out near 0.08 on the samples, clear matches 0.09+.
+TEXT_FLOOR = 0.08
+TEXT_WINDOW = 0.08
 TAG_BONUS = 0.1
 SIMILAR_FLOOR = 0.5
 

@@ -114,3 +114,23 @@ def test_tokenizer_matches_openai_ids() -> None:
     assert ids[0, :4].tolist() == [49406, 3306, 1002, 49407]
     long = tok(["word " * 200])
     assert long.shape == (1, 77) and long[0, -1] == 49407
+
+
+def test_embedder_loads_the_model_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import gzip
+
+    from safetensors.numpy import save_file
+
+    from siqe.library import embedder
+
+    weights, vocab = tmp_path / "clip.safetensors", tmp_path / "vocab.txt.gz"
+    save_file({k: v.astype(np.float16) for k, v in tiny_clip(layers=1).items()}, str(weights))
+    with gzip.open(vocab, "wt") as f:
+        f.write("#version: 0.2\n")
+    monkeypatch.setattr(embedder, "file_path", lambda spec, i: weights if i == 0 else vocab)
+    monkeypatch.setattr(embedder, "_cache", {})
+    first = embedder._load(text_only=True)
+    assert embedder._load(text_only=True) is first
+    assert not any(k.startswith("visual.") for k in first.weights)
+    assert first.weights["token_embedding.weight"].dtype == np.float16
+    assert first.weights["ln_final.weight"].dtype == np.float32

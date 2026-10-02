@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from safetensors.numpy import load_file
+from safetensors import safe_open
 
 from siqe.ai import clip
 from siqe.ai.manifest import CLIP_MODEL_ID, MODELS_BY_ID
@@ -52,14 +52,15 @@ def _load(text_only: bool) -> _Loaded:
         hit = _cache.get(text_only)
         if hit is not None and hit.key == key:
             return hit
-        raw = load_file(str(path))
-        if text_only:
-            raw = clip.text_weights(raw)
-        weights = {
-            # The token table is only ever indexed, so it can stay half precision.
-            k: v if k == "token_embedding.weight" else v.astype(np.float32)
-            for k, v in raw.items()
-        }
+        weights: clip.Weights = {}
+        # Read tensor by tensor, so the API never holds the image half or two copies at once.
+        with safe_open(str(path), framework="numpy") as f:
+            for name in f.keys():  # noqa: SIM118 - safe_open isn't a mapping
+                if text_only and name.startswith("visual."):
+                    continue
+                value = f.get_tensor(name)
+                # The token table is only ever indexed, so it can stay half precision.
+                weights[name] = value if name == "token_embedding.weight" else value.astype(np.float32)
         loaded = _Loaded(key, weights, clip.Tokenizer(file_path(SPEC, 1)))
         _cache[text_only] = loaded
         return loaded

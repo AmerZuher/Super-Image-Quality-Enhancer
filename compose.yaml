@@ -17,6 +17,7 @@ x-backend-env: &backend-env
   SIQE_GITHUB_TOKEN: ${SIQE_GITHUB_TOKEN:-}
   SIQE_IMPORT_HOST_PATH: ${SIQE_IMPORT_PATH:-./import}
   SIQE_IMPORT_SCAN_SECONDS: ${SIQE_IMPORT_SCAN_SECONDS:-60}
+  SIQE_IMPORT_SETTLE_SECONDS: ${SIQE_IMPORT_SETTLE_SECONDS:-15}
 
 x-api-image: &api-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-api:${SIQE_VERSION:-latest}
 x-ai-image: &ai-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-ai:${SIQE_VERSION:-latest}
@@ -121,7 +122,7 @@ services:
       timeout: 4s
       retries: 30
     restart: unless-stopped
-    mem_limit: ${SIQE_API_MEMORY:-1g}
+    mem_limit: ${SIQE_API_MEMORY:-1536m}
 
   worker:
     image: *api-image
