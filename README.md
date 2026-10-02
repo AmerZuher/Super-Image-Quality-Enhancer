@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 2 of 6 is complete.** The foundation, the **Studio** editor and the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model) are ready to use. Library, Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
+> **Status: Phase 3 of 6 is complete.** The foundation, the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model) and the **Library** (search by description, duplicates, smart albums, location removal and an import folder) are ready to use. Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
 
 ---
 
@@ -34,7 +34,7 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 |---|---|---|
 | **Studio** | Non-destructive editor with a live GPU preview: light and colour adjustments, crop and rotate, compare views, histogram, export to any common format with a target size. **Ready now.** | 1 |
 | **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
-| **Library** | Duplicates that keep the sharpest copy, similar-image and text search, smart albums, EXIF and GPS privacy tools | 3 |
+| **Library** | Search by describing a photo, find similar images, automatic tags, duplicate groups that keep the best copy (with quarantine and undo), smart albums from rules, camera details and location removal without re-encoding, and an import folder. **Ready now.** | 3 |
 | **Flows** | Visual pipelines for batches and hot folders, runnable from the API and CLI | 4 |
 | **Forge** | Design neural networks by drawing them, train them with live charts, publish them to the AI Lab | 5 |
 
@@ -58,8 +58,12 @@ Built for real hardware limits: images are planned before processing, large ones
 | Command palette (Ctrl K) | Jobs with live progress |
 | <img src="gallery/ailab-cutout.png" alt="AI Lab showing a car photo and its background removal result side by side, the cutout on a transparency checkerboard" /> | <img src="gallery/settings.png" alt="Settings page with theme, updates and about" /> |
 | Background removal, side by side | Settings |
+| <img src="gallery/library-dark.png" alt="Library grid of photos with shape badges, a duplicate badge and automatic tags; albums and the import folder on the left; details, tags, sharpness and colour of the selected lake photo on the right" /> | <img src="gallery/library-search.png" alt="Library search for 'mountains reflected in a lake' showing the four matching photos ranked with gold match scores" /> |
+| Library: tags, details and albums | Search by description |
+| <img src="gallery/library-duplicates.png" alt="Library duplicates view in the light theme: a pier photo marked Keep and its smaller copy marked Quarantine, lower resolution" /> | <img src="gallery/library-album.png" alt="Smart album editor with rules for landscape orientation and a width of at least 1920 pixels" /> |
+| Duplicates: keep the best copy, light theme | Smart albums from rules |
 
-<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /></p>
+<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /> &nbsp; <img src="gallery/library-phone.png" alt="Library on a phone with view chips, search and a two-column grid" width="240" /></p>
 
 All screenshots are regenerated with `make gallery`.
 
@@ -77,6 +81,8 @@ make up-gpu      # or: with your NVIDIA GPU
 Open **http://localhost:8080** and press **Run self-test** on the Overview. In about a second it confirms every service works and benchmarks your hardware.
 
 Then open **Studio** (second icon in the left rail) and drop a photo onto the page. For AI, open **AI Lab** (third icon), download a model from the **Models** tab (Real-ESRGAN General v3 is 5 MB and fast even without a GPU), and press **Upscale ×4**. Keyboard shortcuts there: `Ctrl Z` / `Ctrl Shift Z` undo and redo, hold `\` to see the original, `[` and `]` move between images, `I` inspects at full resolution.
+
+To organise photos, open **Library** (fourth icon). Drop images onto it, or copy them into the `import` folder next to `compose.yaml`; they appear within a minute. Click **Download** on the gold banner to turn on search by description, similar images and automatic tags (CLIP, 578 MB, runs on the CPU). Duplicates and filters work without it.
 
 <details>
 <summary>Without <code>make</code> (for example on Windows)</summary>
@@ -108,7 +114,7 @@ Database changes are applied automatically when the new version starts. To stay 
 
 | Setup | What to expect |
 |---|---|
-| CPU only | Everything works. AI runs are slower: a ×4 upscale of a 1 MP photo takes about 25 s with Real-ESRGAN General v3. |
+| CPU only | Everything works. AI runs are slower: a ×4 upscale of a 1 MP photo takes about 25 s with Real-ESRGAN General v3. The Library analyses about 10 photos a second on four cores, so 10,000 photos take under 20 minutes, once. |
 | NVIDIA, 8 GB VRAM | Full feature set. Tile size is measured per model; if memory still runs out, runs step down automatically instead of failing. |
 | NVIDIA, 24 GB VRAM (for example RTX 3090) | The reference setup. Bigger tiles and batches, and room for training in Forge. |
 | Apple Silicon | Runs on CPU; Docker can't pass the Apple GPU through. |
@@ -128,6 +134,8 @@ All settings live in `.env` (created by `make env` from [.env.example](.env.exam
 | `SIQE_MAX_OUTPUT_MEGAPIXELS` | `1000` | Largest AI result (8K ×4 is 531 MP) |
 | `SIQE_GPU_VRAM_RESERVE_MB` | `1536` | VRAM always left free |
 | `SIQE_GPU_WORKER_MEMORY` | `12g` | System RAM cap for the GPU worker |
+| `SIQE_IMPORT_PATH` | `./import` | The Library's import folder on your computer (mounted read-only) |
+| `SIQE_IMPORT_SCAN_SECONDS` | `60` | How often the import folder is checked; `0` turns automatic checks off |
 | `SIQE_UPDATE_REPO` | this repository | Where the Update Center looks for releases |
 | `SIQE_UPDATE_INCLUDE_PRERELEASES` | `false` | Also offer pre-releases |
 
@@ -198,6 +206,9 @@ The first time images are published, make the three packages public in GitHub (P
 | An upload is refused as too large | Raise `SIQE_MAX_UPLOAD_MB` or `SIQE_MAX_INPUT_MEGAPIXELS` in `.env`, then `make up` |
 | A model download fails | Downloads come from github.com release assets; check that the machine can reach it. Interrupted downloads resume on retry |
 | An AI run says it was "adjusted" | It ran out of GPU memory and stepped down (smaller batch or tile, or the CPU). The result is the same, just slower |
+| Files in the import folder don't appear | The Library's **Import folder** card shows when it last checked and lists files it couldn't read. Files wait until they've stopped changing for 15 seconds. After changing `SIQE_IMPORT_PATH`, run `make up` |
+| Library search says it needs CLIP | Download it from the gold banner in the Library (or AI Lab → Models). Without it, the search box matches file names and tags |
+| An image I expected is missing from Studio or AI Lab | It may be in the Library's **Quarantine**; restore it from there |
 | Export refused with `format.dimension_limit` | WebP and AVIF stop at about 16,000 px per side: pick a smaller longest side, or PNG, TIFF or JPEG |
 
 Every API error has a stable code and a suggested fix; the full list is in [docs/robustness.md](docs/robustness.md#error-codes).
@@ -209,8 +220,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | P0 Foundation | Job engine, workers, live updates, Overview, self-test, Update Center, Docker stack, CI | ✅ Done |
 | P1 Studio | Storage, previews and deep zoom, classic edits, edit stack, WebGL preview, Compare, export | ✅ Done |
 | P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, faces, cutout, denoise | ✅ Done |
-| P3 Library | Duplicates, similar and text search, smart albums, EXIF and GPS tools | Next |
-| P4 Flows | Pipelines, batches, hot folders, API keys, CLI | |
+| P3 Library | Search by description, similar images, tags, duplicates with quarantine, smart albums, location removal, import folder | ✅ Done |
+| P4 Flows | Pipelines, batches, recipes, API keys, CLI, face-based albums | Next |
 | P5 Forge | Visual model builder, training with live charts, publish to AI Lab | |
 | P6 Hardening | 8K+ robustness suite, performance, final docs | |
 
@@ -222,7 +233,7 @@ SIQE Studio grows out of **Super Image Quality Enhancer**, a research project on
 
 **Authors:** Amer Zuher ALriahy and Hisham Maher Sunjaq.
 
-Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack and Caddy. AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT).
+Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack and Caddy. AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT); and [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained on LAION-400M (MIT) for Library search.
 
 The images in `samples/` were collected from the web for testing and have unknown licenses; replace them before any commercial use.
 

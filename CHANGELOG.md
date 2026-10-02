@@ -6,6 +6,17 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Added
 
+- **The Library is here.** Every image you add is analysed in the background: sharpness, main colour, the date it was taken and where, and a fingerprint for finding copies.
+- **Search by describing a photo** ("mountain lake at sunrise"), **find similar images**, and **automatic tags**, after a one-click download of the CLIP search model (578 MB, MIT, runs on the CPU). Without it, the search box matches file names and tags.
+- **Duplicates:** resized, recompressed and lightly edited copies are grouped, and the best copy (largest, sharpest, least compressed) is marked to keep. Keep the best of one group or all of them, or mark them as not duplicates.
+- **Quarantine:** removing images moves them to quarantine first, hidden from Studio and AI Lab until you restore them or delete them for good.
+- **Albums:** smart albums fill themselves from rules (orientation, size, aspect, colour, tags, sharpness, location, date, file name, import folder); hand-picked albums hold what you choose. Any set of filters can be saved as a smart album. Four starter albums are included.
+- **Filters** for orientation, low resolution, blur, location, AI results, colour and your most common tags, plus sorting by date added, date taken, name, size, resolution or sharpness.
+- **Camera details and location:** see camera, lens, exposure and where a photo was taken, and **remove the location** from originals without re-encoding: the pixels and other camera data stay exactly as they were, and the original waits in quarantine.
+- **Import folder:** copy images into the `import` folder (set by `SIQE_IMPORT_PATH`) and they're added within a minute. Files still being copied wait until they're finished, and the originals are never changed.
+- Select several images with Ctrl-click or Shift-click (or Ctrl A) to tag them, add them to an album, remove their location or quarantine them together. The Library works on a phone too.
+- New settings: `SIQE_IMPORT_PATH`, `SIQE_IMPORT_SCAN_SECONDS` and `SIQE_IMPORT_SETTLE_SECONDS`.
+
 - **AI Lab is here.** Upscale ×2, ×3 or ×4, remove noise, cut out the subject, or restore faces. Every result becomes a new image linked to its original, which never changes.
 - **Model library:** seven commercial-safe models download with one click from their authors' GitHub releases, are checked against a published checksum, and can be removed again. Interrupted downloads pick up where they stopped.
 - **SIQE Classic is back:** the original Super Image Quality Enhancer model, ported from its Keras weights.
@@ -29,6 +40,11 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 ### Changed
 
 - The Overview marks Studio as ready; the other workspaces still describe what's coming.
+- The API's default memory cap (`SIQE_API_MEMORY`) is now 1.5 GB, to hold the search model.
+
+### Fixed
+
+- Some interface text could fall back to a system font, because small font files were blocked by the app's security policy.
 
 ## [0.1.0] - Foundation
 

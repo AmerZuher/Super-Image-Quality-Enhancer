@@ -72,7 +72,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 
 <div class="page">
   <header class="top">
-    <div class="eyebrow">Architecture · v3 · approved · Phases 0, 1 and 2 implemented · 2 Oct 2026</div>
+    <div class="eyebrow">Architecture · v3 · approved · Phases 0 to 3 implemented · 2 Oct 2026</div>
     <h1>SIQE Studio<span>How the platform is built, and why</span></h1>
     <p>Stack, Temporal orchestration, database, memory safety for 8K+ images, the Update Center, repository layout and build order. Rendered from docs/architecture.md, the source of truth.</p>
   </header>
@@ -88,7 +88,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tbody>
 <tr>
 <td><strong>Status</strong></td>
-<td>Approved. Phases 0 (foundation), 1 (Studio) and 2 (AI Lab) implemented. Living document, v3.</td>
+<td>Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab) and 3 (Library) implemented. Living document, v3.</td>
 </tr>
 <tr>
 <td><strong>Updated</strong></td>
@@ -342,6 +342,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <li><strong>ONNX Runtime</strong> (CPU) runs ISNet background removal on the CPU worker. Bring-your-own <code>.onnx</code> models come later.</li>
 <li><strong>SIQE Classic</strong>: your <code>v10.h5</code> (in git history at commit <code>588eb10</code>) is downloaded from that commit, converted with <code>h5py</code> to safetensors, and run by a PyTorch port of the network. TensorFlow isn't needed: a test checks the port against an independent numpy implementation of the Keras graph.</li>
 <li><strong>Face restoration</strong>: our own RetinaFace implementation loads the facexlib detector weights; faces are aligned to the FFHQ template, restored with GFPGAN v1.4 and blended back (section 5.4).</li>
+<li><strong>Library search</strong>: OpenCLIP ViT-B/32 runs in numpy (<code>siqe.ai.clip</code>) on the CPU worker and in the API, so searching never waits for the GPU worker. Its checkpoint is read without torch by a restricted unpickler (<code>siqe.ai.pth</code>) and stored as float16 safetensors (section 4.5, <a href="adr/0007-library-search-and-duplicates.md">ADR 0007</a>).</li>
 </ul>
 <p>The built-in catalog (<code>siqe.ai.manifest</code>) pins every file by URL, size and SHA-256 and allows only MIT, BSD-3-Clause and Apache-2.0 licenses. All sources are GitHub release assets. Details and trade-offs: <a href="adr/0006-ai-models-and-runs.md">ADR 0006</a>.</p>
 <div class="tbl"><table>
@@ -382,6 +383,11 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <td>GFPGAN v1.4 + RetinaFace</td>
 <td>Face restoration</td>
 <td>Apache-2.0 + MIT</td>
+</tr>
+<tr>
+<td>CLIP ViT-B/32 (OpenCLIP, LAION-400M)</td>
+<td>Library search, similar images, automatic tags</td>
+<td>MIT</td>
 </tr>
 </tbody>
 </table></div>
@@ -469,7 +475,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 </table></div>
 <p>PostgreSQL is the only stateful service. SQLite remains an option for a future single-binary "portable mode". See <a href="adr/0002-database.md">ADR 0002</a>.</p>
 <h3 id="42-schema">4.2 Schema</h3>
-<p>Implemented: <code>jobs</code>, <code>worker_heartbeats</code>, <code>app_settings</code> and the <code>vector</code> extension (Phase 0); <code>assets</code> and <code>renditions</code> (Phase 1); <code>ai_models</code> and the <code>parent_id</code> and <code>derivation</code> of AI results on <code>assets</code> (Phase 2). Later phases add the rest.</p>
+<p>Implemented: <code>jobs</code>, <code>worker_heartbeats</code>, <code>app_settings</code> and the <code>vector</code> extension (Phase 0); <code>assets</code> and <code>renditions</code> (Phase 1); <code>ai_models</code> and the <code>parent_id</code> and <code>derivation</code> of AI results on <code>assets</code> (Phase 2); the Library's analysis columns on <code>assets</code> (hashes, sharpness, colour, date taken, GPS, <code>vector(512)</code> embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), <code>albums</code>, <code>album_assets</code> and <code>import_files</code> (Phase 3). Later phases add the rest.</p>
 <pre class="mermaid">erDiagram
   ASSET ||--o{ RENDITION : &quot;has outputs&quot;
   ASSET ||--o| EDIT_STACK : &quot;edited by&quot;
@@ -525,6 +531,25 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 </pre>
 <p>The browser redraws on every slider move; the export workflow streams the same formulas through libvips. A shared fixture keeps them identical, and a Playwright test runs the actual shader on the GPU against it. Details and trade-offs: <a href="adr/0005-edit-documents-and-preview.md">ADR 0005</a>.</p>
 <p>Import (<code>IngestAssetWorkflow</code>) makes a thumbnail, a 2048 px preview and a deep-zoom pyramid (510 px WebP tiles) used by the full-resolution inspector. Export (<code>ExportWorkflow</code>) checks format limits and free disk before it starts, can aim for a target file size by searching JPEG/WebP/AVIF quality, strips camera data and GPS by default (keeping the colour profile), and can be cancelled mid-encode.</p>
+<h3 id="45-library">4.5 Library</h3>
+<pre class="mermaid">flowchart LR
+  I[Upload, import folder, AI result] --&gt; G[IngestAssetWorkflow: previews]
+  G --&gt;|signal-with-start| X[LibraryIndexWorkflow]
+  X --&gt; A[Batch of 32: hashes, sharpness, colour, date, GPS]
+  A --&gt; C[CLIP: embedding and automatic tags]
+  C --&gt; X
+  X --&gt;|nothing left| D[Regroup duplicates]
+  Q[Search box] --&gt; T[API: CLIP text vector] --&gt; P[(pgvector HNSW)]
+</pre>
+<ul>
+<li><strong>Indexing</strong> runs in the background, one indexer at a time, in batches on the CPU worker. Everything is measured from the 2,048 px preview. Bumping <code>ANALYSIS_VERSION</code> re-analyses the library.</li>
+<li><strong>Search</strong> turns the query into a CLIP vector in the API (the text half of the model, about 250 MB) and ranks by inner product with the mean tag phrase subtracted, which removes each image's bias towards matching any text. Tags and file names that match the query add a bonus. Without CLIP, the box searches names and tags.</li>
+<li><strong>Duplicates</strong> are pairs with close perceptual hashes, or with CLIP similarity of at least 0.95 and loosely close hashes; groups are connected components, and the copy to keep is ranked by resolution, sharpness, format and age. Resolving a group moves the others to <strong>quarantine</strong>, which hides images everywhere until they are restored or deleted.</li>
+<li><strong>Smart albums</strong> are rule sets (<code>siqe.library.rules</code>) compiled to SQL; the filter chips use the same rules.</li>
+<li><strong>Location</strong> is removed in place without re-encoding (<code>siqe.imaging.metadata</code>); the clean file is a new image and the original goes to quarantine.</li>
+<li><strong>The import folder</strong> is mounted read-only into the CPU worker and checked by a Temporal Schedule; files are imported once, after their size and time are stable.</li>
+</ul>
+<p>Details and trade-offs: <a href="adr/0007-library-search-and-duplicates.md">ADR 0007</a>.</p>
 <hr />
 <h2 id="5-robustness-and-resource-safety">5. Robustness and resource safety</h2>
 <p>The rules and current limits are listed in <a href="robustness.md">docs/robustness.md</a>. The design:</p>
@@ -699,12 +724,12 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tr>
 <td><code>api</code></td>
 <td><code>siqe-studio-api</code> (537 MB)</td>
-<td>REST, WebSocket events, OpenAPI</td>
+<td>REST, WebSocket events, OpenAPI, Library text search</td>
 </tr>
 <tr>
 <td><code>worker</code></td>
 <td><code>siqe-studio-api</code></td>
-<td>All workflows plus CPU activities</td>
+<td>All workflows plus CPU activities, Library indexing; mounts the import folder read-only</td>
 </tr>
 <tr>
 <td><code>worker-gpu</code></td>
@@ -738,7 +763,8 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 │   │   ├── activities/      everything that touches the outside world
 │   │   ├── jobs/            job records and throttled progress reporting
 │   │   ├── workers/         worker processes and heartbeats
-│   │   ├── ai/              devices, OOM handling (governor, tiling, registry from Phase 2)
+│   │   ├── ai/              model catalog, downloads, tiling, memory governor, CLIP in numpy
+│   │   ├── library/         analysis, duplicates, rules, search, import folder
 │   │   ├── system/          container-aware CPU, memory and disk readings
 │   │   ├── updates/         GitHub release checks for the Update Center
 │   │   └── cli/             the `siqe` command
@@ -751,6 +777,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 │   ├── src/lib/             API client (generated types), events, stores, formatting
 │   └── e2e/                 Playwright tests and gallery capture
 ├── deploy/                  Caddyfile, Temporal dynamic config and schema script
+├── import/                  the Library's import folder (created by `make env`, not in git)
 ├── docs/                    architecture, ADRs, robustness, brand, research, plan pages
 ├── gallery/                 README screenshots (`make gallery`)
 ├── samples/                 demo and test images
@@ -776,7 +803,8 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <li>Containers run as a non-root user with memory limits.</li>
 <li>Release notes render without raw HTML.</li>
 <li>Uploads are identified by reading the file header, never by extension or client type, and stored under hash-based paths; user file names never become paths. Deep-zoom paths are resolved inside the image's folder only.</li>
-<li>Exports strip camera data and GPS location by default.</li>
+<li>Exports strip camera data and GPS location by default. The Library can remove location from originals without re-encoding.</li>
+<li>The import folder is mounted read-only; SIQE Studio copies files in and never changes the originals.</li>
 <li>From later phases: hashed API keys and <code>weights_only=True</code> for <code>.pth</code> files.</li>
 <li>CI runs a Trivy scan of the API image. Dependabot watches uv, npm, Docker and Actions. pnpm's minimum-release-age check stays on.</li>
 </ul>
@@ -807,14 +835,14 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <td><strong>Done</strong> (erase, colorize, deblur and bring-your-own ONNX moved to P6: their weights are on Hugging Face, which this build environment can't reach)</td>
 </tr>
 <tr>
-<td>P3 Library</td>
-<td>Import and hot folders, hashing and embeddings, duplicates with quarantine, similar and text search, smart albums, EXIF and GPS tools</td>
-<td>Next</td>
+<td><strong>P3 Library</strong></td>
+<td>Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal</td>
+<td><strong>Done</strong> (face-based albums need face detection on the GPU queue; they move to P4)</td>
 </tr>
 <tr>
 <td>P4 Flows</td>
-<td>Node editor, batch runs with paged child workflows, recipes, API keys, <code>siqe</code> CLI commands</td>
-<td></td>
+<td>Node editor, batch runs with paged child workflows, recipes, API keys, <code>siqe</code> CLI commands, face-based album rules</td>
+<td>Next</td>
 </tr>
 <tr>
 <td>P5 Forge</td>
