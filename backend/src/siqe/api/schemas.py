@@ -1,5 +1,6 @@
 """Response models. These define the OpenAPI schema the frontend client is generated from."""
 
+import uuid
 from datetime import datetime
 from typing import Any, Literal
 
@@ -393,3 +394,225 @@ class ImportStatusOut(BaseModel):
     waiting: int
     failed: int
     failures: list[ImportFailureOut]
+
+
+# -------------------------------------------------------------------------------- flows
+
+
+class FlowChoiceOut(BaseModel):
+    value: str
+    label: str
+
+
+class FlowParamOut(BaseModel):
+    name: str
+    label: str
+    kind: Literal[
+        "number",
+        "integer",
+        "choice",
+        "text",
+        "boolean",
+        "model",
+        "album",
+        "rules",
+        "adjustments",
+        "color",
+        "tags",
+    ]
+    default: Any = None
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
+    unit: str = ""
+    choices: list[FlowChoiceOut] = Field(default_factory=list)
+    help: str = ""
+    optional: bool = False
+    task: str | None = None
+
+
+class FlowNodeTypeOut(BaseModel):
+    type: str
+    label: str
+    category: Literal["input", "condition", "edit", "ai", "output"]
+    category_label: str
+    summary: str
+    inputs: int
+    outputs: list[str]
+    queue: Literal["none", "cpu", "gpu"]
+    ai: bool
+    transforms: bool
+    writes_library: bool
+    params: list[FlowParamOut]
+
+
+class FlowPositionIO(BaseModel):
+    x: float = 0
+    y: float = 0
+
+
+class FlowNodeIO(BaseModel):
+    id: str
+    type: str
+    params: dict[str, Any] = Field(default_factory=dict)
+    position: FlowPositionIO = Field(default_factory=FlowPositionIO)
+    label: str | None = None
+
+
+class FlowEdgeIO(BaseModel):
+    source: str
+    target: str
+    port: str = "out"
+
+
+class FlowDocumentIO(BaseModel):
+    version: Literal[1] = 1
+    nodes: list[FlowNodeIO] = Field(default_factory=list)
+    edges: list[FlowEdgeIO] = Field(default_factory=list)
+
+
+class FlowProblemOut(BaseModel):
+    node: str | None = None
+    message: str
+
+
+class RecipeOut(BaseModel):
+    id: str
+    name: str
+    summary: str
+    ai: bool
+    document: FlowDocumentIO
+
+
+class FlowRunSummaryOut(BaseModel):
+    id: str
+    state: JobStateName
+    done: int
+    failed: int
+    total: int
+    created_at: datetime | None
+
+
+class FlowOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    document: FlowDocumentIO
+    watch_folder: str | None
+    watch_enabled: bool
+    recipe: str | None
+    created_at: datetime | None
+    updated_at: datetime | None
+    problems: list[FlowProblemOut]
+    ai: bool = Field(description="Whether any block runs an AI model.")
+    last_run: FlowRunSummaryOut | None = None
+
+
+class FlowIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str = Field(default="", max_length=2000)
+    recipe: str | None = Field(default=None, description="Start from a recipe's document.")
+    document: FlowDocumentIO | None = None
+
+
+class FlowUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    document: FlowDocumentIO | None = None
+    watch_folder: str | None = Field(default=None, max_length=300)
+    watch_enabled: bool | None = None
+
+
+class FlowFileIO(BaseModel):
+    """A flow saved as a file (`.flow.json`), for sharing and for `siqe run`."""
+
+    format: Literal["siqe-flow"] = "siqe-flow"
+    version: Literal[1] = 1
+    name: str = Field(min_length=1, max_length=120)
+    description: str = ""
+    document: FlowDocumentIO
+
+
+class FlowSourceIn(BaseModel):
+    kind: Literal["assets", "album", "rules", "all"] = "assets"
+    asset_ids: list[str] = Field(default_factory=list, max_length=20_000)
+    album_id: str | None = None
+    rules: RuleSet | None = None
+
+
+class FlowRunIn(BaseModel):
+    source: FlowSourceIn
+    dry_run: bool = Field(
+        default=False, description="Try it on the first images without changing the Library."
+    )
+    limit: int | None = Field(default=None, ge=1, le=20_000)
+
+
+class FlowRunOut(BaseModel):
+    id: str
+    flow_id: str | None
+    flow_name: str
+    job_id: str | None
+    kind: Literal["manual", "watch", "api"]
+    dry_run: bool
+    source: dict[str, Any] = Field(default_factory=dict)
+    state: JobStateName
+    total: int
+    done: int
+    failed: int
+    skipped: int
+    output_dir: str
+    created_at: datetime | None
+    started_at: datetime | None
+    finished_at: datetime | None
+    download_url: str | None
+
+
+class FlowRunItemOut(BaseModel):
+    id: str
+    position: int
+    asset_id: str | None
+    name: str
+    state: Literal["pending", "running", "done", "failed", "skipped"]
+    steps: list[dict[str, Any]]
+    outputs: list[dict[str, Any]]
+    error: dict[str, Any] | None
+    thumb_url: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class FlowRunDetailOut(BaseModel):
+    run: FlowRunOut
+    items: list[FlowRunItemOut]
+    output_folder: str = Field(description="Where this run's files are on your computer.")
+
+
+# ------------------------------------------------------------------------------ access
+
+
+class AuthStatusOut(BaseModel):
+    mode: Literal["off", "keys"]
+    signed_in: bool = Field(description="True when this request carries a valid key, or keys are off.")
+    key_name: str | None = None
+
+
+class SignInIn(BaseModel):
+    key: str = Field(min_length=1, max_length=200)
+
+
+class ApiKeyOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    prefix: str = Field(description="The first characters of the key, to tell keys apart.")
+    created_at: datetime
+    last_used_at: datetime | None
+    revoked_at: datetime | None
+
+
+class ApiKeyIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+class ApiKeyCreatedOut(ApiKeyOut):
+    secret: str = Field(description="The key itself. It is shown only this once.")

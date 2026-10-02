@@ -195,3 +195,71 @@ DEFAULT_ALBUMS: list[tuple[str, dict[str, Any]]] = [
     ),
     ("Has location", {"match": "all", "rules": [{"field": "has_gps", "op": "is", "value": True}]}),
 ]
+
+
+# ------------------------------------------------------------------- in Python (flows)
+
+
+def _orientation_of(width: int, height: int) -> str:
+    if abs(width - height) <= max(width, height) * SQUARE_TOLERANCE:
+        return "square"
+    return "landscape" if width > height else "portrait"
+
+
+def matches_rule(rule: Rule, facts: dict[str, Any], *, now: datetime | None = None) -> bool:
+    """The same rule as ``compile_rule``, checked against one image's facts.
+
+    ``facts`` holds width, height, format, color, tags (yours and automatic), sharpness,
+    has_gps, ai_result, duplicate, taken_at, created_at, name and folder. Width and height
+    are the current image's, so a condition after a resize sees the new size.
+    """
+    f, op, v = rule.field, rule.op, rule.value
+    width, height = int(facts.get("width") or 0), int(facts.get("height") or 0)
+    result: bool
+    if f == "orientation":
+        result = _orientation_of(width, height) == v
+    elif f in ("width", "height", "megapixels", "sharpness", "aspect"):
+        value: float | None = {
+            "width": float(width),
+            "height": float(height),
+            "megapixels": width * height / 1e6,
+            "sharpness": facts.get("sharpness"),
+            "aspect": width / max(height, 1),
+        }[f]
+        if value is None:
+            return False
+        number = float(v)
+        if op == "approx":
+            result = abs(value - number) <= number * ASPECT_TOLERANCE
+        else:
+            result = value >= number if op == "gte" else value <= number
+    elif f in ("format", "color"):
+        result = str(facts.get(f) or "").lower() == str(v).lower()
+    elif f == "tag":
+        result = str(v).lower() in {t.lower() for t in facts.get("tags", [])}
+    elif f in ("has_gps", "ai_result", "duplicate"):
+        result = bool(facts.get(f)) == bool(v)
+    elif f == "taken":
+        taken = facts.get("taken_at")
+        if taken is None:
+            return False
+        day = date.fromisoformat(str(v))
+        result = taken.date() >= day if op == "after" else taken.date() <= day
+    elif f == "added_days":
+        created = facts.get("created_at")
+        if created is None:
+            return False
+        age = ((now or datetime.now(UTC)) - created).total_seconds() / 86_400
+        result = age <= float(v) if op == "lte" else age > float(v)
+    elif f == "name":
+        result = str(v).lower() in str(facts.get("name") or "").lower()
+    else:  # folder
+        result = str(facts.get("folder") or "").startswith(str(v))
+    return not result if op == "is_not" else result
+
+
+def matches(rules: RuleSet, facts: dict[str, Any], *, now: datetime | None = None) -> bool:
+    if not rules.rules:
+        return True
+    results = (matches_rule(r, facts, now=now) for r in rules.rules)
+    return all(results) if rules.match == "all" else any(results)

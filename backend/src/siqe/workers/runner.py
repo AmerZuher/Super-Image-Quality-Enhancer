@@ -17,6 +17,19 @@ from temporalio.worker import Worker
 
 from siqe.activities.ai import discard_run_files, register_result, run_background, run_model
 from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
+from siqe.activities.flows import (
+    flow_ai_cpu,
+    flow_ai_gpu,
+    flow_condition,
+    flow_edit,
+    flow_item_finish,
+    flow_item_start,
+    flow_next_items,
+    flow_output,
+    flow_run_finish,
+    flow_run_start,
+    flow_trigger,
+)
 from siqe.activities.jobs import update_job
 from siqe.activities.library import (
     group_duplicates,
@@ -38,6 +51,7 @@ from siqe.system.resources import cpu_info
 from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
 from siqe.workflows.ai import AiRunWorkflow
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
+from siqe.workflows.flows import FlowItemWorkflow, FlowRunWorkflow
 from siqe.workflows.library import ImportFolderWorkflow, LibraryIndexWorkflow, RemoveLocationWorkflow
 from siqe.workflows.models import ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
@@ -53,6 +67,8 @@ WORKFLOWS = [
     LibraryIndexWorkflow,
     RemoveLocationWorkflow,
     ImportFolderWorkflow,
+    FlowRunWorkflow,
+    FlowItemWorkflow,
 ]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
@@ -71,8 +87,18 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     start_indexing,
     remove_location_batch,
     scan_import_folder,
+    flow_run_start,
+    flow_next_items,
+    flow_run_finish,
+    flow_item_start,
+    flow_item_finish,
+    flow_condition,
+    flow_edit,
+    flow_ai_cpu,
+    flow_output,
+    flow_trigger,
 ]
-GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model]
+GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model, flow_ai_gpu]
 
 
 def build_worker(client: Client, kind: WorkerKind) -> Worker:

@@ -38,6 +38,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether this app asks for a key */
+        get: operations["auth_status_api_auth_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign this browser in with an API key
+         * @description Sets an HttpOnly cookie holding the key; scripts should send the key in a header instead.
+         */
+        post: operations["sign_in_api_auth_session_post"];
+        /** Sign this browser out */
+        delete: operations["sign_out_api_auth_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API keys, newest first */
+        get: operations["list_keys_api_keys_get"];
+        put?: never;
+        /** Create an API key (the key is shown only in this response) */
+        post: operations["new_key_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API key; anything using it stops working */
+        delete: operations["revoke_key_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system": {
         parameters: {
             query?: never;
@@ -613,6 +686,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/flows/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every block a flow can use */
+        get: operations["flow_catalog_api_flows_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/recipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ready-made flows to start from */
+        get: operations["flow_recipes_api_flows_recipes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All flows, most recently changed first */
+        get: operations["list_flows_api_flows_get"];
+        put?: never;
+        /** New flow */
+        post: operations["create_flow_api_flows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{flow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One flow, with anything stopping it from running */
+        get: operations["one_flow_api_flows__flow_id__get"];
+        /** Change a flow */
+        put: operations["update_flow_api_flows__flow_id__put"];
+        post?: never;
+        /** Delete a flow (its past runs and exported files stay) */
+        delete: operations["delete_flow_api_flows__flow_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{flow_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a flow */
+        post: operations["duplicate_flow_api_flows__flow_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{flow_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The flow as a .flow.json file */
+        get: operations["flow_file_api_flows__flow_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a flow from a .flow.json file */
+        post: operations["import_flow_api_flows_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/{flow_id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a flow */
+        post: operations["run_flow_api_flows__flow_id__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/runs/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent runs of every flow */
+        get: operations["recent_runs_api_flows_runs_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A run and what happened to each image */
+        get: operations["one_run_api_flows_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/runs/{run_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every file a run exported, as a zip */
+        get: operations["download_run_api_flows_runs__run_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/flows/runs/{run_id}/files/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exported file */
+        get: operations["run_file_api_flows_runs__run_id__files__path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -847,6 +1127,64 @@ export interface components {
             /** Position */
             position?: number | null;
         };
+        /** ApiKeyCreatedOut */
+        ApiKeyCreatedOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Prefix
+             * @description The first characters of the key, to tell keys apart.
+             */
+            prefix: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Secret
+             * @description The key itself. It is shown only this once.
+             */
+            secret: string;
+        };
+        /** ApiKeyIn */
+        ApiKeyIn: {
+            /** Name */
+            name: string;
+        };
+        /** ApiKeyOut */
+        ApiKeyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Prefix
+             * @description The first characters of the key, to tell keys apart.
+             */
+            prefix: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+        };
         /** AssetIdsIn */
         AssetIdsIn: {
             /** Asset Ids */
@@ -979,6 +1317,21 @@ export interface components {
              */
             score?: number | null;
         };
+        /** AuthStatusOut */
+        AuthStatusOut: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "off" | "keys";
+            /**
+             * Signed In
+             * @description True when this request carries a valid key, or keys are off.
+             */
+            signed_in: boolean;
+            /** Key Name */
+            key_name?: string | null;
+        };
         /** CatalogOut */
         CatalogOut: {
             /** Ops */
@@ -1058,6 +1411,360 @@ export interface components {
         ExportStartOut: {
             job: components["schemas"]["JobOut"];
             rendition: components["schemas"]["RenditionOut"];
+        };
+        /** FlowChoiceOut */
+        FlowChoiceOut: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+        };
+        /** FlowDocumentIO */
+        FlowDocumentIO: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Nodes */
+            nodes?: components["schemas"]["FlowNodeIO"][];
+            /** Edges */
+            edges?: components["schemas"]["FlowEdgeIO"][];
+        };
+        /** FlowEdgeIO */
+        FlowEdgeIO: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /**
+             * Port
+             * @default out
+             */
+            port: string;
+        };
+        /**
+         * FlowFileIO
+         * @description A flow saved as a file (`.flow.json`), for sharing and for `siqe run`.
+         */
+        FlowFileIO: {
+            /**
+             * Format
+             * @default siqe-flow
+             * @constant
+             */
+            format: "siqe-flow";
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            document: components["schemas"]["FlowDocumentIO"];
+        };
+        /** FlowIn */
+        FlowIn: {
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Recipe
+             * @description Start from a recipe's document.
+             */
+            recipe?: string | null;
+            document?: components["schemas"]["FlowDocumentIO"] | null;
+        };
+        /** FlowNodeIO */
+        FlowNodeIO: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            position?: components["schemas"]["FlowPositionIO"];
+            /** Label */
+            label?: string | null;
+        };
+        /** FlowNodeTypeOut */
+        FlowNodeTypeOut: {
+            /** Type */
+            type: string;
+            /** Label */
+            label: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "input" | "condition" | "edit" | "ai" | "output";
+            /** Category Label */
+            category_label: string;
+            /** Summary */
+            summary: string;
+            /** Inputs */
+            inputs: number;
+            /** Outputs */
+            outputs: string[];
+            /**
+             * Queue
+             * @enum {string}
+             */
+            queue: "none" | "cpu" | "gpu";
+            /** Ai */
+            ai: boolean;
+            /** Transforms */
+            transforms: boolean;
+            /** Writes Library */
+            writes_library: boolean;
+            /** Params */
+            params: components["schemas"]["FlowParamOut"][];
+        };
+        /** FlowOut */
+        FlowOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            document: components["schemas"]["FlowDocumentIO"];
+            /** Watch Folder */
+            watch_folder: string | null;
+            /** Watch Enabled */
+            watch_enabled: boolean;
+            /** Recipe */
+            recipe: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+            /** Problems */
+            problems: components["schemas"]["FlowProblemOut"][];
+            /**
+             * Ai
+             * @description Whether any block runs an AI model.
+             */
+            ai: boolean;
+            last_run?: components["schemas"]["FlowRunSummaryOut"] | null;
+        };
+        /** FlowParamOut */
+        FlowParamOut: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "integer" | "choice" | "text" | "boolean" | "model" | "album" | "rules" | "adjustments" | "color" | "tags";
+            /** Default */
+            default?: unknown;
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /** Step */
+            step?: number | null;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Choices */
+            choices?: components["schemas"]["FlowChoiceOut"][];
+            /**
+             * Help
+             * @default
+             */
+            help: string;
+            /**
+             * Optional
+             * @default false
+             */
+            optional: boolean;
+            /** Task */
+            task?: string | null;
+        };
+        /** FlowPositionIO */
+        FlowPositionIO: {
+            /**
+             * X
+             * @default 0
+             */
+            x: number;
+            /**
+             * Y
+             * @default 0
+             */
+            y: number;
+        };
+        /** FlowProblemOut */
+        FlowProblemOut: {
+            /** Node */
+            node?: string | null;
+            /** Message */
+            message: string;
+        };
+        /** FlowRunDetailOut */
+        FlowRunDetailOut: {
+            run: components["schemas"]["FlowRunOut"];
+            /** Items */
+            items: components["schemas"]["FlowRunItemOut"][];
+            /**
+             * Output Folder
+             * @description Where this run's files are on your computer.
+             */
+            output_folder: string;
+        };
+        /** FlowRunIn */
+        FlowRunIn: {
+            source: components["schemas"]["FlowSourceIn"];
+            /**
+             * Dry Run
+             * @description Try it on the first images without changing the Library.
+             * @default false
+             */
+            dry_run: boolean;
+            /** Limit */
+            limit?: number | null;
+        };
+        /** FlowRunItemOut */
+        FlowRunItemOut: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /** Asset Id */
+            asset_id: string | null;
+            /** Name */
+            name: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "running" | "done" | "failed" | "skipped";
+            /** Steps */
+            steps: {
+                [key: string]: unknown;
+            }[];
+            /** Outputs */
+            outputs: {
+                [key: string]: unknown;
+            }[];
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /** Thumb Url */
+            thumb_url: string | null;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+        };
+        /** FlowRunOut */
+        FlowRunOut: {
+            /** Id */
+            id: string;
+            /** Flow Id */
+            flow_id: string | null;
+            /** Flow Name */
+            flow_name: string;
+            /** Job Id */
+            job_id: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "manual" | "watch" | "api";
+            /** Dry Run */
+            dry_run: boolean;
+            /** Source */
+            source?: {
+                [key: string]: unknown;
+            };
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /** Total */
+            total: number;
+            /** Done */
+            done: number;
+            /** Failed */
+            failed: number;
+            /** Skipped */
+            skipped: number;
+            /** Output Dir */
+            output_dir: string;
+            /** Created At */
+            created_at: string | null;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Download Url */
+            download_url: string | null;
+        };
+        /** FlowRunSummaryOut */
+        FlowRunSummaryOut: {
+            /** Id */
+            id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /** Done */
+            done: number;
+            /** Failed */
+            failed: number;
+            /** Total */
+            total: number;
+            /** Created At */
+            created_at: string | null;
+        };
+        /** FlowSourceIn */
+        FlowSourceIn: {
+            /**
+             * Kind
+             * @default assets
+             * @enum {string}
+             */
+            kind: "assets" | "album" | "rules" | "all";
+            /** Asset Ids */
+            asset_ids?: string[];
+            /** Album Id */
+            album_id?: string | null;
+            rules?: components["schemas"]["RuleSet"] | null;
+        };
+        /** FlowUpdateIn */
+        FlowUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            document?: components["schemas"]["FlowDocumentIO"] | null;
+            /** Watch Folder */
+            watch_folder?: string | null;
+            /** Watch Enabled */
+            watch_enabled?: boolean | null;
         };
         /** GeometryIn */
         GeometryIn: {
@@ -1372,6 +2079,18 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** RecipeOut */
+        RecipeOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Summary */
+            summary: string;
+            /** Ai */
+            ai: boolean;
+            document: components["schemas"]["FlowDocumentIO"];
+        };
         /** ReleaseOut */
         ReleaseOut: {
             /** Tag */
@@ -1460,6 +2179,11 @@ export interface components {
             temporal: boolean;
             /** Events */
             events: boolean;
+        };
+        /** SignInIn */
+        SignInIn: {
+            /** Key */
+            key: string;
         };
         /** SystemOut */
         SystemOut: {
@@ -1622,6 +2346,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    auth_status_api_auth_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthStatusOut"];
+                };
+            };
+        };
+    };
+    sign_in_api_auth_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignInIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_out_api_auth_session_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_keys_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"][];
+                };
+            };
+        };
+    };
+    new_key_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_key_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2752,6 +3629,449 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    flow_catalog_api_flows_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowNodeTypeOut"][];
+                };
+            };
+        };
+    };
+    flow_recipes_api_flows_recipes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeOut"][];
+                };
+            };
+        };
+    };
+    list_flows_api_flows_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"][];
+                };
+            };
+        };
+    };
+    create_flow_api_flows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    one_flow_api_flows__flow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_flow_api_flows__flow_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_flow_api_flows__flow_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_flow_api_flows__flow_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    flow_file_api_flows__flow_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowFileIO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_flow_api_flows_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowFileIO"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_flow_api_flows__flow_id__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlowRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recent_runs_api_flows_runs_recent_get: {
+        parameters: {
+            query?: {
+                flow_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    one_run_api_flows_runs__run_id__get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlowRunDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_run_api_flows_runs__run_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_file_api_flows_runs__run_id__files__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

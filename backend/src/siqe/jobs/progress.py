@@ -48,3 +48,18 @@ class ProgressReporter:
     async def state(self, state: JobState, message: str | None = None) -> None:
         async with session_scope() as session:
             await apply_update(session, self.job_id, state=state, message=message)
+
+
+class HeartbeatOnly:
+    """Same interface as ProgressReporter, for steps inside a larger job: heartbeats, no writes."""
+
+    async def report(
+        self,
+        fraction: float,
+        message: str | None = None,
+        *,
+        force: bool = False,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        if activity.in_activity():
+            activity.heartbeat({"progress": fraction, "message": message, **(details or {})})

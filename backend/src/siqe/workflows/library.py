@@ -8,6 +8,7 @@ from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.workflow import ParentClosePolicy
 
 with workflow.unsafe.imports_passed_through():
+    from siqe.activities.flows import flow_trigger
     from siqe.activities.jobs import JobUpdate
     from siqe.activities.library import (
         group_duplicates,
@@ -41,6 +42,7 @@ class LibraryIndexWorkflow:
     @workflow.run
     async def run(self) -> dict[str, Any]:
         indexed = 0
+        arrived: list[str] = []
         for _ in range(MAX_BATCHES):
             self._more = False
             result: dict[str, Any] = await workflow.execute_activity(
@@ -51,6 +53,7 @@ class LibraryIndexWorkflow:
                 retry_policy=RETRY,
             )
             indexed += result["done"]
+            arrived.extend(result.get("new_from_folder", []))
             if result["remaining"] == 0 or result["done"] == 0:
                 groups: dict[str, Any] = await workflow.execute_activity(
                     group_duplicates,
@@ -58,8 +61,26 @@ class LibraryIndexWorkflow:
                     start_to_close_timeout=timedelta(minutes=15),
                     retry_policy=RETRY,
                 )
+                if arrived:
+                    # Flows watching the import folder start once images are analysed and grouped.
+                    await workflow.execute_activity(
+                        flow_trigger,
+                        arrived,
+                        task_queue=CPU_TASK_QUEUE,
+                        start_to_close_timeout=timedelta(minutes=5),
+                        retry_policy=RETRY,
+                    )
+                    arrived = []
                 if not self._more:
                     return {"indexed": indexed, **groups}
+        if arrived:
+            await workflow.execute_activity(
+                flow_trigger,
+                arrived,
+                task_queue=CPU_TASK_QUEUE,
+                start_to_close_timeout=timedelta(minutes=5),
+                retry_policy=RETRY,
+            )
         workflow.continue_as_new()
 
 

@@ -139,6 +139,8 @@ class Asset(TimestampMixin, Base):
     # Quarantined images are hidden everywhere except the Quarantine view, until restored or deleted.
     quarantined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     quarantine_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Faces found by RetinaFace (GPU queue); None until counted.
+    faces: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Where the file came from, e.g. {"kind": "folder", "path": "Trips/2024/a.jpg"}.
     source: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
@@ -255,3 +257,100 @@ class ImportFile(TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True
     )
     error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
+
+class Flow(TimestampMixin, Base):
+    """A saved pipeline: a flow document, and optionally a folder it watches."""
+
+    __tablename__ = "flows"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(Text, default="")
+    document: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    # Run on images imported into this subfolder of the import folder ("" means all of it).
+    watch_folder: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    watch_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    recipe: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class RunKind(enum.StrEnum):
+    manual = "manual"
+    watch = "watch"
+    api = "api"
+
+
+class FlowRun(TimestampMixin, Base):
+    """One run of a flow over a set of images. The document is a snapshot taken at the start."""
+
+    __tablename__ = "flow_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    flow_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("flows.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    flow_name: Mapped[str] = mapped_column(String(120))
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    kind: Mapped[RunKind] = mapped_column(_enum(RunKind, "run_kind"))
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=False)
+    document: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    source: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    state: Mapped[JobState] = mapped_column(
+        Enum(JobState, name="job_state", values_callable=lambda e: [m.value for m in e], create_type=False),
+        default=JobState.queued,
+    )
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    done: Mapped[int] = mapped_column(Integer, default=0)
+    failed: Mapped[int] = mapped_column(Integer, default=0)
+    skipped: Mapped[int] = mapped_column(Integer, default=0)
+    output_dir: Mapped[str] = mapped_column(Text, default="")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ItemState(enum.StrEnum):
+    pending = "pending"
+    running = "running"
+    done = "done"
+    failed = "failed"
+    skipped = "skipped"
+
+
+class FlowRunItem(Base):
+    """One image in a run: what happened to it at each step, and what it produced."""
+
+    __tablename__ = "flow_run_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("flow_runs.id", ondelete="CASCADE"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(255), default="")
+    state: Mapped[ItemState] = mapped_column(_enum(ItemState, "item_state"), default=ItemState.pending)
+    steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    outputs: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ApiKey(Base):
+    """A key for scripts and the siqe CLI. Only a SHA-256 of the secret is stored."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(80))
+    prefix: Mapped[str] = mapped_column(String(16), index=True)
+    hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=utcnow
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -18,6 +18,9 @@ x-backend-env: &backend-env
   SIQE_IMPORT_HOST_PATH: ${SIQE_IMPORT_PATH:-./import}
   SIQE_IMPORT_SCAN_SECONDS: ${SIQE_IMPORT_SCAN_SECONDS:-60}
   SIQE_IMPORT_SETTLE_SECONDS: ${SIQE_IMPORT_SETTLE_SECONDS:-15}
+  SIQE_OUTPUT_HOST_PATH: ${SIQE_OUTPUT_PATH:-./output}
+  SIQE_FLOW_CONCURRENCY: ${SIQE_FLOW_CONCURRENCY:-4}
+  SIQE_API_AUTH: ${SIQE_API_AUTH:-off}
 
 x-api-image: &api-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-api:${SIQE_VERSION:-latest}
 x-ai-image: &ai-image ${SIQE_REGISTRY:-ghcr.io/amerzuher}/siqe-studio-ai:${SIQE_VERSION:-latest}
@@ -116,6 +119,8 @@ services:
     environment: *backend-env
     volumes:
       - data:/data
+      # Flow exports, for downloads from the browser.
+      - ${SIQE_OUTPUT_PATH:-./output}:/output
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/live', timeout=3)"]
       interval: 5s
@@ -135,6 +140,8 @@ services:
       - data:/data
       # Library import folder, read-only: files are copied in, never moved or deleted.
       - ${SIQE_IMPORT_PATH:-./import}:/import:ro
+      # Where flows export files.
+      - ${SIQE_OUTPUT_PATH:-./output}:/output
     restart: unless-stopped
     mem_limit: ${SIQE_CPU_WORKER_MEMORY:-4g}
 

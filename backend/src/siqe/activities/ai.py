@@ -148,17 +148,47 @@ async def _save_model_stats(
 
 @activity.defn
 async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
+    spec, src, limit, width, height, calibrations = await _source(request)
+    reporter = ProgressReporter(job_id, start=0.0, span=0.85)
+    canvas, out_png = _paths(job_id)
+    return await run_model_file(
+        spec,
+        src,
+        out_png,
+        canvas,
+        device_request=request.device,
+        restore_faces=request.restore_faces,
+        reporter=reporter,
+        limit=limit,
+        size=(width, height),
+        calibrations=calibrations,
+    )
+
+
+async def run_model_file(
+    spec: ModelSpec,
+    src: Path,
+    out_png: Path,
+    canvas: Path,
+    *,
+    device_request: str,
+    restore_faces: bool,
+    reporter: Any,
+    limit: int | None,
+    size: tuple[int, int],
+    calibrations: dict[str, Any],
+) -> dict[str, Any]:
+    """Run a GPU-queue model on one file. Shared by AI Lab runs and flow steps."""
     from siqe.ai import runtime
     from siqe.ai.pipeline import run_model_on_file
 
     settings = get_settings()
-    spec, src, limit, width, height, calibrations = await _source(request)
-    reporter = ProgressReporter(job_id, start=0.0, span=0.85)
+    width, height = size
     await reporter.report(0.0, f"Loading {spec.name}", force=True)
-    device = runtime.pick_device(request.device)
+    device = runtime.pick_device(device_request)
     if spec.arch == "gfpgan":
-        return await _run_faces(job_id, spec, src, limit, device, reporter)
-    if request.restore_faces:
+        return await _run_faces(out_png, spec, src, limit, device, reporter)
+    if restore_faces:
         await _faces_installed()
     try:
         backend = await asyncio.to_thread(_backend, spec, device)
@@ -196,8 +226,6 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
     else:
         tile = cpu_settings(width=width, height=height, context=spec.context, multiple=multiple)
 
-    canvas, out_png = _paths(job_id)
-
     def work(state: ThreadProgress) -> Any:
         return run_model_on_file(
             src,
@@ -211,7 +239,7 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
             on_progress=lambda f, m, d: state.update(f, m, d),
             should_stop=state.cancelled.is_set,
             max_megapixels=limit,
-            post=_face_post(device, state, 0.9, 0.05) if request.restore_faces else None,
+            post=_face_post(device, state, 0.9, 0.05) if restore_faces else None,
         )
 
     try:
@@ -238,19 +266,18 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
         "tiles": out.tiled.tiles_run,
         "seconds": round(out.tiled.seconds, 1),
         "fallbacks": [s.detail for s in out.tiled.steps],
-        "restore_faces": request.restore_faces,
+        "restore_faces": restore_faces,
         "nonfinite": out.tiled.nonfinite,
     }
 
 
 async def _run_faces(
-    job_id: str, spec: ModelSpec, src: Path, limit: int | None, device: str, reporter: ProgressReporter
+    out_png: Path, spec: ModelSpec, src: Path, limit: int | None, device: str, reporter: Any
 ) -> dict[str, Any]:
     from siqe.ai import runtime
     from siqe.ai.faces import restore_faces
     from siqe.ai.pipeline import run_post_on_file
 
-    _, out_png = _paths(job_id)
     loop = asyncio.get_running_loop()
     start = loop.time()
     count = 0
@@ -297,11 +324,18 @@ async def _run_faces(
 
 @activity.defn
 async def run_background(job_id: str, request: AiRunRequest) -> dict[str, Any]:
-    from siqe.ai.background import remove_background
-
     spec, src, limit, _, _, _ = await _source(request)
     _, out_png = _paths(job_id)
     reporter = ProgressReporter(job_id, start=0.0, span=0.85)
+    return await run_background_file(spec, src, out_png, reporter=reporter, limit=limit)
+
+
+async def run_background_file(
+    spec: ModelSpec, src: Path, out_png: Path, *, reporter: Any, limit: int | None
+) -> dict[str, Any]:
+    """Background removal (ONNX, CPU) on one file. Shared by AI Lab runs and flow steps."""
+    from siqe.ai.background import remove_background
+
     loop = asyncio.get_running_loop()
     start = loop.time()
 

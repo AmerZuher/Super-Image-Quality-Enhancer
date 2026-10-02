@@ -13,6 +13,7 @@ export SIQE_DATABASE_URL="postgresql+asyncpg://siqe:${POSTGRES_PASSWORD}@127.0.0
 export SIQE_TEMPORAL_ADDRESS="127.0.0.1:7233"
 export SIQE_DATA_DIR="${SIQE_DATA_DIR:-$PWD/data}"
 export SIQE_IMPORT_DIR="${SIQE_IMPORT_DIR:-$PWD/import}"
+export SIQE_OUTPUT_DIR="${SIQE_OUTPUT_DIR:-$PWD/output}"
 export SIQE_ENVIRONMENT=development
 export SIQE_LOG_JSON=false
 

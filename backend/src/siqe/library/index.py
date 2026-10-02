@@ -52,6 +52,8 @@ class Work:
     needs_gps: bool
     needs_analysis: bool
     needs_embedding: bool
+    # Analysed for the first time and imported from the folder: flows may be watching for it.
+    from_folder: bool = False
 
 
 @dataclass
@@ -77,6 +79,7 @@ async def next_batch(session: AsyncSession, limit: int, clip_ready: bool) -> lis
             has_gps=a.has_gps,
             needs_gps=a.has_gps and a.gps_lat is None,
             needs_analysis=a.analysis_version < ANALYSIS_VERSION,
+            from_folder=a.analysis_version == 0 and (a.source or {}).get("kind") == "folder",
             needs_embedding=clip_ready and a.embedding_model != CLIP_MODEL_ID,
         )
         for a in rows

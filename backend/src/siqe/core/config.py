@@ -61,6 +61,19 @@ class Settings(BaseSettings):
         default=15, description="A file must be unchanged this long before it is imported."
     )
 
+    # Flows
+    output_dir: Path = Field(
+        default=Path("/output"), description="Where flows export files, in the containers."
+    )
+    output_host_path: str = Field(default="./output", description="The same folder on your computer.")
+    flow_concurrency: int = Field(default=4, description="Images a flow run works on at the same time.")
+
+    # Access
+    api_auth: Literal["off", "keys"] = Field(
+        default="off",
+        description="'keys': every client, the web app included, needs an API key. 'off': trust the network.",
+    )
+
     # Updates (GitHub releases)
     update_repo: str = "AmerZuher/Super-Image-Quality-Enhancer"
     update_check_hours: float = 6.0

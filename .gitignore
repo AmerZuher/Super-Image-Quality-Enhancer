@@ -8,6 +8,8 @@
 /data/
 # Library import folder (mounted into the worker)
 /import/
+# Flow exports (mounted into the API and worker)
+/output/
 
 # Python
 __pycache__/

@@ -40,7 +40,7 @@ async def index_batch(limit: int = BATCH) -> dict[str, Any]:
     async with session_scope() as session:
         batch = await index.next_batch(session, limit, clip_ready)
     if not batch:
-        return {"done": 0, "remaining": 0, "embedded": clip_ready}
+        return {"done": 0, "remaining": 0, "embedded": clip_ready, "new_from_folder": []}
     task = asyncio.create_task(asyncio.to_thread(index.run_batch, batch))
     while not task.done():
         activity.heartbeat({"batch": len(batch)})
@@ -57,7 +57,8 @@ async def index_batch(limit: int = BATCH) -> dict[str, Any]:
     failed = sum(1 for o in outcomes if o.error)
     if failed:
         log.warning("library.batch_failures", failed=failed, batch=len(outcomes))
-    return {"done": len(outcomes), "remaining": remaining, "embedded": clip_ready}
+    new = [str(w.id) for w in batch if w.from_folder]
+    return {"done": len(outcomes), "remaining": remaining, "embedded": clip_ready, "new_from_folder": new}
 
 
 @activity.defn
