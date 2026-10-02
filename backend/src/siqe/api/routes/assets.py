@@ -32,6 +32,7 @@ from siqe.assets.records import (
     rendition_to_dict,
 )
 from siqe.core.errors import AppError, validation_message
+from siqe.core.logging import get_logger
 from siqe.db.base import utcnow
 from siqe.db.models import Asset, AssetStatus, Rendition, RenditionStatus
 from siqe.imaging import edits as edit_model
@@ -41,10 +42,11 @@ from siqe.imaging.io import inspect
 from siqe.imaging.pipeline import output_size
 from siqe.jobs.records import job_to_dict
 from siqe.jobs.start import create_job, start_workflow
-from siqe.storage.store import get_store
+from siqe.storage.store import StagedUpload, get_store
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 
 router = APIRouter(tags=["assets"])
+log = get_logger(__name__)
 
 IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}
 _SAFE_NAME = re.compile(r"[^\w.\- ()]+")
@@ -121,9 +123,8 @@ async def upload_asset(
             await session.execute(select(Asset).where(Asset.sha256 == staged.sha256))
         ).scalar_one_or_none()
         if existing is not None:
-            staged.path.unlink(missing_ok=True)
             response.status_code = status.HTTP_200_OK
-            return UploadOut(asset=_asset_out(existing), duplicate=True, job=None)
+            return await _existing_upload(session, temporal, existing, staged)
         info = await asyncio.to_thread(inspect, staged.path)
     except BaseException:
         staged.path.unlink(missing_ok=True)
@@ -163,6 +164,32 @@ async def upload_asset(
     )
     await start_workflow(session, temporal, job, IngestAssetWorkflow.run, [str(job.id), str(asset.id)])
     return UploadOut(asset=_asset_out(asset), duplicate=False, job=JobOut.model_validate(job_to_dict(job)))
+
+
+async def _existing_upload(
+    session: SessionDep, temporal: TemporalDep, asset: Asset, staged: StagedUpload
+) -> UploadOut:
+    """The same bytes are already in the library. Repair the image if its files went missing."""
+    store = get_store()
+    if store.original(asset.sha256, asset.extension).exists():
+        staged.path.unlink(missing_ok=True)
+    else:
+        await asyncio.to_thread(store.commit, staged, asset.extension)
+        log.warning("asset.original_restored", asset_id=str(asset.id))
+    previews_ok = (store.previews(asset.id) / "preview.webp").exists()
+    if asset.status == AssetStatus.processing or (asset.status == AssetStatus.ready and previews_ok):
+        return UploadOut(asset=_asset_out(asset), duplicate=True, job=None)
+    asset.status = AssetStatus.processing
+    asset.error = None
+    await publish_asset(session, asset)
+    job = await create_job(
+        session,
+        kind="asset.ingest",
+        title=f"Prepare {asset.original_name}",
+        params={"asset_id": str(asset.id)},
+    )
+    await start_workflow(session, temporal, job, IngestAssetWorkflow.run, [str(job.id), str(asset.id)])
+    return UploadOut(asset=_asset_out(asset), duplicate=True, job=JobOut.model_validate(job_to_dict(job)))
 
 
 # --------------------------------------------------------------------------- browsing
