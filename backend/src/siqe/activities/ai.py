@@ -239,6 +239,7 @@ async def run_model(job_id: str, request: AiRunRequest) -> dict[str, Any]:
         "seconds": round(out.tiled.seconds, 1),
         "fallbacks": [s.detail for s in out.tiled.steps],
         "restore_faces": request.restore_faces,
+        "nonfinite": out.tiled.nonfinite,
     }
 
 

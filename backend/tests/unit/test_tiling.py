@@ -193,3 +193,18 @@ def test_progress_reaches_one() -> None:
     )
     assert fractions[-1] == pytest.approx(1.0)
     assert fractions == sorted(fractions)
+
+
+def test_nan_outputs_are_replaced_and_counted() -> None:
+    model = BlurUpscale()
+    real = model.forward
+
+    def leaky(batch: np.ndarray) -> np.ndarray:
+        out = real(batch)
+        out[0, 0, 5, 5] = np.nan
+        return out
+
+    model.forward = leaky  # type: ignore[method-assign]
+    out, result = run(image(16, 16), TileSettings(tile=16, batch=1, context=2), model)
+    assert result.nonfinite == 1
+    assert np.isfinite(out).all()

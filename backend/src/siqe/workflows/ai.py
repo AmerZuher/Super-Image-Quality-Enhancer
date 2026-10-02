@@ -85,5 +85,7 @@ class AiRunWorkflow:
         message = f"{result['width']:,} × {result['height']:,} in {result['seconds']:.0f} s on {where}"
         if result["fallbacks"]:
             message += f" (adjusted: {result['fallbacks'][-1]})"
+        if result.get("nonfinite"):
+            message += f"; the model produced {result['nonfinite']:,} invalid values, which were replaced"
         await _update(JobUpdate(job_id, state="succeeded", progress=1.0, message=message, result=summary))
         return summary

@@ -148,6 +148,8 @@ class TiledResult:
     steps: list[LadderStep] = field(default_factory=list)
     tiles_run: int = 0
     seconds: float = 0.0
+    # Output samples that came back NaN or infinite (replaced: NaN → 0, ±inf → 1 / 0).
+    nonfinite: int = 0
 
 
 class Cancelled(Exception):
@@ -210,6 +212,10 @@ def run_tiled(
             result.steps.append(step)
             continue
         retried = False
+        bad = ~np.isfinite(outputs)
+        if bad.any():
+            result.nonfinite += int(bad.sum())
+            outputs = np.nan_to_num(outputs, nan=0.0, posinf=1.0, neginf=0.0)
         for window, out in zip(windows, outputs, strict=True):
             ox, oy = window.core_offset
             c = window.core
