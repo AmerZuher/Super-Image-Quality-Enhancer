@@ -6,6 +6,16 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Added
 
+- **Flows are here.** Chain blocks on a canvas to automate what you repeat: sort images with **If** (orientation, size, tags, faces, anything a smart album can use), edit them (adjustments, your Studio edits, resize, crop to a shape, rotate, trim, place on a canvas, watermark), enhance them with AI (upscale, denoise, remove background, restore faces), then export, save to the Library, tag, add to an album or quarantine.
+- **Five recipes to start from:** wallpaper pipeline, product shots, web gallery, old photo restoration and blurry photo triage. Flows save as you edit, and blocks that need fixing turn red and say why.
+- **Run on what you choose:** the images selected in the Library ("Run a flow" in the selection bar), an album, a set of rules, or everything. A **dry run** tries a flow on 10 images first and only pretends to change your Library.
+- **Batches that keep going:** each image runs on its own, so one broken file never stops the rest. Every image shows its steps, timings, exported files and any error with a fix; each block on the canvas shows how many images went through it last time. Download a run's files as one zip.
+- **Watched folders:** a flow can run on new images as they arrive in a folder inside the import folder.
+- **API keys and sign-in:** set `SIQE_API_AUTH=keys` and every browser and script needs a key. Create and revoke keys in **Settings → Access**, or with `siqe keys create` where the app runs.
+- **The `siqe` command** lists flows, uploads images and runs a flow (by name or from a `.flow.json` file) on files from your computer, then saves the results: `siqe run "Web gallery" ./photos --download ./out`.
+- **People in the Library:** faces are counted in every image (only the number is kept) once the face restoration model is installed. Filter with **People**, or use the new **Faces** rule in smart albums and flows.
+- New settings: `SIQE_OUTPUT_PATH`, `SIQE_FLOW_CONCURRENCY` and `SIQE_API_AUTH`. `make env` now also creates the `output` folder.
+
 - **The Library is here.** Every image you add is analysed in the background: sharpness, main colour, the date it was taken and where, and a fingerprint for finding copies.
 - **Search by describing a photo** ("mountain lake at sunrise"), **find similar images**, and **automatic tags**, after a one-click download of the CLIP search model (578 MB, MIT, runs on the CPU). Without it, the search box matches file names and tags.
 - **Duplicates:** resized, recompressed and lightly edited copies are grouped, and the best copy (largest, sharpest, least compressed) is marked to keep. Keep the best of one group or all of them, or mark them as not duplicates.

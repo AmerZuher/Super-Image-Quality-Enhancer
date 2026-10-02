@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab) and 3 (Library) implemented. Living document, v3. |
+| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library) and 4 (Flows) implemented. Living document, v3. |
 | **Updated** | 2 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
@@ -140,7 +140,7 @@ PostgreSQL is the only stateful service. SQLite remains an option for a future s
 
 ### 4.2 Schema
 
-Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3). Later phases add the rest.
+Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3); `flows`, `flow_runs`, `flow_run_items`, `api_keys` and the `faces` count on `assets` (Phase 4). Phase 5 adds Forge's tables.
 
 ```mermaid
 erDiagram
@@ -152,7 +152,9 @@ erDiagram
   JOB ||--o{ RENDITION : "produces"
   MODEL ||--o{ JOB : "used by"
   FLOW ||--o{ FLOW_RUN : "runs"
-  FLOW_RUN ||--o{ JOB : "spawns"
+  FLOW_RUN ||--o{ FLOW_RUN_ITEM : "one per image"
+  FLOW_RUN_ITEM }o--|| ASSET : "processes"
+  FLOW_RUN ||--|| JOB : "shown as"
   FORGE_PROJECT ||--o{ TRAINING_RUN : "trains"
   TRAINING_RUN ||--o{ CHECKPOINT : "saves"
   CHECKPOINT ||--o| MODEL : "published as"
@@ -231,6 +233,34 @@ flowchart LR
 - **The import folder** is mounted read-only into the CPU worker and checked by a Temporal Schedule; files are imported once, after their size and time are stable.
 
 Details and trade-offs: [ADR 0007](adr/0007-library-search-and-duplicates.md).
+
+- **Faces** are counted after each indexing pass by RetinaFace (shipped with the face restoration model) on the GPU queue, on the preview, before watched flows start. Only the number is stored; uncounted images never match a `faces` rule.
+
+### 4.6 Flows
+
+```mermaid
+flowchart LR
+  E[Editor: blocks and connections] -->|PUT, checked| F[(flows)]
+  R[Run: selection, album, rules, all] --> S[create_run: items + job]
+  W[Import folder, after indexing] -->|flow_trigger| S
+  S --> FR[FlowRunWorkflow]
+  FR -->|claim 4 items, FOR UPDATE SKIP LOCKED| I1[FlowItemWorkflow]
+  I1 --> B1[Edit: flow_edit on siqe-cpu]
+  I1 --> B2[AI: flow_ai_gpu on siqe-gpu]
+  I1 --> B3[If: flow_condition]
+  I1 --> B4[Finish: export, Library, tag, album, quarantine]
+  FR -->|every 200 images| FR
+```
+
+- **A flow is a document**: blocks (`input`, conditions, edits, AI, finishes) and connections from a block's port (`out`, or `yes`/`no` for If) to the next block. `siqe.flows.document.check` normalises settings against the block catalog and lists problems per block (one Images block, a Finish block, no loops, nothing unreachable). The editor saves as you go; only a flow without problems can run or watch a folder.
+- **A run** has one row per image. `FlowRunWorkflow` claims a few pending items at a time and runs a child `FlowItemWorkflow` for each; it starts afresh every 200 images. A failure stops only that image, and its error is kept on the item.
+- **An image walks the graph in workflow code**; each block is one activity. Edits and AI write a lossless PNG for the next block; If decides a port with the same rules as smart albums (`siqe.library.rules.matches`), using the image's current size. AI blocks reuse the AI Lab pipeline (tiling, OOM ladder, calibration) on the GPU queue.
+- **Finish blocks** are idempotent: each records its output against its step, so a retried activity never exports or saves twice. Exports go to `/output/<flow>/<date time>/`, and a run's files download as one zip.
+- **Dry runs** take 10 images, export to a separate folder and only simulate Library changes.
+- **Watching a folder**: after the indexer has analysed and grouped newly imported images, `flow_trigger` adds them to the flow's open watch run (or opens one) under a per-flow advisory lock; the run waits for more and finishes after a minute without any.
+- **The same flow from anywhere**: the editor, `POST /api/flows/{id}/runs`, and `siqe run <flow or .flow.json> <files>`, which uploads the files first. With `SIQE_API_AUTH=keys`, every client needs an API key.
+
+Details and trade-offs: [ADR 0008](adr/0008-flows-and-api-keys.md).
 
 ---
 
@@ -380,9 +410,9 @@ flowchart LR
 | `temporal` | `temporalio/server:1.32.0` | Orchestration |
 | `temporal-ui` | `temporalio/ui:2.54.1` | Optional (`make ops`), port 8233 |
 | `init` | `siqe-studio-api` | One-shot: Alembic migrations and Temporal namespace |
-| `api` | `siqe-studio-api` (537 MB) | REST, WebSocket events, OpenAPI, Library text search |
-| `worker` | `siqe-studio-api` | All workflows plus CPU activities, Library indexing; mounts the import folder read-only |
-| `worker-gpu` | `siqe-studio-ai` (9.3 GB, CUDA PyTorch) | GPU activities, one at a time |
+| `api` | `siqe-studio-api` (537 MB) | REST, WebSocket events, OpenAPI, Library text search, optional API-key sign-in; mounts the output folder for downloads |
+| `worker` | `siqe-studio-api` | All workflows plus CPU activities, Library indexing, flow blocks; mounts the import folder read-only and the output folder |
+| `worker-gpu` | `siqe-studio-ai` (9.3 GB, CUDA PyTorch) | GPU activities one at a time: AI runs, AI flow blocks, face counting |
 | `web` | `siqe-studio-web` (94 MB) | Caddy with the built SPA, port 8080 on 127.0.0.1 |
 
 ### 7.2 Repository
@@ -408,10 +438,12 @@ flowchart LR
 │   │   ├── jobs/            job records and throttled progress reporting
 │   │   ├── workers/         worker processes and heartbeats
 │   │   ├── ai/              model catalog, downloads, tiling, memory governor, CLIP in numpy
-│   │   ├── library/         analysis, duplicates, rules, search, import folder
+│   │   ├── library/         analysis, duplicates, rules, search, import folder, face counts
+│   │   ├── flows/           block catalog, flow documents, recipes, edit operations, run records
+│   │   ├── auth/            API keys and the optional sign-in middleware
 │   │   ├── system/          container-aware CPU, memory and disk readings
 │   │   ├── updates/         GitHub release checks for the Update Center
-│   │   └── cli/             the `siqe` command
+│   │   └── cli/             the `siqe` command (server tasks, and flows/upload/run over HTTP)
 │   └── tests/               unit/ and integration/
 ├── frontend/                Vite SPA
 │   ├── Dockerfile           build, then Caddy
@@ -422,6 +454,7 @@ flowchart LR
 │   └── e2e/                 Playwright tests and gallery capture
 ├── deploy/                  Caddyfile, Temporal dynamic config and schema script
 ├── import/                  the Library's import folder (created by `make env`, not in git)
+├── output/                  where flows export files (created by `make env`, not in git)
 ├── docs/                    architecture, ADRs, robustness, brand, research, plan pages
 ├── gallery/                 README screenshots (`make gallery`)
 ├── samples/                 demo and test images
@@ -455,7 +488,8 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 - Uploads are identified by reading the file header, never by extension or client type, and stored under hash-based paths; user file names never become paths. Deep-zoom paths are resolved inside the image's folder only.
 - Exports strip camera data and GPS location by default. The Library can remove location from originals without re-encoding.
 - The import folder is mounted read-only; SIQE Studio copies files in and never changes the originals.
-- From later phases: hashed API keys and `weights_only=True` for `.pth` files.
+- Optional sign-in (`SIQE_API_AUTH=keys`): API keys are 256-bit, stored only as SHA-256 hashes and shown once. Scripts send them as a bearer token; the web app keeps one in an HttpOnly, SameSite=Strict cookie. The check is plain ASGI, so it covers the events WebSocket too. Keys are revocable in Settings or with `siqe keys revoke`.
+- Model checkpoints load with `weights_only=True` or the restricted unpickler; flow exports can't leave their run's folder, and run downloads serve only files the run exported.
 - CI runs a Trivy scan of the API image. Dependabot watches uv, npm, Docker and Actions. pnpm's minimum-release-age check stays on.
 
 ---
@@ -468,8 +502,8 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P1 Studio and storage** | Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks | **Done** |
 | **P2 AI Lab and governor** | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, denoise, full-resolution compare | **Done** (erase, colorize, deblur and bring-your-own ONNX moved to P6: their weights are on Hugging Face, which this build environment can't reach) |
 | **P3 Library** | Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal | **Done** (face-based albums need face detection on the GPU queue; they move to P4) |
-| P4 Flows | Node editor, batch runs with paged child workflows, recipes, API keys, `siqe` CLI commands, face-based album rules | Next |
-| P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | |
+| **P4 Flows** | Node editor, batch runs with paged child workflows, dry runs, recipes, folder watching, API keys and optional sign-in, `siqe` CLI commands, face counts and face rules | **Done** |
+| P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | Next |
 | P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX, final docs and gallery, `docker compose up` verified on your PC | |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.

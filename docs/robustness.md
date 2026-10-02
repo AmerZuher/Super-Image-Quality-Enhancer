@@ -1,6 +1,6 @@
 # Robustness: limits, error codes and fallbacks
 
-The rules every feature follows so SIQE Studio degrades instead of crashing. Design rationale is in [architecture.md](architecture.md#5-robustness-and-resource-safety). Items marked **(P0)** to **(P3)** exist today; the rest arrive with the phase noted.
+The rules every feature follows so SIQE Studio degrades instead of crashing. Design rationale is in [architecture.md](architecture.md#5-robustness-and-resource-safety). Items marked **(P0)** to **(P4)** exist today; the rest arrive with the phase noted.
 
 ## Limits
 
@@ -26,6 +26,17 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Search model memory | The API reads only the text half of CLIP, tensor by tensor; the worker loads it once per process | Running out of memory while loading **(P3)** |
 | Text search results | Only images within 0.08 of the best match and above 0.08 overall (bias-corrected score) | A nonsense query returning the whole library **(P3)** |
 | Smart album rules | At most 20 rules; every field and operator is validated; user text is escaped before `LIKE` | SQL injection and runaway queries **(P3)** |
+| `SIQE_FLOW_CONCURRENCY` | 4 images at a time per run (1 to 32) | One run taking every CPU worker slot; AI blocks still queue one at a time on the GPU **(P4)** |
+| Images per run | 20,000 | Runs too large to follow or undo; run on an album or a filter instead **(P4)** |
+| Flow run history | One child workflow per image; the run starts afresh (continue-as-new) every 200 images | Temporal history growing without bound on big batches **(P4)** |
+| Flow working files | Lossless PNG (depth and alpha kept) in `tmp/flows/<run>/`, written via a temporary name, removed when the run ends | Quality loss between steps and leftover disk use **(P4)** |
+| Dry runs | 10 images unless you choose; exports go to a separate "dry run" folder; tags, albums, quarantine and Save to Library are only simulated | Trying a flow changing the Library **(P4)** |
+| Export folder | Inside the run's folder only (`..` and absolute paths refused); names made unique, at most 10,000 per name | Writing outside the output folder or overwriting earlier files **(P4)** |
+| Watched folders | One open run per flow; new images join it; it finishes after 60 s without new images; a database advisory lock serialises triggers per flow | Two imports opening two runs, or a run per image **(P4)** |
+| API keys | 256-bit, stored as SHA-256 only, shown once; checks cached 30 s (revoking takes effect within 30 s); "last used" written at most every 5 minutes | Leaked keys in the database, and a write per request **(P4)** |
+| Browser sign-in | The key in an HttpOnly, SameSite=Strict cookie on `/api`, Secure over HTTPS, 90 days | Page scripts reading the key, and cross-site requests **(P4)** |
+| Face counting | On the preview, at most 1,280 px; faces under 20 px ignored; halves the detection size on out-of-memory; waits at most 5 minutes for the GPU worker, then tries again on the next pass | Counting crowds, and the Library waiting behind a long AI job **(P4)** |
+| Run downloads | Zips are built on the data volume and deleted after sending; only files the run exported can be fetched | Large zips in memory, and path tricks reading other files **(P4)** |
 | PostgreSQL connections | 200, Temporal capped at 10 per store | Connection exhaustion **(P0)** |
 | Event payload | 7,900 bytes; larger events become refetch pointers | NOTIFY's 8,000-byte limit **(P0)** |
 | WebSocket queue per browser | 500 events, oldest dropped | A slow or backgrounded tab growing server memory **(P0)** |
@@ -74,6 +85,26 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `library.no_location` | 422 | Removing location from images that have none | P3 |
 | `library.location_not_removed` | n/a (per image in the job result) | The file keeps GPS data where it can't be removed without re-encoding; export it instead | P3 |
 | `album.not_found` | 404 | No album with that id | P3 |
+| `flow.not_found` | 404 | No flow with that id | P4 |
+| `flow.run_not_found` | 404 | No run with that id | P4 |
+| `flow.recipe_not_found` | 404 | Creating a flow from a recipe that doesn't exist | P4 |
+| `flow.invalid` | 422 | The flow can't run yet (no Finish block, a loop, a missing setting…); `problems` lists each one by block | P4 |
+| `flow.no_images` | 422 | The chosen images, album or filter has no images in it | P4 |
+| `flow.too_many_images` | 422 | More than 20,000 images in one run | P4 |
+| `flow.bad_folder` | 422 | A watched folder or export subfolder that points outside its folder | P4 |
+| `flow.no_files` | 404 | Downloading a run that exported nothing | P4 |
+| `flow.image_missing` | n/a (per image) | The image was removed from the Library during the run | P4 |
+| `flow.file_missing` | n/a (per image) | A working file disappeared mid-run; run the flow again | P4 |
+| `flow.album_missing` | n/a (per image) | Add to album points at an album that was deleted | P4 |
+| `flow.wrong_model` | n/a (per image) | An AI block was given a model for a different task | P4 |
+| `flow.too_many_files` | n/a (per image) | More than 10,000 exports with the same name in one folder | P4 |
+| `flow.unknown_step` | n/a (per image) | A block type this version doesn't know (from a newer `.flow.json`) | P4 |
+| `flow.step_failed` | n/a (per image) | Any other failure in one block; the message says which | P4 |
+| `flow.all_failed` | n/a (job error) | Every image in a run failed | P4 |
+| `auth.required` | 401 | `SIQE_API_AUTH=keys` and the request has no key | P4 |
+| `auth.invalid_key` | 401 | The key is wrong or was revoked | P4 |
+| `auth.key_not_found` | 404 | Revoking a key that doesn't exist | P4 |
+| `auth.last_key` | 409 | Revoking the only key while signed in with it | P4 |
 | `album.not_smart` | 422 | Setting rules on a hand-picked album | P3 |
 | `album.not_manual` | 422 | Adding images by hand to a smart album | P3 |
 | `import.unreadable` | n/a (shown in the import folder card) | A file in the import folder couldn't be read | P3 |
@@ -96,6 +127,13 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | An image fails analysis | It is marked analysed so the batch moves on; the error is logged **(P3)** |
 | Import folder missing | The scan records it and the Library says "Folder not found"; nothing else is affected **(P3)** |
 | Disk nearly full during an import | The scan stops before copying more; the remaining files wait for the next check **(P3)** |
+| One image fails in a flow run | Its error and the step are recorded on that image; the other images carry on; the run fails only if every image failed **(P4)** |
+| Worker restarts during a flow run | Each image is its own child workflow; finished steps aren't repeated (exports and Library writes are recorded per step, so retries don't duplicate them) **(P4)** |
+| Output folder not writable | Exports go to `outputs/` on the data volume instead, and the run says where; downloads still work **(P4)** |
+| An AI model in a flow isn't installed | The run is refused before it starts (`model.not_installed`, naming the model) and the block's settings say to download it in AI Lab; a watched folder skips the run and logs why **(P4)** |
+| Face detector not installed | Face filters match nothing and the Library offers the download; everything else works **(P4)** |
+| GPU worker missing while counting faces | Counting waits up to 5 minutes, then the Library carries on; images are counted on a later pass **(P4)** |
+| Sign-in on and no key yet | The web app shows a sign-in screen with the command that makes a key (`siqe keys create`) **(P4)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
 ## Input edge cases (P1 and P2)

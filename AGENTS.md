@@ -9,7 +9,7 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 - Architecture and decisions: [docs/architecture.md](docs/architecture.md) and [docs/adr/](docs/adr/)
 - Limits, error codes, fallbacks: [docs/robustness.md](docs/robustness.md)
 - Product plan and UI mockups: [docs/plan/blueprint.html](docs/plan/blueprint.html)
-- Current phase: **P3 (Library) done; P4 (Flows) next.** Flows and Forge are preview pages until their phase lands.
+- Current phase: **P4 (Flows) done; P5 (Forge) next.** Forge is a preview page until its phase lands.
 
 ## Map
 
@@ -27,16 +27,19 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 | `backend/src/siqe/storage/` | Content-addressed media store on the data volume |
 | `backend/src/siqe/assets/` | Asset and rendition rows, their events, and `ingest.add_file` (shared by uploads and the import folder) |
 | `backend/src/siqe/ai/` | Model catalog (`manifest`), downloads (`registry`), tiling and the OOM ladder (`tiling`), memory planning (`governor`, `plan`), the run pipeline, faces, background removal, torch-free checkpoint reading (`pth`) and CLIP in numpy (`clip`); `runtime` and `archs/` need torch |
-| `backend/src/siqe/library/` | Library: per-image analysis, CLIP embedder and tags, duplicates, smart-album rules, search, the import folder and its schedule |
+| `backend/src/siqe/library/` | Library: per-image analysis, CLIP embedder and tags, duplicates, smart-album rules (SQL and Python), search, face counts, the import folder and its schedule |
+| `backend/src/siqe/flows/` | Flows: block catalog (`catalog`), document checks (`document`), recipes, edit operations (`ops`), run records and starting runs (`start`, also the folder trigger) |
+| `backend/src/siqe/auth/` | API keys (`keys`) and the optional sign-in middleware (`middleware`, `SIQE_API_AUTH=keys`) |
 | `backend/src/siqe/system/` | Container-aware CPU, memory and disk readings |
 | `backend/src/siqe/updates/` | GitHub release checks for the Update Center |
 | `frontend/src/app/` | Router, app shell, command palette, Update Center drawer |
-| `frontend/src/features/` | One folder per page or workspace; `studio/gl/` holds the WebGL preview, `ailab/` the model library and compare viewer, `library/` the grid, filters, albums and inspector |
+| `frontend/src/features/` | One folder per page or workspace; `studio/gl/` holds the WebGL preview, `ailab/` the model library and compare viewer, `library/` the grid, filters, albums and inspector, `flows/` the editor (React Flow), runs and run dialog, `access/` sign-in and API keys |
 | `frontend/src/components/ui/` | Lattice design-system primitives |
 | `frontend/src/lib/api/` | Generated OpenAPI types (`schema.d.ts`), client, queries |
 | `frontend/e2e/` | Playwright tests; `gallery.spec.ts` captures README screenshots |
 | `deploy/` | Caddyfile, Temporal config and schema script |
 | `import/` | The Library's import folder in development (mounted read-only into the worker; not in git) |
+| `output/` | Where flows export files in development (mounted into the API and worker; not in git) |
 
 ## Commands
 
@@ -54,6 +57,8 @@ make gallery           # refresh gallery/*.png (stack must be running)
 make ops               # Temporal UI on http://localhost:8233
 ```
 
+The `siqe` command also talks to a running app (`SIQE_URL`, `SIQE_API_KEY`): `siqe flows list`, `siqe upload <files>`, `siqe run <flow name or .flow.json> <files> [--dry-run] [--download DIR]`. Inside the container: `docker compose exec api siqe keys create|list|revoke`.
+
 Single tests: `cd backend && uv run pytest tests/unit/test_tiling.py -k ladder` · `cd frontend && pnpm vitest run src/lib/format.test.ts` · `cd frontend && pnpm exec playwright test e2e/smoke.spec.ts`. `e2e/shader-parity.spec.ts` needs no running stack. PyTorch tests (`tests/unit/test_ai_torch.py`) skip without torch; run them in the `ai` image or after `uv sync --extra ai`, with `SIQE_TEST_MODELS` pointing at downloaded weights (the CLIP tokenizer test needs `bpe_simple_vocab_16e6.txt.gz` there too).
 
 ## Golden rules
@@ -69,9 +74,10 @@ Breaking one of these is a bug, even if tests pass.
 7. **The frontend only talks to the backend through the generated client.** After changing a route or schema, run `make gen-api` and commit `frontend/openapi.json` and `schema.d.ts`. CI fails on drift. The one exception is the upload in `features/studio/uploads.ts`, which uses XHR for progress but takes its path and types from the schema.
 8. **Edit formulas live in three places that must agree:** `siqe/imaging/ops.py`, `features/studio/gl/glsl.ts` and `gl/reference.ts`. After changing one, change the others and run `uv run python -m siqe.imaging.parity` to regenerate the shared fixture; the backend, Vitest and Playwright parity tests check all three (ADR 0005).
 9. **Library indexing stays in the background.** New ways of adding images must wake the indexer (`siqe.workflows.assets.wake_indexer` or `siqe.library.trigger.request_index`). If you change how images are measured, bump `siqe.library.analysis.ANALYSIS_VERSION` so existing images are re-analysed. Never delete images directly from Library features: move them to quarantine.
-10. **No model weights in git.** Models are added to `siqe.ai.manifest` with URL, size, sha256 and license (ADR 0006). Commercial-safe licenses only (MIT, BSD-3-Clause, Apache-2.0; no CodeFormer, no non-commercial Depth Anything sizes). Load `.pth` with `weights_only=True` (or, without torch, `siqe.ai.pth`); prefer safetensors or ONNX.
-11. **Gold means AI.** In the UI, gold (`--gold`, `variant="ai"`) marks things that run an AI model. Use cyan for everything else. Colours come from tokens in `frontend/src/styles/tokens.css`; never hard-code hex values in components. Every view must work in dark and light themes and at phone width.
-12. **Status needs more than colour.** States (ok, warning, error) always pair a colour with an icon and a label.
+10. **Flow blocks come from the catalog.** A new block is a `NodeSpec` in `siqe.flows.catalog` (params validated there, which also drives the editor's form) plus its handling in `siqe.flows.ops` (edits) or `siqe.activities.flows` (conditions, AI, finishes). Finish blocks must record their output per step (`_record`) so a retried activity never exports or saves twice, and must honour dry runs. Flow If blocks and smart albums share `siqe.library.rules`: a new rule field needs both `compile_rule` (SQL) and `matches_rule` (Python), and the frontend's `rules.ts`.
+11. **No model weights in git.** Models are added to `siqe.ai.manifest` with URL, size, sha256 and license (ADR 0006). Commercial-safe licenses only (MIT, BSD-3-Clause, Apache-2.0; no CodeFormer, no non-commercial Depth Anything sizes). Load `.pth` with `weights_only=True` (or, without torch, `siqe.ai.pth`); prefer safetensors or ONNX.
+12. **Gold means AI.** In the UI, gold (`--gold`, `variant="ai"`) marks things that run an AI model. Use cyan for everything else. Colours come from tokens in `frontend/src/styles/tokens.css`; never hard-code hex values in components. Every view must work in dark and light themes and at phone width.
+13. **Status needs more than colour.** States (ok, warning, error) always pair a colour with an icon and a label.
 
 ## Definition of done
 

@@ -18,13 +18,13 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 3 of 6 is complete.** The foundation, the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model) and the **Library** (search by description, duplicates, smart albums, location removal and an import folder) are ready to use. Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
+> **Status: Phase 4 of 6 is complete.** The foundation, the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder) and **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) are ready to use. Forge comes next; see the [roadmap](#roadmap).
 
 ---
 
 ## Contents
 
-[What it is](#what-it-is) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Updating](#updating) · [Hardware](#hardware) · [Configuration](#configuration) · [How it works](#how-it-works) · [Development](#development) · [Releasing](#releasing) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [Heritage and credits](#heritage-and-credits)
+[What it is](#what-it-is) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Updating](#updating) · [Hardware](#hardware) · [Configuration](#configuration) · [Automation](#automation-flows-api-and-cli) · [How it works](#how-it-works) · [Development](#development) · [Releasing](#releasing) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [Heritage and credits](#heritage-and-credits)
 
 ## What it is
 
@@ -62,8 +62,12 @@ Built for real hardware limits: images are planned before processing, large ones
 | Library: tags, details and albums | Search by description |
 | <img src="gallery/library-duplicates.png" alt="Library duplicates view in the light theme: a pier photo marked Keep and its smaller copy marked Quarantine, lower resolution" /> | <img src="gallery/library-album.png" alt="Smart album editor with rules for landscape orientation and a width of at least 1920 pixels" /> |
 | Duplicates: keep the best copy, light theme | Smart albums from rules |
+| <img src="gallery/flows-editor.png" alt="Flows editor showing the wallpaper pipeline: skip duplicates, an If block splitting landscape and portrait photos, upscaling small ones with AI, then resizing and exporting each branch; the If block's rules are open on the right" /> | <img src="gallery/flows-runs.png" alt="A finished flow run: every image with its steps, timings, exported files and a button to download them all as a zip" /> |
+| Flows: chain blocks, branch with If | Runs: what happened to every image |
+| <img src="gallery/flows-light.png" alt="Flows in the light theme with the flow list, block palette, a web gallery flow with image counts from its last run, and the flow watching a folder" /> | <img src="gallery/flows-run.png" alt="Run dialog: run on the Library selection, an album, rules or everything, with a dry run first" /> |
+| Watch a folder; each block shows its last run | Run on a selection, an album or everything, dry run first |
 
-<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /> &nbsp; <img src="gallery/library-phone.png" alt="Library on a phone with view chips, search and a two-column grid" width="240" /></p>
+<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /> &nbsp; <img src="gallery/library-phone.png" alt="Library on a phone with view chips, search and a two-column grid" width="240" /> &nbsp; <img src="gallery/flows-phone.png" alt="A flow run's results on a phone" width="240" /></p>
 
 All screenshots are regenerated with `make gallery`.
 
@@ -127,7 +131,8 @@ All settings live in `.env` (created by `make env` from [.env.example](.env.exam
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SIQE_BIND` / `SIQE_PORT` | `127.0.0.1` / `8080` | Where the web app listens. Use `0.0.0.0` to open it to your network (there is no login). |
+| `SIQE_BIND` / `SIQE_PORT` | `127.0.0.1` / `8080` | Where the web app listens. Use `0.0.0.0` to open it to your network, ideally with `SIQE_API_AUTH=keys`. |
+| `SIQE_API_AUTH` | `off` | `keys` asks every browser and script for an API key (see [Automation](#automation-flows-api-and-cli)) |
 | `SIQE_VERSION` | `latest` | Image tag to run; pin a version to stay on it |
 | `SIQE_MAX_INPUT_MEGAPIXELS` | `250` | Largest image accepted |
 | `SIQE_MAX_UPLOAD_MB` | `2048` | Largest single upload |
@@ -136,8 +141,35 @@ All settings live in `.env` (created by `make env` from [.env.example](.env.exam
 | `SIQE_GPU_WORKER_MEMORY` | `12g` | System RAM cap for the GPU worker |
 | `SIQE_IMPORT_PATH` | `./import` | The Library's import folder on your computer (mounted read-only) |
 | `SIQE_IMPORT_SCAN_SECONDS` | `60` | How often the import folder is checked; `0` turns automatic checks off |
+| `SIQE_OUTPUT_PATH` | `./output` | Where flows export files, one folder per run |
+| `SIQE_FLOW_CONCURRENCY` | `4` | How many images a flow run works on at once |
 | `SIQE_UPDATE_REPO` | this repository | Where the Update Center looks for releases |
 | `SIQE_UPDATE_INCLUDE_PRERELEASES` | `false` | Also offer pre-releases |
+
+## Automation: Flows, API and CLI
+
+A **flow** is a chain of blocks: pick images, sort them with **If** (any rule a smart album can use: orientation, size, tags, faces…), edit or enhance them, then export, tag, file or quarantine them. Start from a recipe (wallpapers, product shots, web gallery, old photo restoration, blurry photo triage) or a blank canvas. Each image runs on its own, so one broken file never stops the batch, and a **dry run** tries the flow on 10 images without changing your Library. Exports land in `./output/<flow>/<date time>/` and download as a zip.
+
+To run a flow on new images automatically, open its settings and **Start watching** a folder inside the import folder.
+
+The same flows run from scripts. Everything the app does is in the REST API (`/api/docs`), and the `siqe` command wraps the common parts:
+
+```bash
+uv tool install ./backend             # once, gives you the `siqe` command (or: cd backend && uv run siqe …)
+siqe flows list
+siqe run "Web gallery" ~/Pictures/trip --download ./web     # uploads, runs, waits, saves the results
+siqe run wallpaper.flow.json ~/Pictures/new --dry-run      # a flow file exported from the editor
+```
+
+To ask for a key, set `SIQE_API_AUTH=keys` in `.env`, restart, and make the first key where the app runs:
+
+```bash
+docker compose exec api siqe keys create "my laptop"     # prints the key once
+export SIQE_API_KEY=siqe_…                               # for the siqe command
+curl -H "Authorization: Bearer $SIQE_API_KEY" http://localhost:8080/api/flows
+```
+
+The web app then shows a sign-in screen; more keys can be made and revoked in **Settings → Access**. Set `SIQE_URL` if the app isn't on `http://localhost:8080`.
 
 ## How it works
 
@@ -156,7 +188,7 @@ flowchart LR
 
 - **FastAPI** serves the REST API (documented at `/api/docs`) and a WebSocket of live events.
 - **Temporal** runs every job durably: retries, heartbeats, cancellation, and resume after crashes.
-- **Workers** do the work: the CPU worker runs workflows and image processing; the GPU worker runs one GPU task at a time so jobs never fight over VRAM.
+- **Workers** do the work: the CPU worker runs workflows, image processing, Library indexing and flow blocks; the GPU worker runs one GPU task at a time (AI runs, AI flow blocks, face counting) so jobs never fight over VRAM.
 - **PostgreSQL** is the only stateful service. It also delivers live events, so progress bars update the moment a worker commits.
 - **Caddy** serves the React app with a strict Content Security Policy and proxies the API.
 
@@ -221,8 +253,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | P1 Studio | Storage, previews and deep zoom, classic edits, edit stack, WebGL preview, Compare, export | ✅ Done |
 | P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, faces, cutout, denoise | ✅ Done |
 | P3 Library | Search by description, similar images, tags, duplicates with quarantine, smart albums, location removal, import folder | ✅ Done |
-| P4 Flows | Pipelines, batches, recipes, API keys, CLI, face-based albums | Next |
-| P5 Forge | Visual model builder, training with live charts, publish to AI Lab | |
+| P4 Flows | Visual pipelines, batch runs, dry runs, recipes, watched folders, API keys, CLI, people filters | ✅ Done |
+| P5 Forge | Visual model builder, training with live charts, publish to AI Lab | Next |
 | P6 Hardening | 8K+ robustness suite, performance, final docs | |
 
 The interactive product plan, with UI mockups of every workspace, is in [docs/plan/blueprint.html](docs/plan/blueprint.html).
@@ -233,7 +265,7 @@ SIQE Studio grows out of **Super Image Quality Enhancer**, a research project on
 
 **Authors:** Amer Zuher ALriahy and Hisham Maher Sunjaq.
 
-Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack and Caddy. AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT); and [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained on LAION-400M (MIT) for Library search.
+Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack, React Flow and Caddy. Watermark text uses DejaVu Sans Bold (Bitstream Vera license, bundled in `backend/src/siqe/flows/fonts/`). AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT); and [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained on LAION-400M (MIT) for Library search.
 
 The images in `samples/` were collected from the web for testing and have unknown licenses; replace them before any commercial use.
 

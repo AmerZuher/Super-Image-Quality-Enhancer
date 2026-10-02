@@ -11,3 +11,4 @@ One short file per decision that shapes the codebase. Add a new record (next num
 | [0005](0005-edit-documents-and-preview.md) | Edit documents rendered by WebGL in the browser and libvips on the server | Accepted |
 | [0006](0006-ai-models-and-runs.md) | AI models from a pinned catalog, safe loading, tiled runs, results as new images | Accepted |
 | [0007](0007-library-search-and-duplicates.md) | Library: background indexing, CLIP in numpy, duplicates by hash and embedding, quarantine | Accepted |
+| [0008](0008-flows-and-api-keys.md) | Flows as block documents, one child workflow per image, optional API keys | Accepted |

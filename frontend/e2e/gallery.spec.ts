@@ -383,3 +383,84 @@ test("library on a phone @gallery", async ({ browser }) => {
   await page.screenshot({ path: `${OUT}/library-phone.png` });
   await context.close();
 });
+
+// ----------------------------------------------------------------------------------- Flows
+
+const flows: Record<string, string> = {};
+
+async function waitForRun(request: APIRequestContext, id: string, timeout = 600_000) {
+  await expect
+    .poll(async () => (await (await request.get(`/api/flows/runs/${id}`)).json()).run.state, {
+      timeout,
+      intervals: [2_000],
+    })
+    .toBe("succeeded");
+}
+
+test("prepare: flows from the recipes, and a run @gallery", async ({ request }) => {
+  test.setTimeout(900_000);
+  for (const [recipe, name] of [
+    ["product-shots", "Product shots"],
+    ["wallpapers", "Wallpaper pipeline"],
+    ["web-gallery", "Web gallery"],
+  ] as const) {
+    const flow = await (await request.post("/api/flows", { data: { name, recipe } })).json();
+    flows[recipe] = flow.id;
+  }
+  await request.put(`/api/flows/${flows["web-gallery"]}`, {
+    data: { watch_folder: "inbox/web", watch_enabled: true },
+  });
+  const run = await (
+    await request.post(`/api/flows/${flows["web-gallery"]}/runs`, {
+      data: { source: { kind: "all" }, dry_run: false },
+    })
+  ).json();
+  await waitForRun(request, run.id);
+});
+
+test("flows, editor with an If block @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/flows?flow=${flows.wallpapers}`);
+  await page.getByTestId("block-wide").click();
+  await expect(page.getByTestId("block-inspector")).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/flows-editor.png` });
+});
+
+test("flows, a finished run @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/flows?flow=${flows["web-gallery"]}&tab=runs`);
+  await expect(page.getByTestId("run-item").first()).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT}/flows-runs.png` });
+});
+
+test("flows, watching a folder in light @gallery", async ({ page }) => {
+  await useTheme(page, "light");
+  await page.setViewportSize({ width: 1680, height: 940 });
+  await page.goto(`/flows?flow=${flows["web-gallery"]}`);
+  await expect(page.getByTestId("flow-settings")).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/flows-light.png` });
+});
+
+test("flows, run dialog @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/flows?flow=${flows["product-shots"]}`);
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: /^Run / })).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/flows-run.png` });
+});
+
+test("flows on a phone @gallery", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await useTheme(page, "dark");
+  await page.goto(`/flows?flow=${flows["web-gallery"]}&tab=runs`);
+  await expect(page.getByTestId("run-item").first()).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/flows-phone.png` });
+  await context.close();
+});
