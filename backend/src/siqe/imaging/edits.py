@@ -63,7 +63,7 @@ OPS: tuple[OpSpec, ...] = (
         "vignette",
         "Vignette",
         "effects",
-        "Darkens or lightens the edges.",
+        "Negative darkens the edges, positive lightens them.",
         (Param("amount", "Amount", -100, 100, 1, 0), Param("midpoint", "Midpoint", 0, 0.95, 0.01, 0.5)),
     ),
 )

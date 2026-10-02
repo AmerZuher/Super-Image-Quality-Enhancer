@@ -52,6 +52,10 @@ def from_working(work: Working, *, depth: Literal[8, 16] = 8, keep_alpha: bool =
     scale = 65535.0 if depth == 16 else 255.0
     band_format = "ushort" if depth == 16 else "uchar"
     rgb = work.rgb.clamp(min=0.0, max=1.0)
+    if not keep_alpha and work.alpha is not None:
+        # Formats without transparency get the image composited onto white.
+        alpha = work.alpha.clamp(min=0.0, max=1.0)
+        rgb = rgb * alpha + (alpha * -1 + 1)
     out = (rgb * scale).rint().cast(band_format)
     if keep_alpha and work.alpha is not None:
         alpha = (work.alpha.clamp(min=0.0, max=1.0) * scale).rint().cast(band_format)

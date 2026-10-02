@@ -121,11 +121,12 @@ def test_exposure_one_stop_doubles_linear_light() -> None:
     assert ops._srgb_to_linear(c[0]) == pytest.approx(2 * ops._srgb_to_linear(0.5), abs=1e-6)
 
 
-def test_vignette_leaves_centre_and_darkens_corners() -> None:
-    gain = ops.vignette_map(101, 101, 80, 0.3)
+def test_negative_vignette_leaves_centre_and_darkens_corners() -> None:
+    gain = ops.vignette_map(101, 101, -80, 0.3)
     assert gain.getpoint(50, 50)[0] == pytest.approx(1.0)
-    assert gain.getpoint(0, 0)[0] == pytest.approx(ops.vignette_gain(0, 0, 101, 101, 80, 0.3), abs=1e-5)
+    assert gain.getpoint(0, 0)[0] == pytest.approx(ops.vignette_gain(0, 0, 101, 101, -80, 0.3), abs=1e-5)
     assert gain.getpoint(0, 0)[0] < 0.3
+    assert ops.vignette_map(101, 101, 50, 0.3).getpoint(0, 0)[0] > 1.4
 
 
 def test_sharpen_increases_local_contrast(tmp_path: Path) -> None:
@@ -191,6 +192,14 @@ def test_alpha_is_kept_apart_and_reattached(tmp_path: Path) -> None:
     out = from_working(render_working(work, parse_document({"ops": [{"id": "black_white"}]})))
     assert out.bands == 4
     assert out.getpoint(10, 10)[3] == 128
+
+
+def test_alpha_is_flattened_onto_white_without_transparency(tmp_path: Path) -> None:
+    clear = (gradient() * 0).bandjoin(0).copy(interpretation="srgb")
+    work = to_working(open_image(save(clear, tmp_path / "clear.png")))
+    out = from_working(work, keep_alpha=False)
+    assert out.bands == 3
+    assert out.getpoint(5, 5) == [255, 255, 255]
 
 
 # ----------------------------------------------------------------------------- export

@@ -14,7 +14,7 @@ Pipeline order (pointwise stages, then spatial ones):
   D. contrast around mid-grey
   E. vibrance, F. saturation, G. black & white, around Rec. 709 luma
   H. sharpen: adds source detail (luma minus blurred luma) scaled by amount
-  I. vignette: radial gain with a smooth falloff
+  I. vignette: radial gain with a smooth falloff (negative amounts darken the edges)
   then clamp to 0..1.
 """
 
@@ -94,12 +94,12 @@ def apply_pixel(rgb: tuple[float, float, float], ops: dict[str, dict[str, float]
 
 
 def vignette_gain(px: float, py: float, width: int, height: int, amount: float, midpoint: float) -> float:
-    """Gain at pixel centre (px, py); amount in -100..100, midpoint in 0..0.95."""
+    """Gain at pixel centre (px, py); amount in -100..100 (negative darkens), midpoint in 0..0.95."""
     aspect = width / height
     dx = ((px + 0.5) / width - 0.5) * aspect
     dy = (py + 0.5) / height - 0.5
     d = math.hypot(dx, dy) / math.hypot(0.5 * aspect, 0.5)
-    return 1 - (amount / 100) * _smoothstep(midpoint, 1.0, d)
+    return 1 + (amount / 100) * _smoothstep(midpoint, 1.0, d)
 
 
 # ------------------------------------------------------------------------------ libvips
@@ -182,7 +182,7 @@ def vignette_map(width: int, height: int, amount: float, midpoint: float) -> pyv
     dx = ((xy[0] + 0.5) / width - 0.5) * aspect
     dy = (xy[1] + 0.5) / height - 0.5
     d = (dx * dx + dy * dy) ** 0.5 / math.hypot(0.5 * aspect, 0.5)
-    return _v_smoothstep(midpoint, 1.0, d) * -(amount / 100) + 1
+    return _v_smoothstep(midpoint, 1.0, d) * (amount / 100) + 1
 
 
 def luma(rgb: pyvips.Image) -> pyvips.Image:
