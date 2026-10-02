@@ -86,7 +86,6 @@ test("command palette @gallery", async ({ page }) => {
 
 for (const [route, name] of [
   ["/jobs", "jobs"],
-  ["/ai-lab", "ai-lab-preview"],
   ["/forge", "forge-preview"],
   ["/settings", "settings"],
 ] as const) {
@@ -113,9 +112,9 @@ test("overview on a phone @gallery", async ({ browser }) => {
 
 let studioAsset = "";
 
-async function waitForJob(request: APIRequestContext, id: string) {
+async function waitForJob(request: APIRequestContext, id: string, timeout = 120_000) {
   await expect
-    .poll(async () => (await (await request.get(`/api/jobs/${id}`)).json()).state, { timeout: 120_000 })
+    .poll(async () => (await (await request.get(`/api/jobs/${id}`)).json()).state, { timeout })
     .toBe("succeeded");
 }
 
@@ -219,4 +218,71 @@ test("studio on a phone @gallery", async ({ browser }) => {
   await openStudio(page);
   await page.screenshot({ path: `${OUT}/studio-phone.png` });
   await context.close();
+});
+
+// ---------------------------------------------------------------------------------- AI Lab
+
+type Run = { asset: string; result: string };
+const runs: { pier?: Run; car?: Run } = {};
+
+async function install(request: APIRequestContext, modelId: string) {
+  const body = await (await request.post(`/api/models/${modelId}/install`)).json();
+  if (body.job) await waitForJob(request, body.job.id);
+}
+
+async function aiRun(request: APIRequestContext, assetId: string, modelId: string): Promise<string> {
+  const existing = await (await request.get(`/api/assets?parent_id=${assetId}`)).json();
+  const done = existing.find(
+    (a: { derivation?: { model_id?: string } }) => a.derivation?.model_id === modelId,
+  );
+  if (done) return done.id as string;
+  const started = await (
+    await request.post("/api/ai/runs", { data: { asset_id: assetId, model_id: modelId } })
+  ).json();
+  await waitForJob(request, started.job.id, 900_000); // the CPU is slow without a GPU
+  const job = await (await request.get(`/api/jobs/${started.job.id}`)).json();
+  return job.result.asset_id as string;
+}
+
+test("prepare: models and AI results @gallery", async ({ request }) => {
+  test.setTimeout(900_000);
+  await install(request, "realesrgan-x4plus");
+  await install(request, "isnet-general");
+  const pier = await upload(request, "lake-pier.jpg");
+  runs.pier = { asset: pier, result: await aiRun(request, pier, "realesrgan-x4plus") };
+  const car = await upload(request, "car.jpg");
+  runs.car = { asset: car, result: await aiRun(request, car, "isnet-general") };
+});
+
+async function openLab(page: Page, run: Run | undefined) {
+  if (!run) throw new Error("run the prepare step first");
+  await page.goto(`/ai-lab?asset=${run.asset}&result=${run.result}`);
+  await expect(page.getByText("After", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.waitForTimeout(1500);
+}
+
+test("ai lab, compare @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openLab(page, runs.pier);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: `${OUT}/ailab-compare.png` });
+});
+
+test("ai lab, models @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openLab(page, runs.pier);
+  await page.getByRole("tab", { name: /Models/ }).click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/ailab-models.png` });
+});
+
+test("ai lab, cutout @gallery", async ({ page }) => {
+  await useTheme(page, "light");
+  await openLab(page, runs.car);
+  await page.getByRole("button", { name: "Side by side" }).click();
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${OUT}/ailab-cutout.png` });
 });

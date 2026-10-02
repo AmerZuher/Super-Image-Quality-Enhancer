@@ -12,7 +12,7 @@ test("download a model, upscale an image and compare the result", async ({ page 
   // Download the small fast model from the Models tab (skipped if it is already installed).
   await page.getByRole("tab", { name: /Models/ }).click();
   const card = page.getByTestId("model-realesr-general-x4v3");
-  const download = card.getByRole("button", { name: /Download Real-ESRGAN General v3/ });
+  const download = card.getByRole("button", { name: /(Download|Retry downloading) Real-ESRGAN General v3/ });
   if (await download.isVisible()) await download.click();
   await expect(card.getByText("Installed")).toBeVisible({ timeout: 300_000 });
 
