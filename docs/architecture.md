@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phases 0 (foundation), 1 (Studio) and 2 (AI Lab) implemented. Living document, v3. |
+| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab) and 3 (Library) implemented. Living document, v3. |
 | **Updated** | 2 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
@@ -97,6 +97,7 @@ Measured in Phase 0: a job runs API → Temporal → CPU worker → GPU worker i
 - **ONNX Runtime** (CPU) runs ISNet background removal on the CPU worker. Bring-your-own `.onnx` models come later.
 - **SIQE Classic**: your `v10.h5` (in git history at commit `588eb10`) is downloaded from that commit, converted with `h5py` to safetensors, and run by a PyTorch port of the network. TensorFlow isn't needed: a test checks the port against an independent numpy implementation of the Keras graph.
 - **Face restoration**: our own RetinaFace implementation loads the facexlib detector weights; faces are aligned to the FFHQ template, restored with GFPGAN v1.4 and blended back (section 5.4).
+- **Library search**: OpenCLIP ViT-B/32 runs in numpy (`siqe.ai.clip`) on the CPU worker and in the API, so searching never waits for the GPU worker. Its checkpoint is read without torch by a restricted unpickler (`siqe.ai.pth`) and stored as float16 safetensors (section 4.5, [ADR 0007](adr/0007-library-search-and-duplicates.md)).
 
 The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-256 and allows only MIT, BSD-3-Clause and Apache-2.0 licenses. All sources are GitHub release assets. Details and trade-offs: [ADR 0006](adr/0006-ai-models-and-runs.md).
 
@@ -108,6 +109,7 @@ The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-2
 | SCUNet | Denoise | Apache-2.0 |
 | ISNet | Background removal | Apache-2.0 |
 | GFPGAN v1.4 + RetinaFace | Face restoration | Apache-2.0 + MIT |
+| CLIP ViT-B/32 (OpenCLIP, LAION-400M) | Library search, similar images, automatic tags | MIT |
 
 ### 3.5 Versions in use
 
@@ -138,7 +140,7 @@ PostgreSQL is the only stateful service. SQLite remains an option for a future s
 
 ### 4.2 Schema
 
-Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2). Later phases add the rest.
+Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3). Later phases add the rest.
 
 ```mermaid
 erDiagram
@@ -207,6 +209,28 @@ flowchart LR
 The browser redraws on every slider move; the export workflow streams the same formulas through libvips. A shared fixture keeps them identical, and a Playwright test runs the actual shader on the GPU against it. Details and trade-offs: [ADR 0005](adr/0005-edit-documents-and-preview.md).
 
 Import (`IngestAssetWorkflow`) makes a thumbnail, a 2048 px preview and a deep-zoom pyramid (510 px WebP tiles) used by the full-resolution inspector. Export (`ExportWorkflow`) checks format limits and free disk before it starts, can aim for a target file size by searching JPEG/WebP/AVIF quality, strips camera data and GPS by default (keeping the colour profile), and can be cancelled mid-encode.
+
+### 4.5 Library
+
+```mermaid
+flowchart LR
+  I[Upload, import folder, AI result] --> G[IngestAssetWorkflow: previews]
+  G -->|signal-with-start| X[LibraryIndexWorkflow]
+  X --> A[Batch of 32: hashes, sharpness, colour, date, GPS]
+  A --> C[CLIP: embedding and automatic tags]
+  C --> X
+  X -->|nothing left| D[Regroup duplicates]
+  Q[Search box] --> T[API: CLIP text vector] --> P[(pgvector HNSW)]
+```
+
+- **Indexing** runs in the background, one indexer at a time, in batches on the CPU worker. Everything is measured from the 2,048 px preview. Bumping `ANALYSIS_VERSION` re-analyses the library.
+- **Search** turns the query into a CLIP vector in the API (the text half of the model, about 250 MB) and ranks by inner product with the mean tag phrase subtracted, which removes each image's bias towards matching any text. Tags and file names that match the query add a bonus. Without CLIP, the box searches names and tags.
+- **Duplicates** are pairs with close perceptual hashes, or with CLIP similarity of at least 0.95 and loosely close hashes; groups are connected components, and the copy to keep is ranked by resolution, sharpness, format and age. Resolving a group moves the others to **quarantine**, which hides images everywhere until they are restored or deleted.
+- **Smart albums** are rule sets (`siqe.library.rules`) compiled to SQL; the filter chips use the same rules.
+- **Location** is removed in place without re-encoding (`siqe.imaging.metadata`); the clean file is a new image and the original goes to quarantine.
+- **The import folder** is mounted read-only into the CPU worker and checked by a Temporal Schedule; files are imported once, after their size and time are stable.
+
+Details and trade-offs: [ADR 0007](adr/0007-library-search-and-duplicates.md).
 
 ---
 
@@ -356,8 +380,8 @@ flowchart LR
 | `temporal` | `temporalio/server:1.32.0` | Orchestration |
 | `temporal-ui` | `temporalio/ui:2.54.1` | Optional (`make ops`), port 8233 |
 | `init` | `siqe-studio-api` | One-shot: Alembic migrations and Temporal namespace |
-| `api` | `siqe-studio-api` (537 MB) | REST, WebSocket events, OpenAPI |
-| `worker` | `siqe-studio-api` | All workflows plus CPU activities |
+| `api` | `siqe-studio-api` (537 MB) | REST, WebSocket events, OpenAPI, Library text search |
+| `worker` | `siqe-studio-api` | All workflows plus CPU activities, Library indexing; mounts the import folder read-only |
 | `worker-gpu` | `siqe-studio-ai` (9.3 GB, CUDA PyTorch) | GPU activities, one at a time |
 | `web` | `siqe-studio-web` (94 MB) | Caddy with the built SPA, port 8080 on 127.0.0.1 |
 
@@ -383,7 +407,8 @@ flowchart LR
 │   │   ├── activities/      everything that touches the outside world
 │   │   ├── jobs/            job records and throttled progress reporting
 │   │   ├── workers/         worker processes and heartbeats
-│   │   ├── ai/              devices, OOM handling (governor, tiling, registry from Phase 2)
+│   │   ├── ai/              model catalog, downloads, tiling, memory governor, CLIP in numpy
+│   │   ├── library/         analysis, duplicates, rules, search, import folder
 │   │   ├── system/          container-aware CPU, memory and disk readings
 │   │   ├── updates/         GitHub release checks for the Update Center
 │   │   └── cli/             the `siqe` command
@@ -396,6 +421,7 @@ flowchart LR
 │   ├── src/lib/             API client (generated types), events, stores, formatting
 │   └── e2e/                 Playwright tests and gallery capture
 ├── deploy/                  Caddyfile, Temporal dynamic config and schema script
+├── import/                  the Library's import folder (created by `make env`, not in git)
 ├── docs/                    architecture, ADRs, robustness, brand, research, plan pages
 ├── gallery/                 README screenshots (`make gallery`)
 ├── samples/                 demo and test images
@@ -427,7 +453,8 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 - Containers run as a non-root user with memory limits.
 - Release notes render without raw HTML.
 - Uploads are identified by reading the file header, never by extension or client type, and stored under hash-based paths; user file names never become paths. Deep-zoom paths are resolved inside the image's folder only.
-- Exports strip camera data and GPS location by default.
+- Exports strip camera data and GPS location by default. The Library can remove location from originals without re-encoding.
+- The import folder is mounted read-only; SIQE Studio copies files in and never changes the originals.
 - From later phases: hashed API keys and `weights_only=True` for `.pth` files.
 - CI runs a Trivy scan of the API image. Dependabot watches uv, npm, Docker and Actions. pnpm's minimum-release-age check stays on.
 
@@ -440,8 +467,8 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P0 Foundation** | Repo restructure, backend and frontend skeletons, Temporal pipeline, live events, Overview with hardware and self-test, Update Center, Compose stack, CI and release workflows, AGENTS.md, README, gallery | **Done** |
 | **P1 Studio and storage** | Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks | **Done** |
 | **P2 AI Lab and governor** | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, denoise, full-resolution compare | **Done** (erase, colorize, deblur and bring-your-own ONNX moved to P6: their weights are on Hugging Face, which this build environment can't reach) |
-| P3 Library | Import and hot folders, hashing and embeddings, duplicates with quarantine, similar and text search, smart albums, EXIF and GPS tools | Next |
-| P4 Flows | Node editor, batch runs with paged child workflows, recipes, API keys, `siqe` CLI commands | |
+| **P3 Library** | Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal | **Done** (face-based albums need face detection on the GPU queue; they move to P4) |
+| P4 Flows | Node editor, batch runs with paged child workflows, recipes, API keys, `siqe` CLI commands, face-based album rules | Next |
 | P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | |
 | P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX, final docs and gallery, `docker compose up` verified on your PC | |
 

@@ -1,6 +1,6 @@
 # Robustness: limits, error codes and fallbacks
 
-The rules every feature follows so SIQE Studio degrades instead of crashing. Design rationale is in [architecture.md](architecture.md#5-robustness-and-resource-safety). Items marked **(P0)**, **(P1)** or **(P2)** exist today; the rest arrive with the phase noted.
+The rules every feature follows so SIQE Studio degrades instead of crashing. Design rationale is in [architecture.md](architecture.md#5-robustness-and-resource-safety). Items marked **(P0)** to **(P3)** exist today; the rest arrive with the phase noted.
 
 ## Limits
 
@@ -17,7 +17,15 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Uploads and exports paused below | 5% free disk (`min_free_disk_ratio`) | Filling the disk completely **(P1)** |
 | Output dimensions | JPEG 65,535 px, WebP 16,383 px, AVIF 16,384 px per side | Encoders failing late on oversized output **(P1)** |
 | Abandoned temporary files | Removed after 6 hours when the CPU worker starts | Crashed uploads and exports leaking disk **(P1)** |
-| Container memory caps | api 1 GB, worker 4 GB, worker-gpu 12 GB, db 1 GB | One process taking the whole machine down **(P0)** |
+| Container memory caps | api 1.5 GB, worker 4 GB, worker-gpu 12 GB, db 1 GB | One process taking the whole machine down **(P0)**; the API's cap rose in P3 to hold the search model's text half (about 250 MB) |
+| `SIQE_IMPORT_SCAN_SECONDS` | 60 (minimum 10, 0 turns it off) | Checking the import folder too often **(P3)** |
+| `SIQE_IMPORT_SETTLE_SECONDS` | 15 | Importing a file that is still being copied: it must be unchanged this long **(P3)** |
+| Import folder | Mounted read-only; files are copied in, never moved or deleted; one scan at a time (database advisory lock); at most 100 imports per scan page | Damaging the user's originals, or two scans importing the same file **(P3)** |
+| Library indexing | Batches of 32 images on the CPU worker; one indexer at a time (fixed workflow id); history restarts after 300 batches | A large import monopolising the CPU worker or Temporal history **(P3)** |
+| Duplicate grouping | Pairs compared in blocks of 256 rows with 64-bit popcounts | Quadratic memory on large libraries **(P3)** |
+| Search model memory | The API reads only the text half of CLIP, tensor by tensor; the worker loads it once per process | Running out of memory while loading **(P3)** |
+| Text search results | Only images within 0.08 of the best match and above 0.08 overall (bias-corrected score) | A nonsense query returning the whole library **(P3)** |
+| Smart album rules | At most 20 rules; every field and operator is validated; user text is escaped before `LIKE` | SQL injection and runaway queries **(P3)** |
 | PostgreSQL connections | 200, Temporal capped at 10 per store | Connection exhaustion **(P0)** |
 | Event payload | 7,900 bytes; larger events become refetch pointers | NOTIFY's 8,000-byte limit **(P0)** |
 | WebSocket queue per browser | 500 events, oldest dropped | A slow or backgrounded tab growing server memory **(P0)** |
@@ -60,6 +68,15 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `model.checksum_mismatch` | n/a (job error) | The downloaded file didn't match its published SHA-256 and was deleted | P2 |
 | `model.load_failed` | n/a (job error) | The weights couldn't be loaded safely (for example a pickle with code in it) | P2 |
 | `ai.output_too_large` | 422 | The result would exceed `SIQE_MAX_OUTPUT_MEGAPIXELS` | P2 |
+| `model.not_runnable` | 422 | Running the search model (CLIP) as an AI Lab job; it only powers the Library | P3 |
+| `library.invalid_rules` | 422 | A filter or album rule with an unknown field, a wrong operator or a value of the wrong type | P3 |
+| `library.not_indexed` | 409 | "Find similar" on an image that hasn't been analysed by the search model yet | P3 |
+| `library.no_location` | 422 | Removing location from images that have none | P3 |
+| `library.location_not_removed` | n/a (per image in the job result) | The file keeps GPS data where it can't be removed without re-encoding; export it instead | P3 |
+| `album.not_found` | 404 | No album with that id | P3 |
+| `album.not_smart` | 422 | Setting rules on a hand-picked album | P3 |
+| `album.not_manual` | 422 | Adding images by hand to a smart album | P3 |
+| `import.unreadable` | n/a (shown in the import folder card) | A file in the import folder couldn't be read | P3 |
 
 ## Fallbacks
 
@@ -74,6 +91,11 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Live event stream down | The browser reconnects with backoff and falls back to polling every 3 to 5 seconds **(P0)** |
 | GitHub unreachable | The Update Center shows the last known releases and says the check failed **(P0)** |
 | Model weights missing | AI Lab shows a Download button; runs are refused with `model.not_installed` before queuing **(P2)** |
+| Search model not installed | Library filters, duplicates (by hash) and name and tag search still work; a banner offers the download **(P3)** |
+| Library indexing interrupted | The next batch picks up every image that isn't analysed yet; the worker requests a pass at start-up **(P3)** |
+| An image fails analysis | It is marked analysed so the batch moves on; the error is logged **(P3)** |
+| Import folder missing | The scan records it and the Library says "Folder not found"; nothing else is affected **(P3)** |
+| Disk nearly full during an import | The scan stops before copying more; the remaining files wait for the next check **(P3)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
 ## Input edge cases (P1 and P2)
@@ -92,5 +114,9 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Extreme aspect ratios | The tiler handles any shape **(P2)** |
 | Y-channel models on RGB | Correct YCbCr conversion; chroma upscaled with Lanczos (SIQE Classic) **(P2)** |
 | NaN or out-of-range model output | Replaced and clamped; the count is shown on the job **(P2)** |
-| Same file uploaded twice | Recognised by SHA-256; the existing image is returned with `duplicate: true` **(P1)** |
-| Half-copied files in hot folders | Picked up only after the size is stable for 2 seconds |
+| Same file uploaded twice | Recognised by SHA-256; the existing image is returned with `duplicate: true` **(P1)**; from the import folder it is recorded as a duplicate **(P3)** |
+| Half-copied files in the import folder | Imported only when size and modification time have been unchanged for `SIQE_IMPORT_SETTLE_SECONDS` **(P3)** |
+| Resized, recompressed or lightly edited copies | Grouped as near-duplicates by perceptual hash, or by CLIP similarity with loosely matching hashes; the largest, sharpest, least compressed copy is kept **(P3)** |
+| Abstract images (gradients, colour fields) | Not grouped on CLIP similarity alone, which rates them alike **(P3)** |
+| Featureless images (a flat colour) | Get no automatic tags **(P3)** |
+| GPS in EXIF and XMP (JPEG, PNG, WebP, TIFF, HEIC) | Removed in place without changing the file length or pixels; PNG checksums are recomputed **(P3)** |
