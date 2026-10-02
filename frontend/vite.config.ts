@@ -23,6 +23,8 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    // Never inline assets as data: URLs; Caddy's CSP only allows fonts and images from 'self'.
+    assetsInlineLimit: 0,
     // Served from the user's own machine, so a ~190 kB gzipped entry is fine; revisit when
     // the heavy workspaces (Studio, Forge) land and get route-level code splitting.
     chunkSizeWarningLimit: 800,
