@@ -3,7 +3,7 @@
 # Builds the SPA and serves it with Caddy, which also proxies /api to the backend.
 # Build context is the repository root (it needs deploy/caddy/Caddyfile).
 
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
