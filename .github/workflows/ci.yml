@@ -38,6 +38,41 @@ jobs:
           diff -u ../frontend/openapi.json /tmp/openapi.json || {
             echo "::error::frontend/openapi.json is stale. Run 'make gen-api' and commit the result."; exit 1; }
 
+  backend-ai:
+    name: Backend AI (PyTorch tests with real model weights)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SIQE_TEST_MODELS: /tmp/models
+    steps:
+      - name: Free disk space for PyTorch
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          tool-cache: false
+          large-packages: false
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --extra ai
+      - name: Download small test weights (checksums from the manifest)
+        run: |
+          mkdir -p /tmp/models
+          uv run python - <<'PY'
+          import hashlib, urllib.request
+          from siqe.ai.manifest import MODELS_BY_ID
+          for model_id in ("realesr-general-x4v3", "siqe-classic"):
+              f = MODELS_BY_ID[model_id].files[0]
+              data = urllib.request.urlopen(f.url).read()
+              assert hashlib.sha256(data).hexdigest() == f.sha256, f.name
+              open(f"/tmp/models/{f.name}", "wb").write(data)
+          PY
+      - run: uv run pytest tests/unit/test_ai_torch.py tests/unit/test_faces.py tests/unit/test_tiling.py -v
+
   frontend:
     name: Frontend (lint, types, unit tests, build)
     runs-on: ubuntu-latest
@@ -62,7 +97,7 @@ jobs:
 
   stack:
     name: Full stack (Docker Compose, integration and browser tests)
-    needs: [backend, frontend]
+    needs: [backend, backend-ai, frontend]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
