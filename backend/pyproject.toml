@@ -25,12 +25,18 @@ dependencies = [
   "typer>=0.27",
   "pyvips[binary]>=3.2",
   "pillow>=12.3",
+  "numpy>=2.5",
+  "h5py>=3.16",
+  "safetensors>=0.8",
+  "onnxruntime>=1.30",
 ]
 
 [project.optional-dependencies]
 # GPU / AI worker image only. The API image stays small without these.
 ai = [
   "torch>=2.14",
+  "torchvision>=0.29",
+  "spandrel>=0.4.2",
   "nvidia-ml-py>=13.615",
 ]
 
@@ -63,8 +69,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "S", "SIM", "RUF", "PTH"]
-# RUF001/RUF002: "×" is intentional in user-facing sizes such as "7680 × 4320".
-ignore = ["S101", "S311", "RUF012", "B008", "RUF001", "RUF002"]
+# RUF001-RUF003: "×" is intentional in sizes such as "7680 × 4320", in copy and comments.
+ignore = ["S101", "S311", "RUF012", "B008", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "PTH"]
@@ -78,8 +84,14 @@ mypy_path = "src"
 packages = ["siqe"]
 
 [[tool.mypy.overrides]]
-module = ["pyvips.*", "torch.*", "pynvml.*", "asyncpg.*"]
+module = ["pyvips.*", "torch.*", "pynvml.*", "asyncpg.*", "spandrel.*", "h5py.*", "onnxruntime.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# torch is only installed in the ai image; its nn.Module is Any to mypy elsewhere.
+module = ["siqe.ai.archs.*", "siqe.ai.runtime"]
+disallow_subclassing_any = false
+warn_return_any = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

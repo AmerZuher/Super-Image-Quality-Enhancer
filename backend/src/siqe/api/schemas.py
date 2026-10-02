@@ -99,6 +99,8 @@ class AssetOut(BaseModel):
     preview_url: str | None
     dzi_url: str | None
     original_url: str
+    parent_id: str | None = Field(default=None, description="The image this one was made from by an AI run.")
+    derivation: dict[str, Any] | None = Field(default=None, description="How an AI result was made.")
 
 
 class UploadOut(BaseModel):
@@ -201,3 +203,36 @@ class RenditionOut(BaseModel):
 class ExportStartOut(BaseModel):
     job: JobOut
     rendition: RenditionOut
+
+
+ModelStatusName = Literal["available", "downloading", "installed", "failed"]
+ModelTask = Literal["upscale", "denoise", "background", "face"]
+
+
+class ModelOut(BaseModel):
+    id: str
+    name: str
+    task: ModelTask
+    task_label: str
+    arch: str
+    scale: int
+    summary: str
+    license: str
+    license_url: str
+    homepage: str
+    size_bytes: int
+    channels: Literal["rgb", "y"]
+    speed: Literal["fast", "balanced", "slow"]
+    recommended: bool
+    tags: list[str]
+    status: ModelStatusName
+    job_id: str | None
+    error: dict[str, Any] | None
+    installed_at: str | None
+    runs: int
+    calibrated: list[str] = Field(description="Devices this model has measured its memory use on.")
+
+
+class ModelInstallOut(BaseModel):
+    model: ModelOut
+    job: JobOut | None = Field(description="The download job; null when the model was already installed.")

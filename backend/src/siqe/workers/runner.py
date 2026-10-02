@@ -17,6 +17,7 @@ from temporalio.worker import Worker
 
 from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
 from siqe.activities.jobs import update_job
+from siqe.activities.models import install_model, mark_model_failed
 from siqe.activities.selftest import cpu_probe, gpu_probe
 from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE, get_settings
 from siqe.core.logging import configure_logging, get_logger
@@ -26,11 +27,12 @@ from siqe.storage.store import get_store
 from siqe.system.resources import cpu_info
 from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
+from siqe.workflows.models import ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
 
 log = get_logger(__name__)
 
-WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow]
+WORKFLOWS = [SelfTestWorkflow, IngestAssetWorkflow, ExportWorkflow, ModelInstallWorkflow]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
     cpu_probe,
@@ -38,6 +40,8 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     export_rendition,
     mark_asset_failed,
     mark_rendition_failed,
+    install_model,
+    mark_model_failed,
 ]
 GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe]
 

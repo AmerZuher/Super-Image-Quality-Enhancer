@@ -13,7 +13,12 @@ from siqe.core.logging import get_logger
 
 log = get_logger(__name__)
 
-_OOM_MARKERS = ("out of memory", "failed to allocate memory", "cudnn_status_alloc_failed")
+_OOM_MARKERS = (
+    "out of memory",
+    "failed to allocate memory",
+    "can't allocate memory",
+    "cudnn_status_alloc_failed",
+)
 
 
 class InsufficientMemoryError(RuntimeError):

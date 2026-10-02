@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
-from siqe.api.routes import assets, events, health, jobs, system, updates
+from siqe.api.routes import assets, events, health, jobs, models, system, updates
 from siqe.core.config import get_settings
 from siqe.core.errors import register_error_handlers
 from siqe.core.logging import configure_logging, get_logger
@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
 
     api = APIRouter(prefix="/api")
-    for module in (health, system, jobs, assets, updates, events):
+    for module in (health, system, jobs, assets, models, updates, events):
         api.include_router(module.router)
     app.include_router(api)
     return app

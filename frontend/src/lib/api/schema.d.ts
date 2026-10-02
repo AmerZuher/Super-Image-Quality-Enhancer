@@ -333,6 +333,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The model catalog and what is installed */
+        get: operations["list_models_api_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{model_id}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download, verify and install a model
+         * @description Idempotent: an installed model returns with `job: null`; a download in progress returns its job.
+         */
+        post: operations["install_model_api_models__model_id__install_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{model_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a model's downloaded files */
+        delete: operations["remove_model_api_models__model_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/updates": {
         parameters: {
             query?: never;
@@ -408,6 +462,18 @@ export interface components {
             dzi_url: string | null;
             /** Original Url */
             original_url: string;
+            /**
+             * Parent Id
+             * @description The image this one was made from by an AI run.
+             */
+            parent_id?: string | null;
+            /**
+             * Derivation
+             * @description How an AI result was made.
+             */
+            derivation?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** CatalogOut */
         CatalogOut: {
@@ -551,6 +617,74 @@ export interface components {
             started_at: string | null;
             /** Finished At */
             finished_at: string | null;
+        };
+        /** ModelInstallOut */
+        ModelInstallOut: {
+            model: components["schemas"]["ModelOut"];
+            /** @description The download job; null when the model was already installed. */
+            job: components["schemas"]["JobOut"] | null;
+        };
+        /** ModelOut */
+        ModelOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Task
+             * @enum {string}
+             */
+            task: "upscale" | "denoise" | "background" | "face";
+            /** Task Label */
+            task_label: string;
+            /** Arch */
+            arch: string;
+            /** Scale */
+            scale: number;
+            /** Summary */
+            summary: string;
+            /** License */
+            license: string;
+            /** License Url */
+            license_url: string;
+            /** Homepage */
+            homepage: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Channels
+             * @enum {string}
+             */
+            channels: "rgb" | "y";
+            /**
+             * Speed
+             * @enum {string}
+             */
+            speed: "fast" | "balanced" | "slow";
+            /** Recommended */
+            recommended: boolean;
+            /** Tags */
+            tags: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "downloading" | "installed" | "failed";
+            /** Job Id */
+            job_id: string | null;
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /** Installed At */
+            installed_at: string | null;
+            /** Runs */
+            runs: number;
+            /**
+             * Calibrated
+             * @description Devices this model has measured its memory use on.
+             */
+            calibrated: string[];
         };
         /** OpEntryIn */
         OpEntryIn: {
@@ -1403,6 +1537,86 @@ export interface operations {
             header?: never;
             path: {
                 rendition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_models_api_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelOut"][];
+                };
+            };
+        };
+    };
+    install_model_api_models__model_id__install_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelInstallOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_model_api_models__model_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
             };
             cookie?: never;
         };

@@ -40,6 +40,8 @@ def asset_to_dict(asset: Asset) -> dict[str, Any]:
         "preview_url": f"{base}/preview" if ready else None,
         "dzi_url": f"{base}/dz/image.dzi" if ready else None,
         "original_url": f"{base}/original",
+        "parent_id": str(asset.parent_id) if asset.parent_id else None,
+        "derivation": asset.derivation,
     }
 
 

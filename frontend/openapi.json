@@ -862,6 +862,109 @@
         }
       }
     },
+    "/api/models": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "The model catalog and what is installed",
+        "operationId": "list_models_api_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Models Api Models Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{model_id}/install": {
+      "post": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Download, verify and install a model",
+        "description": "Idempotent: an installed model returns with `job: null`; a download in progress returns its job.",
+        "operationId": "install_model_api_models__model_id__install_post",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInstallOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{model_id}": {
+      "delete": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Remove a model's downloaded files",
+        "operationId": "remove_model_api_models__model_id__delete",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/updates": {
       "get": {
         "tags": [
@@ -1050,6 +1153,31 @@
           "original_url": {
             "type": "string",
             "title": "Original Url"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "The image this one was made from by an AI run."
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derivation",
+            "description": "How an AI result was made."
           }
         },
         "type": "object",
@@ -1430,6 +1558,193 @@
           "finished_at"
         ],
         "title": "JobOut"
+      },
+      "ModelInstallOut": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ModelOut"
+          },
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The download job; null when the model was already installed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "job"
+        ],
+        "title": "ModelInstallOut"
+      },
+      "ModelOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "task": {
+            "type": "string",
+            "enum": [
+              "upscale",
+              "denoise",
+              "background",
+              "face"
+            ],
+            "title": "Task"
+          },
+          "task_label": {
+            "type": "string",
+            "title": "Task Label"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "scale": {
+            "type": "integer",
+            "title": "Scale"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "license": {
+            "type": "string",
+            "title": "License"
+          },
+          "license_url": {
+            "type": "string",
+            "title": "License Url"
+          },
+          "homepage": {
+            "type": "string",
+            "title": "Homepage"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "channels": {
+            "type": "string",
+            "enum": [
+              "rgb",
+              "y"
+            ],
+            "title": "Channels"
+          },
+          "speed": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "balanced",
+              "slow"
+            ],
+            "title": "Speed"
+          },
+          "recommended": {
+            "type": "boolean",
+            "title": "Recommended"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "downloading",
+              "installed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "installed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installed At"
+          },
+          "runs": {
+            "type": "integer",
+            "title": "Runs"
+          },
+          "calibrated": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Calibrated",
+            "description": "Devices this model has measured its memory use on."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "task",
+          "task_label",
+          "arch",
+          "scale",
+          "summary",
+          "license",
+          "license_url",
+          "homepage",
+          "size_bytes",
+          "channels",
+          "speed",
+          "recommended",
+          "tags",
+          "status",
+          "job_id",
+          "error",
+          "installed_at",
+          "runs",
+          "calibrated"
+        ],
+        "title": "ModelOut"
       },
       "OpEntryIn": {
         "properties": {

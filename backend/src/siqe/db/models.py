@@ -110,6 +110,11 @@ class Asset(TimestampMixin, Base):
     preview_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
     edits: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     edits_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set when this image was made from another one by an AI run.
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    derivation: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class RenditionStatus(enum.StrEnum):
@@ -144,3 +149,30 @@ class Rendition(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=utcnow
     )
+
+
+class ModelStatus(enum.StrEnum):
+    downloading = "downloading"
+    installed = "installed"
+    failed = "failed"
+
+
+class AiModel(TimestampMixin, Base):
+    """Install state of a catalog model (siqe.ai.manifest) and what was learned running it."""
+
+    __tablename__ = "ai_models"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    status: Mapped[ModelStatus] = mapped_column(_enum(ModelStatus, "model_status"))
+    bytes_done: Mapped[int] = mapped_column(BigInteger, default=0)
+    bytes_total: Mapped[int] = mapped_column(BigInteger, default=0)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    installed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Per device ("cuda:<name>" or "cpu"): memory line from siqe.ai.governor.Calibration.
+    calibration: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    # Per device: the tile and batch that last worked, after any fallback.
+    last_settings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    runs: Mapped[int] = mapped_column(Integer, default=0)
