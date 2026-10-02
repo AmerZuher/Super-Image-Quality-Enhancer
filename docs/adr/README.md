@@ -13,3 +13,4 @@ One short file per decision that shapes the codebase. Add a new record (next num
 | [0007](0007-library-search-and-duplicates.md) | Library: background indexing, CLIP in numpy, duplicates by hash and embedding, quarantine | Accepted |
 | [0008](0008-flows-and-api-keys.md) | Flows as block documents, one child workflow per image, optional API keys | Accepted |
 | [0009](0009-forge.md) | Forge: graphs checked without PyTorch, training in GPU chunks, models published as files | Accepted |
+| [0010](0010-model-packages.md) | Model packages: multi-file models installed by a workflow, with opt-in personal-use licences | Proposed |

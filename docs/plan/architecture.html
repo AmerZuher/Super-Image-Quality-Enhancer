@@ -600,6 +600,8 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <li><strong>Publishing</strong> scores the best checkpoint on the held-out crops and copies it, with a <code>forge.json</code> descriptor, to the models folder. The registry merges these into the catalog, and AI Lab and Flows run them through the usual tiled pipeline.</li>
 </ul>
 <p>Details and trade-offs: <a href="adr/0009-forge.md">ADR 0009</a>.</p>
+<h3 id="48-model-packages-planned-phase-7">4.8 Model packages (planned, Phase 7)</h3>
+<p>Generation models (a 7B to 20B transformer, an 8B text encoder and a VAE, 15 to 60 GB) arrive as <strong>packages</strong>: catalog entries of pinned components with precision variants, installed by <code>PackageInstallWorkflow</code> (preflight checks for disk, GPU memory and licence, resumable verified downloads, a smoke test) and run by <code>GenerateWorkflow</code> on the GPU queue, one component in memory at a time. Packages with a personal-use licence, such as Qwen-Image-2.1, install only after you accept the licence and are labelled wherever they are used. Plan, prerequisites and steps: <a href="plan/phase7-model-packages.md">plan/phase7-model-packages.md</a>; decision: <a href="adr/0010-model-packages.md">ADR 0010</a> (proposed).</p>
 <hr />
 <h2 id="5-robustness-and-resource-safety">5. Robustness and resource safety</h2>
 <p>The rules and current limits are listed in <a href="robustness.md">docs/robustness.md</a>. The design:</p>
@@ -908,6 +910,11 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <td>P6 Hardening</td>
 <td>8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, <code>docker compose up</code> verified on your PC</td>
 <td>Next</td>
+</tr>
+<tr>
+<td>P7 Model packages</td>
+<td>Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, <code>/api/generate</code> and <code>siqe generate</code></td>
+<td>Planned: <a href="plan/phase7-model-packages.md">plan</a>, <a href="adr/0010-model-packages.md">ADR 0010</a> (proposed)</td>
 </tr>
 </tbody>
 </table></div>

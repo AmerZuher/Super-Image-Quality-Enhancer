@@ -287,6 +287,10 @@ flowchart LR
 
 Details and trade-offs: [ADR 0009](adr/0009-forge.md).
 
+### 4.8 Model packages (planned, Phase 7)
+
+Generation models (a 7B to 20B transformer, an 8B text encoder and a VAE, 15 to 60 GB) arrive as **packages**: catalog entries of pinned components with precision variants, installed by `PackageInstallWorkflow` (preflight checks for disk, GPU memory and licence, resumable verified downloads, a smoke test) and run by `GenerateWorkflow` on the GPU queue, one component in memory at a time. Packages with a personal-use licence, such as Qwen-Image-2.1, install only after you accept the licence and are labelled wherever they are used. Plan, prerequisites and steps: [plan/phase7-model-packages.md](plan/phase7-model-packages.md); decision: [ADR 0010](adr/0010-model-packages.md) (proposed).
+
 ---
 
 ## 5. Robustness and resource safety
@@ -531,5 +535,6 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P4 Flows** | Node editor, batch runs with paged child workflows, dry runs, recipes, folder watching, API keys and optional sign-in, `siqe` CLI commands, face counts and face rules | **Done** |
 | **P5 Forge** | Visual builder, shape checker with fixes, graph-to-PyTorch compiler, dataset builder with a damage preview, chunked and resumable training, live charts, publish to AI Lab | **Done** (ONNX export moves to P6, with bring-your-own ONNX) |
 | P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | Next |
+| P7 Model packages | Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, `/api/generate` and `siqe generate` | Planned: [plan](plan/phase7-model-packages.md), [ADR 0010](adr/0010-model-packages.md) (proposed) |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.
