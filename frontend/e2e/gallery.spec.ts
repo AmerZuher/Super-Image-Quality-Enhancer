@@ -2,10 +2,12 @@
  * Captures the README screenshots into ../gallery. Run with `make gallery` (stack must be up).
  * File names are stable so the README never needs editing when screenshots are refreshed.
  */
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { expect, type Page, test } from "@playwright/test";
+import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
 
 const OUT = fileURLToPath(new URL("../../gallery", import.meta.url));
+const SAMPLES = fileURLToPath(new URL("../../samples", import.meta.url));
 
 async function useTheme(page: Page, theme: "dark" | "light") {
   await page.addInitScript((t) => {
@@ -49,7 +51,7 @@ const EXAMPLE_UPDATE = {
       version: "0.2.0",
       name: "Studio",
       notes:
-        "## New\n- **Studio workspace**: non-destructive edit stack with live GPU preview\n- Curves, levels, HSL and `.cube` LUT import\n- Compare viewer with slider, split and difference modes\n\n## Fixed\n- Self-test no longer waits forever when the GPU worker restarts mid-run",
+        "## New\n- **Studio**: non-destructive editing with a live GPU preview\n- Crop, rotate and flip with aspect presets\n- Compare with split, side-by-side and difference views\n- Export to JPEG, PNG, WebP, AVIF or TIFF with a target file size\n\n## Fixed\n- Self-test no longer waits forever when the GPU worker restarts mid-run",
       url: "https://github.com/AmerZuher/Super-Image-Quality-Enhancer/releases/tag/v0.2.0",
       published_at: "2026-10-20T09:00:00Z",
       prerelease: false,
@@ -104,5 +106,117 @@ test("overview on a phone @gallery", async ({ browser }) => {
   await expect(page.getByText(/MP in .* s/)).toBeVisible({ timeout: 30_000 });
   await settle(page);
   await page.screenshot({ path: `${OUT}/overview-phone.png` });
+  await context.close();
+});
+
+// ---------------------------------------------------------------------------------- Studio
+
+let studioAsset = "";
+
+async function waitForJob(request: APIRequestContext, id: string) {
+  await expect
+    .poll(async () => (await (await request.get(`/api/jobs/${id}`)).json()).state, { timeout: 120_000 })
+    .toBe("succeeded");
+}
+
+async function upload(request: APIRequestContext, name: string): Promise<string> {
+  const response = await request.post(`/api/assets?filename=${encodeURIComponent(name)}`, {
+    data: readFileSync(`${SAMPLES}/${name}`),
+    headers: { "Content-Type": "application/octet-stream" },
+  });
+  const body = await response.json();
+  if (body.job) await waitForJob(request, body.job.id);
+  return body.asset.id as string;
+}
+
+test("prepare: images, edits and an export for Studio @gallery", async ({ request }) => {
+  for (const name of ["valley.jpg", "rose-blue.jpg", "teton-reflection.jpg", "moose-lake.jpg"]) {
+    await upload(request, name);
+  }
+  studioAsset = await upload(request, "lake-pier.jpg");
+  // Start the export list clean so the screenshot shows only this run's export.
+  for (const r of await (await request.get(`/api/assets/${studioAsset}/renditions`)).json()) {
+    await request.delete(`/api/renditions/${r.id}`);
+  }
+  const edits = {
+    version: 1,
+    ops: [
+      { id: "exposure", params: { ev: 0.3 } },
+      { id: "highlights", params: { amount: -35 } },
+      { id: "shadows", params: { amount: 30 } },
+      { id: "contrast", params: { amount: 14 } },
+      { id: "vibrance", params: { amount: 28 } },
+      { id: "vignette", params: { amount: -30, midpoint: 0.45 } },
+    ],
+  };
+  expect((await request.put(`/api/assets/${studioAsset}/edits`, { data: edits })).ok()).toBe(true);
+  const started = await (
+    await request.post(`/api/assets/${studioAsset}/exports`, { data: { format: "webp", target_kb: 120 } })
+  ).json();
+  await waitForJob(request, started.job.id);
+});
+
+async function openStudio(page: Page) {
+  await page.goto(`/studio?asset=${studioAsset}`);
+  await expect(page.getByRole("img", { name: "Preview of lake-pier.jpg" })).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+}
+
+test("studio, split compare @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openStudio(page);
+  await page.getByRole("button", { name: "Split", exact: true }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/studio-dark.png` });
+});
+
+test("studio, side by side in light @gallery", async ({ page }) => {
+  await useTheme(page, "light");
+  await openStudio(page);
+  await page.getByRole("button", { name: "Side by side", exact: true }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/studio-light.png` });
+});
+
+test("studio, crop @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openStudio(page);
+  await page.getByRole("tab", { name: "Crop" }).click();
+  await page.getByRole("button", { name: "4:5" }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/studio-crop.png` });
+  // Leave the stored edits as they were.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10_000 });
+});
+
+test("studio, export @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openStudio(page);
+  await page.getByRole("tab", { name: "Export" }).click();
+  await page.getByRole("radio", { name: /WebP/ }).check({ force: true });
+  await expect(page.getByRole("link", { name: "Download" }).first()).toBeVisible();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/studio-export.png` });
+});
+
+test("studio, inspector @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await openStudio(page);
+  await page.keyboard.press("i");
+  const dialog = page.getByRole("dialog", { name: /Inspect/ });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Zoom in" }).click();
+  await dialog.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${OUT}/studio-inspect.png` });
+});
+
+test("studio on a phone @gallery", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await useTheme(page, "dark");
+  await openStudio(page);
+  await page.screenshot({ path: `${OUT}/studio-phone.png` });
   await context.close();
 });

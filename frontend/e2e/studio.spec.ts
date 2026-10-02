@@ -15,6 +15,9 @@ test("upload, edit, crop and export an image in Studio", async ({ page }) => {
   await expect(page.getByRole("img", { name: "Preview of turquoise-lake.jpg" })).toBeVisible({
     timeout: 60_000,
   });
+  // A copy left by an interrupted run may still carry edits: start from the original.
+  const reset = page.getByRole("button", { name: "Reset all" });
+  if (await reset.isEnabled()) await reset.click();
 
   // Adjust: the edit lands in the stack and autosaves.
   await page.getByLabel("Exposure", { exact: true }).fill("0.5");

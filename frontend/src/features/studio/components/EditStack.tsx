@@ -55,21 +55,26 @@ export function EditStack({ specs, size }: { specs: OpSpec[]; size: [number, num
           {geometry.map((row) => (
             <li
               key={row.key}
-              className="flex min-w-0 items-center gap-2 rounded-md border border-line bg-panel-2 px-2 py-1.5 text-[12px] [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-cyan"
+              className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-md border border-line bg-panel-2 py-1 pr-1 pl-2 text-[12px] [&>svg]:size-3.5 [&>svg]:text-cyan"
             >
               {row.icon}
-              <span className="min-w-0 flex-1 truncate text-fg">{row.label}</span>
-              <span className="font-mono text-[10.5px] text-muted">{row.detail}</span>
-              {row.clear && (
+              <span className="truncate text-fg">{row.label}</span>
+              {row.clear ? (
                 <button
                   type="button"
                   onClick={() => update(`Remove ${row.label.toLowerCase()}`, row.clear as (d: Doc) => Doc)}
-                  className="grid size-5 place-items-center rounded text-muted hover:bg-raised hover:text-fg"
+                  className="grid size-6 place-items-center rounded text-muted hover:bg-raised hover:text-fg"
                   aria-label={`Remove ${row.label.toLowerCase()}`}
+                  title="Remove"
                 >
-                  <X className="size-3" />
+                  <X className="size-3.5" />
                 </button>
+              ) : (
+                <span className="size-6" />
               )}
+              <span className="col-start-2 col-end-4 truncate font-mono text-[10.5px] text-muted">
+                {row.detail}
+              </span>
             </li>
           ))}
           {doc.ops.map((e) => {

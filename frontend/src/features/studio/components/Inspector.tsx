@@ -22,12 +22,16 @@ export function Inspector({ asset, onClose }: { asset: Asset; onClose: () => voi
     void import("openseadragon")
       .then(({ default: OSD }) => {
         if (disposed) return;
+        const token = (name: string) => getComputedStyle(element).getPropertyValue(name).trim();
         const v = OSD({
           element,
           tileSources: asset.dzi_url ?? undefined,
           showNavigationControl: false,
           showNavigator: true,
           navigatorPosition: "BOTTOM_RIGHT",
+          navigatorBackground: token("--panel"),
+          navigatorBorderColor: token("--line-2"),
+          navigatorDisplayRegionColor: token("--cyan"),
           maxZoomPixelRatio: 8,
           visibilityRatio: 0.5,
           gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true },
