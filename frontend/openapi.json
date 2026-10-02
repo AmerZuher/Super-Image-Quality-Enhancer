@@ -2492,6 +2492,1084 @@
         }
       }
     },
+    "/api/forge/catalog": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Every block a model can use",
+        "operationId": "forge_catalog_api_forge_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeBlockTypeOut"
+                  },
+                  "type": "array",
+                  "title": "Response Forge Catalog Api Forge Catalog Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/templates": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Ready-made models to start from",
+        "operationId": "forge_templates_api_forge_templates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeTemplateOut"
+                  },
+                  "type": "array",
+                  "title": "Response Forge Templates Api Forge Templates Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/check": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Shapes, problems and costs of a graph",
+        "operationId": "check_graph_api_forge_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeCheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeAnalysis"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/projects": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Your model designs",
+        "operationId": "list_projects_api_forge_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeProjectOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Projects Api Forge Projects Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "New model",
+        "operationId": "create_project_api_forge_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeProjectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "One model design",
+        "operationId": "one_project_api_forge_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Change a model design",
+        "operationId": "update_project_api_forge_projects__project_id__put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeProjectUpdateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Delete a model design (its training runs stay)",
+        "operationId": "delete_project_api_forge_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/projects/{project_id}/duplicate": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Copy a model design",
+        "operationId": "duplicate_project_api_forge_projects__project_id__duplicate_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeProjectOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/projects/{project_id}/code": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "The design as PyTorch code",
+        "operationId": "project_code_api_forge_projects__project_id__code_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeCodeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/datasets": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Training datasets",
+        "operationId": "list_datasets_api_forge_datasets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeDatasetOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Datasets Api Forge Datasets Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Build a dataset from Library images",
+        "operationId": "create_dataset_api_forge_datasets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeDatasetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeDatasetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/datasets/{dataset_id}/degradation": {
+      "put": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Change how training inputs are damaged (no rebuild needed)",
+        "operationId": "set_degradation_api_forge_datasets__dataset_id__degradation_put",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeDegradationIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeDatasetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/datasets/{dataset_id}/rebuild": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Cut the crops again",
+        "operationId": "rebuild_dataset_api_forge_datasets__dataset_id__rebuild_post",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeDatasetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/datasets/{dataset_id}": {
+      "delete": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Delete a dataset and its crops",
+        "operationId": "delete_dataset_api_forge_datasets__dataset_id__delete",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/datasets/{dataset_id}/preview": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Damaged inputs beside their clean crops (PNG)",
+        "operationId": "preview_dataset_api_forge_datasets__dataset_id__preview_get",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "scale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8,
+              "minimum": 1,
+              "default": 2,
+              "title": "Scale"
+            }
+          },
+          {
+            "name": "seed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Seed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/png": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/projects/{project_id}/runs": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Train a model design on a dataset",
+        "operationId": "start_run_api_forge_projects__project_id__runs_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgeRunIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Training runs, newest first",
+        "operationId": "list_runs_api_forge_runs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeRunOut"
+                  },
+                  "title": "Response List Runs Api Forge Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "A run and its charts",
+        "operationId": "one_run_api_forge_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeRunDetailOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Delete a finished run and its checkpoints (published models stay)",
+        "operationId": "delete_run_api_forge_runs__run_id__delete",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/pause": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Pause training (saves a checkpoint)",
+        "operationId": "pause_run_api_forge_runs__run_id__pause_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/resume": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Carry on training",
+        "operationId": "resume_run_api_forge_runs__run_id__resume_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/stop": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Finish now, keeping the best checkpoint so far",
+        "operationId": "stop_run_api_forge_runs__run_id__stop_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/sample": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Bicubic, the model and the original, side by side (PNG)",
+        "operationId": "run_sample_api_forge_runs__run_id__sample_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/weights": {
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "The best checkpoint's weights (safetensors), for the generated code",
+        "operationId": "run_weights_api_forge_runs__run_id__weights_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forge/runs/{run_id}/publish": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Score the best checkpoint and add it to AI Lab",
+        "operationId": "publish_to_lab_api_forge_runs__run_id__publish_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgePublishIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgePublishOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/models": {
       "get": {
         "tags": [
@@ -3682,6 +4760,108 @@
         ],
         "title": "CropIn"
       },
+      "DatasetSettings": {
+        "properties": {
+          "crop": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 64.0,
+            "title": "Crop",
+            "description": "Side of each high-resolution crop, in pixels.",
+            "default": 256
+          },
+          "crops_per_image": {
+            "type": "integer",
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Crops Per Image",
+            "default": 8
+          },
+          "min_width": {
+            "type": "integer",
+            "maximum": 20000.0,
+            "minimum": 64.0,
+            "title": "Min Width",
+            "description": "Smaller images are skipped.",
+            "default": 600
+          },
+          "min_height": {
+            "type": "integer",
+            "maximum": 20000.0,
+            "minimum": 64.0,
+            "title": "Min Height",
+            "default": 300
+          },
+          "val_every": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 2.0,
+            "title": "Val Every",
+            "description": "One image in this many is kept for validation.",
+            "default": 10
+          },
+          "max_images": {
+            "type": "integer",
+            "maximum": 20000.0,
+            "minimum": 1.0,
+            "title": "Max Images",
+            "default": 2000
+          }
+        },
+        "type": "object",
+        "title": "DatasetSettings"
+      },
+      "Degradation": {
+        "properties": {
+          "blur": {
+            "$ref": "#/components/schemas/Range",
+            "description": "Gaussian blur sigma, in pixels; 0 is off.",
+            "default": {
+              "low": 0.2,
+              "high": 1.5
+            }
+          },
+          "noise": {
+            "$ref": "#/components/schemas/Range",
+            "description": "Noise sigma on a 0 to 255 scale.",
+            "default": {
+              "low": 0.0,
+              "high": 8.0
+            }
+          },
+          "jpeg": {
+            "$ref": "#/components/schemas/Range",
+            "description": "JPEG quality; 100 skips compression.",
+            "default": {
+              "low": 60.0,
+              "high": 95.0
+            }
+          },
+          "blur_chance": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Blur Chance",
+            "default": 0.7
+          },
+          "noise_chance": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Noise Chance",
+            "default": 0.5
+          },
+          "jpeg_chance": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Jpeg Chance",
+            "default": 0.6
+          }
+        },
+        "type": "object",
+        "title": "Degradation"
+      },
       "DuplicatesResolveIn": {
         "properties": {
           "groups": {
@@ -4805,6 +5985,1278 @@
         "type": "object",
         "title": "FlowUpdateIn"
       },
+      "ForgeAnalysis": {
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/ForgeGraph"
+          },
+          "shapes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ForgeShape"
+            },
+            "type": "object",
+            "title": "Shapes"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeProblem"
+            },
+            "type": "array",
+            "title": "Problems"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ForgeStats"
+          },
+          "plan": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "graph",
+          "shapes",
+          "problems",
+          "stats"
+        ],
+        "title": "ForgeAnalysis"
+      },
+      "ForgeBlock": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "position": {
+            "$ref": "#/components/schemas/ForgePosition"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "ForgeBlock"
+      },
+      "ForgeBlockTypeOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "io",
+              "layers",
+              "blocks",
+              "merge",
+              "resize"
+            ],
+            "title": "Category"
+          },
+          "category_label": {
+            "type": "string",
+            "title": "Category Label"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "inputs": {
+            "type": "integer",
+            "title": "Inputs",
+            "description": "0 for the input, 1 for most blocks, 2 for 'two or more'."
+          },
+          "has_output": {
+            "type": "boolean",
+            "title": "Has Output"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeParamOut"
+            },
+            "type": "array",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "label",
+          "category",
+          "category_label",
+          "summary",
+          "inputs",
+          "has_output",
+          "params"
+        ],
+        "title": "ForgeBlockTypeOut"
+      },
+      "ForgeCheckIn": {
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/ForgeGraph"
+          }
+        },
+        "type": "object",
+        "required": [
+          "graph"
+        ],
+        "title": "ForgeCheckIn"
+      },
+      "ForgeChoiceOut": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "ForgeChoiceOut"
+      },
+      "ForgeCodeOut": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "code"
+        ],
+        "title": "ForgeCodeOut"
+      },
+      "ForgeDatasetIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ForgeImageSourceIn"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/DatasetSettings"
+          },
+          "degradation": {
+            "$ref": "#/components/schemas/Degradation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "source"
+        ],
+        "title": "ForgeDatasetIn"
+      },
+      "ForgeDatasetOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Source"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/DatasetSettings"
+          },
+          "degradation": {
+            "$ref": "#/components/schemas/Degradation"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "images": {
+            "type": "integer",
+            "title": "Images"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "train_crops": {
+            "type": "integer",
+            "title": "Train Crops"
+          },
+          "val_crops": {
+            "type": "integer",
+            "title": "Val Crops"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "source",
+          "settings",
+          "degradation",
+          "state",
+          "job_id",
+          "images",
+          "skipped",
+          "train_crops",
+          "val_crops",
+          "size_bytes",
+          "error",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ForgeDatasetOut"
+      },
+      "ForgeDegradationIn": {
+        "properties": {
+          "degradation": {
+            "$ref": "#/components/schemas/Degradation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "degradation"
+        ],
+        "title": "ForgeDegradationIn"
+      },
+      "ForgeFix": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "block": {
+            "type": "string",
+            "title": "Block"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "block",
+          "params"
+        ],
+        "title": "ForgeFix"
+      },
+      "ForgeGraph": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeBlock"
+            },
+            "type": "array",
+            "maxItems": 80,
+            "title": "Blocks"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeLink"
+            },
+            "type": "array",
+            "maxItems": 320,
+            "title": "Links"
+          }
+        },
+        "type": "object",
+        "title": "ForgeGraph"
+      },
+      "ForgeImageSourceIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "assets",
+              "album",
+              "rules",
+              "all"
+            ],
+            "title": "Kind",
+            "default": "all"
+          },
+          "asset_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20000,
+            "title": "Asset Ids"
+          },
+          "album_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Album Id"
+          },
+          "rules": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RuleSet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "ForgeImageSourceIn"
+      },
+      "ForgeLink": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "target"
+        ],
+        "title": "ForgeLink"
+      },
+      "ForgeMetricOut": {
+        "properties": {
+          "step": {
+            "type": "integer",
+            "title": "Step"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "train",
+              "val"
+            ],
+            "title": "Kind"
+          },
+          "loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loss"
+          },
+          "psnr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Psnr"
+          },
+          "ssim": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssim"
+          },
+          "lr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "kind",
+          "loss",
+          "psnr",
+          "ssim",
+          "lr"
+        ],
+        "title": "ForgeMetricOut"
+      },
+      "ForgeParamOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "number",
+              "integer",
+              "choice"
+            ],
+            "title": "Kind"
+          },
+          "default": {
+            "title": "Default"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": ""
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeChoiceOut"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "help": {
+            "type": "string",
+            "title": "Help",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "kind"
+        ],
+        "title": "ForgeParamOut"
+      },
+      "ForgePosition": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X",
+            "default": 0
+          },
+          "y": {
+            "type": "number",
+            "title": "Y",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ForgePosition"
+      },
+      "ForgeProblem": {
+        "properties": {
+          "block": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "fix": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ForgeFix"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ForgeProblem"
+      },
+      "ForgeProjectIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Description",
+            "default": ""
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template",
+            "description": "Start from a template."
+          },
+          "graph": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ForgeGraph"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ForgeProjectIn"
+      },
+      "ForgeProjectOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/ForgeGraph"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/ForgeAnalysis"
+          },
+          "runs": {
+            "type": "integer",
+            "title": "Runs"
+          },
+          "best_psnr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Psnr"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "template",
+          "graph",
+          "analysis",
+          "runs",
+          "best_psnr",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ForgeProjectOut"
+      },
+      "ForgeProjectUpdateIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "graph": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ForgeGraph"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "ForgeProjectUpdateIn"
+      },
+      "ForgePublishIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Shown in AI Lab; a version number is added."
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Summary",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ForgePublishIn"
+      },
+      "ForgePublishOut": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job"
+        ],
+        "title": "ForgePublishOut"
+      },
+      "ForgeRunDetailOut": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/ForgeRunOut"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/ForgeMetricOut"
+            },
+            "type": "array",
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run",
+          "metrics"
+        ],
+        "title": "ForgeRunDetailOut"
+      },
+      "ForgeRunIn": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Dataset Id"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/TrainSettings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id"
+        ],
+        "title": "ForgeRunIn"
+      },
+      "ForgeRunOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "scale": {
+            "type": "integer",
+            "title": "Scale"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "rgb",
+              "y"
+            ],
+            "title": "Color"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/TrainSettings"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State"
+          },
+          "paused": {
+            "type": "boolean",
+            "title": "Paused"
+          },
+          "step": {
+            "type": "integer",
+            "title": "Step"
+          },
+          "total_steps": {
+            "type": "integer",
+            "title": "Total Steps"
+          },
+          "batch": {
+            "type": "integer",
+            "title": "Batch"
+          },
+          "accumulate": {
+            "type": "integer",
+            "title": "Accumulate"
+          },
+          "device": {
+            "type": "string",
+            "title": "Device"
+          },
+          "last_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Loss"
+          },
+          "best_psnr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Psnr"
+          },
+          "best_ssim": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Ssim"
+          },
+          "best_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Step"
+          },
+          "bicubic_psnr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bicubic Psnr"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "sample_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Url"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "dataset_id",
+          "job_id",
+          "scale",
+          "color",
+          "settings",
+          "state",
+          "paused",
+          "step",
+          "total_steps",
+          "batch",
+          "accumulate",
+          "device",
+          "last_loss",
+          "best_psnr",
+          "best_ssim",
+          "best_step",
+          "bicubic_psnr",
+          "notes",
+          "error",
+          "model_id",
+          "sample_url",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "ForgeRunOut"
+      },
+      "ForgeShape": {
+        "properties": {
+          "channels": {
+            "type": "integer",
+            "title": "Channels"
+          },
+          "scale": {
+            "type": "string",
+            "title": "Scale",
+            "description": "Size relative to the input, e.g. '1', '1/2' or '3'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "channels",
+          "scale"
+        ],
+        "title": "ForgeShape"
+      },
+      "ForgeStats": {
+        "properties": {
+          "params": {
+            "type": "integer",
+            "title": "Params"
+          },
+          "macs_per_pixel": {
+            "type": "integer",
+            "title": "Macs Per Pixel",
+            "description": "Multiply-adds per input pixel."
+          },
+          "gmacs_per_megapixel": {
+            "type": "number",
+            "title": "Gmacs Per Megapixel"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale",
+            "description": "Output size \u00f7 input size; null until the graph is valid."
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "rgb",
+              "y"
+            ],
+            "title": "Color"
+          },
+          "layers": {
+            "type": "integer",
+            "title": "Layers"
+          },
+          "train_memory_mb": {
+            "type": "integer",
+            "title": "Train Memory Mb",
+            "description": "Estimated GPU memory to train at batch 16, patch 64."
+          },
+          "patch_multiple": {
+            "type": "integer",
+            "title": "Patch Multiple",
+            "description": "Training patches must be a multiple of this (from Down blocks)."
+          },
+          "context": {
+            "type": "integer",
+            "title": "Context",
+            "description": "Input pixels each output pixel sees on each side (for tiling)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "params",
+          "macs_per_pixel",
+          "gmacs_per_megapixel",
+          "scale",
+          "color",
+          "layers",
+          "train_memory_mb",
+          "patch_multiple",
+          "context"
+        ],
+        "title": "ForgeStats"
+      },
+      "ForgeTemplateOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/ForgeGraph"
+          },
+          "params": {
+            "type": "integer",
+            "title": "Params"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "graph",
+          "params",
+          "scale"
+        ],
+        "title": "ForgeTemplateOut"
+      },
       "GeometryIn": {
         "properties": {
           "rotate": {
@@ -5409,6 +7861,29 @@
             "type": "array",
             "title": "Calibrated",
             "description": "Devices this model has measured its memory use on."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "catalog",
+              "forge"
+            ],
+            "title": "Source",
+            "description": "forge: a model you trained and published from Forge.",
+            "default": "catalog"
+          },
+          "benchmark": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark",
+            "description": "For Forge models: PSNR, SSIM and speed measured when it was published."
           }
         },
         "type": "object",
@@ -5626,6 +8101,24 @@
           "asset_ids"
         ],
         "title": "QuarantineIn"
+      },
+      "Range": {
+        "properties": {
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "low",
+          "high"
+        ],
+        "title": "Range"
       },
       "RecipeOut": {
         "properties": {
@@ -6052,6 +8545,79 @@
           "asset_ids"
         ],
         "title": "TagsIn"
+      },
+      "TrainSettings": {
+        "properties": {
+          "steps": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 10.0,
+            "title": "Steps",
+            "description": "Optimiser steps in total.",
+            "default": 20000
+          },
+          "batch": {
+            "type": "integer",
+            "maximum": 256.0,
+            "minimum": 1.0,
+            "title": "Batch",
+            "description": "Patches per step (lowered automatically if memory runs out).",
+            "default": 16
+          },
+          "patch": {
+            "type": "integer",
+            "maximum": 256.0,
+            "minimum": 8.0,
+            "title": "Patch",
+            "description": "Side of each low-resolution training patch, in pixels.",
+            "default": 48
+          },
+          "lr": {
+            "type": "number",
+            "maximum": 0.01,
+            "exclusiveMinimum": 0.0,
+            "title": "Lr",
+            "description": "Peak learning rate (Adam), with warm-up and cosine decay.",
+            "default": 0.0002
+          },
+          "loss": {
+            "type": "string",
+            "enum": [
+              "l1",
+              "mse",
+              "charbonnier"
+            ],
+            "title": "Loss",
+            "default": "l1"
+          },
+          "val_every": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 10.0,
+            "title": "Val Every",
+            "description": "Steps between validations.",
+            "default": 500
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "default": 0
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fp32"
+            ],
+            "title": "Precision",
+            "description": "auto uses bfloat16 on GPUs that support it (RTX 30 and newer).",
+            "default": "auto"
+          }
+        },
+        "type": "object",
+        "title": "TrainSettings"
       },
       "UpdateStatusOut": {
         "properties": {

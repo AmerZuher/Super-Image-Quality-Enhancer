@@ -6,6 +6,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from siqe.forge.datasets import DatasetSettings
+from siqe.forge.degrade import Degradation
+from siqe.forge.graph import ForgeAnalysis, ForgeGraph
+from siqe.forge.training import TrainSettings
 from siqe.library.rules import RuleSet
 
 JobStateName = Literal["queued", "running", "succeeded", "failed", "cancelled"]
@@ -630,3 +634,173 @@ class ApiKeyIn(BaseModel):
 
 class ApiKeyCreatedOut(ApiKeyOut):
     secret: str = Field(description="The key itself. It is shown only this once.")
+
+
+# -------------------------------------------------------------------------------- forge
+
+
+class ForgeChoiceOut(BaseModel):
+    value: str
+    label: str
+
+
+class ForgeParamOut(BaseModel):
+    name: str
+    label: str
+    kind: Literal["number", "integer", "choice"]
+    default: Any = None
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
+    unit: str = ""
+    choices: list[ForgeChoiceOut] = Field(default_factory=list)
+    help: str = ""
+
+
+class ForgeBlockTypeOut(BaseModel):
+    type: str
+    label: str
+    category: Literal["io", "layers", "blocks", "merge", "resize"]
+    category_label: str
+    summary: str
+    inputs: int = Field(description="0 for the input, 1 for most blocks, 2 for 'two or more'.")
+    has_output: bool
+    params: list[ForgeParamOut]
+
+
+class ForgeTemplateOut(BaseModel):
+    id: str
+    name: str
+    summary: str
+    graph: ForgeGraph
+    params: int
+    scale: int | None
+
+
+class ForgeCheckIn(BaseModel):
+    graph: ForgeGraph
+
+
+class ForgeProjectOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str
+    template: str | None
+    graph: ForgeGraph
+    analysis: ForgeAnalysis
+    runs: int
+    best_psnr: float | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ForgeProjectIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str = Field(default="", max_length=1000)
+    template: str | None = Field(default=None, description="Start from a template.")
+    graph: ForgeGraph | None = None
+
+
+class ForgeProjectUpdateIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+    graph: ForgeGraph | None = None
+
+
+class ForgeCodeOut(BaseModel):
+    filename: str
+    code: str
+
+
+class ForgeImageSourceIn(BaseModel):
+    kind: Literal["assets", "album", "rules", "all"] = "all"
+    asset_ids: list[str] = Field(default_factory=list, max_length=20_000)
+    album_id: str | None = None
+    rules: RuleSet | None = None
+
+
+class ForgeDatasetIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    source: ForgeImageSourceIn
+    settings: DatasetSettings = Field(default_factory=DatasetSettings)
+    degradation: Degradation = Field(default_factory=Degradation)
+
+
+class ForgeDegradationIn(BaseModel):
+    degradation: Degradation
+
+
+class ForgeDatasetOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    source: dict[str, Any]
+    settings: DatasetSettings
+    degradation: Degradation
+    state: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    job_id: uuid.UUID | None
+    images: int
+    skipped: int
+    train_crops: int
+    val_crops: int
+    size_bytes: int
+    error: dict[str, Any] | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ForgeRunIn(BaseModel):
+    dataset_id: uuid.UUID
+    settings: TrainSettings = Field(default_factory=TrainSettings)
+
+
+class ForgeRunOut(BaseModel):
+    id: uuid.UUID
+    project_id: uuid.UUID | None
+    project_name: str
+    dataset_id: uuid.UUID | None
+    job_id: uuid.UUID | None
+    scale: int
+    color: Literal["rgb", "y"]
+    settings: TrainSettings
+    state: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    paused: bool
+    step: int
+    total_steps: int
+    batch: int
+    accumulate: int
+    device: str
+    last_loss: float | None
+    best_psnr: float | None
+    best_ssim: float | None
+    best_step: int | None
+    bicubic_psnr: float | None
+    notes: list[str]
+    error: dict[str, Any] | None
+    model_id: str | None
+    sample_url: str | None
+    created_at: datetime | None
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class ForgeMetricOut(BaseModel):
+    step: int
+    kind: Literal["train", "val"]
+    loss: float | None
+    psnr: float | None
+    ssim: float | None
+    lr: float | None
+
+
+class ForgeRunDetailOut(BaseModel):
+    run: ForgeRunOut
+    metrics: list[ForgeMetricOut]
+
+
+class ForgePublishIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60, description="Shown in AI Lab; a version number is added.")
+    summary: str = Field(default="", max_length=300)
+
+
+class ForgePublishOut(BaseModel):
+    job: JobOut

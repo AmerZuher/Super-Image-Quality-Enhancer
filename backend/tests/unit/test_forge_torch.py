@@ -9,12 +9,12 @@ torch = pytest.importorskip("torch")
 
 from siqe.ai.archs.forge import GraphNet  # noqa: E402
 from siqe.forge.codegen import class_name, generate  # noqa: E402
-from siqe.forge.graph import ModelGraph, analyze  # noqa: E402
+from siqe.forge.graph import ForgeGraph, analyze  # noqa: E402
 from siqe.forge.templates import TEMPLATES, TEMPLATES_BY_ID  # noqa: E402
 
 
 def _net(template: Any) -> tuple[GraphNet, Any]:
-    analysis = analyze(ModelGraph.model_validate(template.graph))
+    analysis = analyze(ForgeGraph.model_validate(template.graph))
     stats = analysis.stats
     return GraphNet(analysis.plan, stats.scale or 1, 1 if stats.color == "y" else 3), analysis
 
@@ -123,7 +123,7 @@ def tiny_run(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
         images.append((uuid.uuid4(), path))
     dataset_id = uuid.uuid4()
     datasets.build(dataset_id, images, datasets.DatasetSettings(crop=96, crops_per_image=4, val_every=3))
-    analysis = analyze(ModelGraph.model_validate(TINY))
+    analysis = analyze(ForgeGraph.model_validate(TINY))
 
     def make(run_id: str, steps: int, **extra: Any) -> Any:
         return trainer.RunSpec(

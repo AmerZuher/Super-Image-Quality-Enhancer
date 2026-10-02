@@ -4,7 +4,20 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
-from siqe.api.routes import access, ai, assets, events, flows, health, jobs, library, models, system, updates
+from siqe.api.routes import (
+    access,
+    ai,
+    assets,
+    events,
+    flows,
+    forge,
+    health,
+    jobs,
+    library,
+    models,
+    system,
+    updates,
+)
 from siqe.auth.middleware import ApiKeyAuth
 from siqe.core.config import get_settings
 from siqe.core.errors import register_error_handlers
@@ -60,7 +73,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
 
     api = APIRouter(prefix="/api")
-    for module in (health, access, system, jobs, assets, library, flows, models, ai, updates, events):
+    for module in (health, access, system, jobs, assets, library, flows, forge, models, ai, updates, events):
         api.include_router(module.router)
     app.include_router(api)
     app.add_middleware(ApiKeyAuth, enabled=settings.api_auth == "keys")

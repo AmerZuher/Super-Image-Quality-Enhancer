@@ -893,6 +893,368 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forge/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every block a model can use */
+        get: operations["forge_catalog_api_forge_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ready-made models to start from */
+        get: operations["forge_templates_api_forge_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Shapes, problems and costs of a graph */
+        post: operations["check_graph_api_forge_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your model designs */
+        get: operations["list_projects_api_forge_projects_get"];
+        put?: never;
+        /** New model */
+        post: operations["create_project_api_forge_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One model design */
+        get: operations["one_project_api_forge_projects__project_id__get"];
+        /** Change a model design */
+        put: operations["update_project_api_forge_projects__project_id__put"];
+        post?: never;
+        /** Delete a model design (its training runs stay) */
+        delete: operations["delete_project_api_forge_projects__project_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/projects/{project_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a model design */
+        post: operations["duplicate_project_api_forge_projects__project_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/projects/{project_id}/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The design as PyTorch code */
+        get: operations["project_code_api_forge_projects__project_id__code_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Training datasets */
+        get: operations["list_datasets_api_forge_datasets_get"];
+        put?: never;
+        /** Build a dataset from Library images */
+        post: operations["create_dataset_api_forge_datasets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/datasets/{dataset_id}/degradation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change how training inputs are damaged (no rebuild needed) */
+        put: operations["set_degradation_api_forge_datasets__dataset_id__degradation_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/datasets/{dataset_id}/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cut the crops again */
+        post: operations["rebuild_dataset_api_forge_datasets__dataset_id__rebuild_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/datasets/{dataset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a dataset and its crops */
+        delete: operations["delete_dataset_api_forge_datasets__dataset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/datasets/{dataset_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Damaged inputs beside their clean crops (PNG) */
+        get: operations["preview_dataset_api_forge_datasets__dataset_id__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/projects/{project_id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Train a model design on a dataset */
+        post: operations["start_run_api_forge_projects__project_id__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Training runs, newest first */
+        get: operations["list_runs_api_forge_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A run and its charts */
+        get: operations["one_run_api_forge_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a finished run and its checkpoints (published models stay) */
+        delete: operations["delete_run_api_forge_runs__run_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause training (saves a checkpoint) */
+        post: operations["pause_run_api_forge_runs__run_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Carry on training */
+        post: operations["resume_run_api_forge_runs__run_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish now, keeping the best checkpoint so far */
+        post: operations["stop_run_api_forge_runs__run_id__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bicubic, the model and the original, side by side (PNG) */
+        get: operations["run_sample_api_forge_runs__run_id__sample_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/weights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The best checkpoint's weights (safetensors), for the generated code */
+        get: operations["run_weights_api_forge_runs__run_id__weights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forge/runs/{run_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score the best checkpoint and add it to AI Lab */
+        post: operations["publish_to_lab_api_forge_runs__run_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -1366,6 +1728,84 @@ export interface components {
             /** H */
             h: number;
         };
+        /** DatasetSettings */
+        DatasetSettings: {
+            /**
+             * Crop
+             * @description Side of each high-resolution crop, in pixels.
+             * @default 256
+             */
+            crop: number;
+            /**
+             * Crops Per Image
+             * @default 8
+             */
+            crops_per_image: number;
+            /**
+             * Min Width
+             * @description Smaller images are skipped.
+             * @default 600
+             */
+            min_width: number;
+            /**
+             * Min Height
+             * @default 300
+             */
+            min_height: number;
+            /**
+             * Val Every
+             * @description One image in this many is kept for validation.
+             * @default 10
+             */
+            val_every: number;
+            /**
+             * Max Images
+             * @default 2000
+             */
+            max_images: number;
+        };
+        /** Degradation */
+        Degradation: {
+            /**
+             * @description Gaussian blur sigma, in pixels; 0 is off.
+             * @default {
+             *       "low": 0.2,
+             *       "high": 1.5
+             *     }
+             */
+            blur: components["schemas"]["Range"];
+            /**
+             * @description Noise sigma on a 0 to 255 scale.
+             * @default {
+             *       "low": 0,
+             *       "high": 8
+             *     }
+             */
+            noise: components["schemas"]["Range"];
+            /**
+             * @description JPEG quality; 100 skips compression.
+             * @default {
+             *       "low": 60,
+             *       "high": 95
+             *     }
+             */
+            jpeg: components["schemas"]["Range"];
+            /**
+             * Blur Chance
+             * @default 0.7
+             */
+            blur_chance: number;
+            /**
+             * Noise Chance
+             * @default 0.5
+             */
+            noise_chance: number;
+            /**
+             * Jpeg Chance
+             * @default 0.6
+             */
+            jpeg_chance: number;
+        };
         /** DuplicatesResolveIn */
         DuplicatesResolveIn: {
             /**
@@ -1771,6 +2211,469 @@ export interface components {
             /** Watch Enabled */
             watch_enabled?: boolean | null;
         };
+        /** ForgeAnalysis */
+        ForgeAnalysis: {
+            graph: components["schemas"]["ForgeGraph"];
+            /** Shapes */
+            shapes: {
+                [key: string]: components["schemas"]["ForgeShape"];
+            };
+            /** Problems */
+            problems: components["schemas"]["ForgeProblem"][];
+            stats: components["schemas"]["ForgeStats"];
+            /** Plan */
+            plan?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ForgeBlock */
+        ForgeBlock: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            position?: components["schemas"]["ForgePosition"];
+            /** Label */
+            label?: string | null;
+        };
+        /** ForgeBlockTypeOut */
+        ForgeBlockTypeOut: {
+            /** Type */
+            type: string;
+            /** Label */
+            label: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "io" | "layers" | "blocks" | "merge" | "resize";
+            /** Category Label */
+            category_label: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Inputs
+             * @description 0 for the input, 1 for most blocks, 2 for 'two or more'.
+             */
+            inputs: number;
+            /** Has Output */
+            has_output: boolean;
+            /** Params */
+            params: components["schemas"]["ForgeParamOut"][];
+        };
+        /** ForgeCheckIn */
+        ForgeCheckIn: {
+            graph: components["schemas"]["ForgeGraph"];
+        };
+        /** ForgeChoiceOut */
+        ForgeChoiceOut: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+        };
+        /** ForgeCodeOut */
+        ForgeCodeOut: {
+            /** Filename */
+            filename: string;
+            /** Code */
+            code: string;
+        };
+        /** ForgeDatasetIn */
+        ForgeDatasetIn: {
+            /** Name */
+            name: string;
+            source: components["schemas"]["ForgeImageSourceIn"];
+            settings?: components["schemas"]["DatasetSettings"];
+            degradation?: components["schemas"]["Degradation"];
+        };
+        /** ForgeDatasetOut */
+        ForgeDatasetOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Source */
+            source: {
+                [key: string]: unknown;
+            };
+            settings: components["schemas"]["DatasetSettings"];
+            degradation: components["schemas"]["Degradation"];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /** Job Id */
+            job_id: string | null;
+            /** Images */
+            images: number;
+            /** Skipped */
+            skipped: number;
+            /** Train Crops */
+            train_crops: number;
+            /** Val Crops */
+            val_crops: number;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ForgeDegradationIn */
+        ForgeDegradationIn: {
+            degradation: components["schemas"]["Degradation"];
+        };
+        /** ForgeFix */
+        ForgeFix: {
+            /** Label */
+            label: string;
+            /** Block */
+            block: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        /** ForgeGraph */
+        ForgeGraph: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Blocks */
+            blocks?: components["schemas"]["ForgeBlock"][];
+            /** Links */
+            links?: components["schemas"]["ForgeLink"][];
+        };
+        /** ForgeImageSourceIn */
+        ForgeImageSourceIn: {
+            /**
+             * Kind
+             * @default all
+             * @enum {string}
+             */
+            kind: "assets" | "album" | "rules" | "all";
+            /** Asset Ids */
+            asset_ids?: string[];
+            /** Album Id */
+            album_id?: string | null;
+            rules?: components["schemas"]["RuleSet"] | null;
+        };
+        /** ForgeLink */
+        ForgeLink: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** ForgeMetricOut */
+        ForgeMetricOut: {
+            /** Step */
+            step: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "train" | "val";
+            /** Loss */
+            loss: number | null;
+            /** Psnr */
+            psnr: number | null;
+            /** Ssim */
+            ssim: number | null;
+            /** Lr */
+            lr: number | null;
+        };
+        /** ForgeParamOut */
+        ForgeParamOut: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "integer" | "choice";
+            /** Default */
+            default?: unknown;
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /** Step */
+            step?: number | null;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Choices */
+            choices?: components["schemas"]["ForgeChoiceOut"][];
+            /**
+             * Help
+             * @default
+             */
+            help: string;
+        };
+        /** ForgePosition */
+        ForgePosition: {
+            /**
+             * X
+             * @default 0
+             */
+            x: number;
+            /**
+             * Y
+             * @default 0
+             */
+            y: number;
+        };
+        /** ForgeProblem */
+        ForgeProblem: {
+            /** Block */
+            block?: string | null;
+            /** Message */
+            message: string;
+            fix?: components["schemas"]["ForgeFix"] | null;
+        };
+        /** ForgeProjectIn */
+        ForgeProjectIn: {
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Template
+             * @description Start from a template.
+             */
+            template?: string | null;
+            graph?: components["schemas"]["ForgeGraph"] | null;
+        };
+        /** ForgeProjectOut */
+        ForgeProjectOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Template */
+            template: string | null;
+            graph: components["schemas"]["ForgeGraph"];
+            analysis: components["schemas"]["ForgeAnalysis"];
+            /** Runs */
+            runs: number;
+            /** Best Psnr */
+            best_psnr: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ForgeProjectUpdateIn */
+        ForgeProjectUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            graph?: components["schemas"]["ForgeGraph"] | null;
+        };
+        /** ForgePublishIn */
+        ForgePublishIn: {
+            /**
+             * Name
+             * @description Shown in AI Lab; a version number is added.
+             */
+            name: string;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** ForgePublishOut */
+        ForgePublishOut: {
+            job: components["schemas"]["JobOut"];
+        };
+        /** ForgeRunDetailOut */
+        ForgeRunDetailOut: {
+            run: components["schemas"]["ForgeRunOut"];
+            /** Metrics */
+            metrics: components["schemas"]["ForgeMetricOut"][];
+        };
+        /** ForgeRunIn */
+        ForgeRunIn: {
+            /**
+             * Dataset Id
+             * Format: uuid
+             */
+            dataset_id: string;
+            settings?: components["schemas"]["TrainSettings"];
+        };
+        /** ForgeRunOut */
+        ForgeRunOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Project Id */
+            project_id: string | null;
+            /** Project Name */
+            project_name: string;
+            /** Dataset Id */
+            dataset_id: string | null;
+            /** Job Id */
+            job_id: string | null;
+            /** Scale */
+            scale: number;
+            /**
+             * Color
+             * @enum {string}
+             */
+            color: "rgb" | "y";
+            settings: components["schemas"]["TrainSettings"];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+            /** Paused */
+            paused: boolean;
+            /** Step */
+            step: number;
+            /** Total Steps */
+            total_steps: number;
+            /** Batch */
+            batch: number;
+            /** Accumulate */
+            accumulate: number;
+            /** Device */
+            device: string;
+            /** Last Loss */
+            last_loss: number | null;
+            /** Best Psnr */
+            best_psnr: number | null;
+            /** Best Ssim */
+            best_ssim: number | null;
+            /** Best Step */
+            best_step: number | null;
+            /** Bicubic Psnr */
+            bicubic_psnr: number | null;
+            /** Notes */
+            notes: string[];
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /** Model Id */
+            model_id: string | null;
+            /** Sample Url */
+            sample_url: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+        };
+        /** ForgeShape */
+        ForgeShape: {
+            /** Channels */
+            channels: number;
+            /**
+             * Scale
+             * @description Size relative to the input, e.g. '1', '1/2' or '3'.
+             */
+            scale: string;
+        };
+        /** ForgeStats */
+        ForgeStats: {
+            /** Params */
+            params: number;
+            /**
+             * Macs Per Pixel
+             * @description Multiply-adds per input pixel.
+             */
+            macs_per_pixel: number;
+            /** Gmacs Per Megapixel */
+            gmacs_per_megapixel: number;
+            /**
+             * Scale
+             * @description Output size ÷ input size; null until the graph is valid.
+             */
+            scale: number | null;
+            /**
+             * Color
+             * @enum {string}
+             */
+            color: "rgb" | "y";
+            /** Layers */
+            layers: number;
+            /**
+             * Train Memory Mb
+             * @description Estimated GPU memory to train at batch 16, patch 64.
+             */
+            train_memory_mb: number;
+            /**
+             * Patch Multiple
+             * @description Training patches must be a multiple of this (from Down blocks).
+             */
+            patch_multiple: number;
+            /**
+             * Context
+             * @description Input pixels each output pixel sees on each side (for tiling).
+             */
+            context: number;
+        };
+        /** ForgeTemplateOut */
+        ForgeTemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Summary */
+            summary: string;
+            graph: components["schemas"]["ForgeGraph"];
+            /** Params */
+            params: number;
+            /** Scale */
+            scale: number | null;
+        };
         /** GeometryIn */
         GeometryIn: {
             /**
@@ -2021,6 +2924,20 @@ export interface components {
              * @description Devices this model has measured its memory use on.
              */
             calibrated: string[];
+            /**
+             * Source
+             * @description forge: a model you trained and published from Forge.
+             * @default catalog
+             * @enum {string}
+             */
+            source: "catalog" | "forge";
+            /**
+             * Benchmark
+             * @description For Forge models: PSNR, SSIM and speed measured when it was published.
+             */
+            benchmark?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** OpEntryIn */
         OpEntryIn: {
@@ -2095,6 +3012,13 @@ export interface components {
             asset_ids: string[];
             /** Reason */
             reason?: string | null;
+        };
+        /** Range */
+        Range: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
         };
         /** RecipeOut */
         RecipeOut: {
@@ -2231,6 +3155,57 @@ export interface components {
             add?: string[];
             /** Remove */
             remove?: string[];
+        };
+        /** TrainSettings */
+        TrainSettings: {
+            /**
+             * Steps
+             * @description Optimiser steps in total.
+             * @default 20000
+             */
+            steps: number;
+            /**
+             * Batch
+             * @description Patches per step (lowered automatically if memory runs out).
+             * @default 16
+             */
+            batch: number;
+            /**
+             * Patch
+             * @description Side of each low-resolution training patch, in pixels.
+             * @default 48
+             */
+            patch: number;
+            /**
+             * Lr
+             * @description Peak learning rate (Adam), with warm-up and cosine decay.
+             * @default 0.0002
+             */
+            lr: number;
+            /**
+             * Loss
+             * @default l1
+             * @enum {string}
+             */
+            loss: "l1" | "mse" | "charbonnier";
+            /**
+             * Val Every
+             * @description Steps between validations.
+             * @default 500
+             */
+            val_every: number;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Precision
+             * @description auto uses bfloat16 on GPUs that support it (RTX 30 and newer).
+             * @default auto
+             * @enum {string}
+             */
+            precision: "auto" | "fp32";
         };
         /** UpdateStatusOut */
         UpdateStatusOut: {
@@ -4080,6 +5055,784 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forge_catalog_api_forge_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeBlockTypeOut"][];
+                };
+            };
+        };
+    };
+    forge_templates_api_forge_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeTemplateOut"][];
+                };
+            };
+        };
+    };
+    check_graph_api_forge_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeAnalysis"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_projects_api_forge_projects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeProjectOut"][];
+                };
+            };
+        };
+    };
+    create_project_api_forge_projects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeProjectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    one_project_api_forge_projects__project_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_project_api_forge_projects__project_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeProjectUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_api_forge_projects__project_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_project_api_forge_projects__project_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_code_api_forge_projects__project_id__code_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeCodeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_datasets_api_forge_datasets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeDatasetOut"][];
+                };
+            };
+        };
+    };
+    create_dataset_api_forge_datasets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeDatasetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeDatasetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_degradation_api_forge_datasets__dataset_id__degradation_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeDegradationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeDatasetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rebuild_dataset_api_forge_datasets__dataset_id__rebuild_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeDatasetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_dataset_api_forge_datasets__dataset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_dataset_api_forge_datasets__dataset_id__preview_get: {
+        parameters: {
+            query?: {
+                scale?: number;
+                seed?: number;
+            };
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_forge_projects__project_id__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgeRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_forge_runs_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    one_run_api_forge_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_run_api_forge_runs__run_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_run_api_forge_runs__run_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_run_api_forge_runs__run_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_run_api_forge_runs__run_id__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_sample_api_forge_runs__run_id__sample_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_weights_api_forge_runs__run_id__weights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_to_lab_api_forge_runs__run_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgePublishIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgePublishOut"];
+                };
             };
             /** @description Validation Error */
             422: {

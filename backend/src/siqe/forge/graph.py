@@ -24,48 +24,48 @@ ESTIMATE_BATCH = 16
 ESTIMATE_PATCH = 64
 
 
-class Position(BaseModel):
+class ForgePosition(BaseModel):
     x: float = 0
     y: float = 0
 
 
-class Block(BaseModel):
+class ForgeBlock(BaseModel):
     id: str = Field(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")
     type: str
     params: dict[str, Any] = Field(default_factory=dict)
-    position: Position = Field(default_factory=Position)
+    position: ForgePosition = Field(default_factory=ForgePosition)
     label: str | None = Field(default=None, max_length=80)
 
 
-class Link(BaseModel):
+class ForgeLink(BaseModel):
     source: str
     target: str
 
 
-class ModelGraph(BaseModel):
+class ForgeGraph(BaseModel):
     version: Literal[1] = 1
-    blocks: list[Block] = Field(default_factory=list, max_length=MAX_BLOCKS)
-    links: list[Link] = Field(default_factory=list, max_length=MAX_BLOCKS * 4)
+    blocks: list[ForgeBlock] = Field(default_factory=list, max_length=MAX_BLOCKS)
+    links: list[ForgeLink] = Field(default_factory=list, max_length=MAX_BLOCKS * 4)
 
 
-class Fix(BaseModel):
+class ForgeFix(BaseModel):
     label: str
     block: str
     params: dict[str, Any]
 
 
-class Problem(BaseModel):
+class ForgeProblem(BaseModel):
     block: str | None = None
     message: str
-    fix: Fix | None = None
+    fix: ForgeFix | None = None
 
 
-class Shape(BaseModel):
+class ForgeShape(BaseModel):
     channels: int
     scale: str = Field(description="Size relative to the input, e.g. '1', '1/2' or '3'.")
 
 
-class Stats(BaseModel):
+class ForgeStats(BaseModel):
     params: int
     macs_per_pixel: int = Field(description="Multiply-adds per input pixel.")
     gmacs_per_megapixel: float
@@ -79,11 +79,11 @@ class Stats(BaseModel):
     context: int = Field(description="Input pixels each output pixel sees on each side (for tiling).")
 
 
-class Analysis(BaseModel):
-    graph: ModelGraph
-    shapes: dict[str, Shape]
-    problems: list[Problem]
-    stats: Stats
+class ForgeAnalysis(BaseModel):
+    graph: ForgeGraph
+    shapes: dict[str, ForgeShape]
+    problems: list[ForgeProblem]
+    stats: ForgeStats
     plan: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -111,7 +111,7 @@ def _scale_text(s: Fraction) -> str:
     return str(s.numerator) if s.denominator == 1 else f"{s.numerator}/{s.denominator}"
 
 
-def _order(blocks: dict[str, Block], links: list[Link]) -> list[str] | None:
+def _order(blocks: dict[str, ForgeBlock], links: list[ForgeLink]) -> list[str] | None:
     """Blocks in an order where every block comes after its inputs; None if there is a loop."""
     incoming = {b: 0 for b in blocks}
     for link in links:
@@ -133,29 +133,31 @@ def _conv_cost(cin: int, cout: int, k: int, scale: Fraction) -> tuple[int, Fract
     return k * k * cin * cout + cout, Fraction(k * k * cin * cout) * scale * scale
 
 
-def analyze(raw: ModelGraph) -> Analysis:
-    problems: list[Problem] = []
-    blocks: list[Block] = []
+def analyze(raw: ForgeGraph) -> ForgeAnalysis:
+    problems: list[ForgeProblem] = []
+    blocks: list[ForgeBlock] = []
     seen: set[str] = set()
     attrs: set[str] = set()
     for block in raw.blocks:
         spec = BLOCKS_BY_TYPE.get(block.type)
         if block.id in seen or attr_name(block.id) in attrs:
-            problems.append(Problem(block=block.id, message=f"Two blocks are called {block.id}"))
+            problems.append(ForgeProblem(block=block.id, message=f"Two blocks are called {block.id}"))
             continue
         seen.add(block.id)
         attrs.add(attr_name(block.id))
         if spec is None:
-            problems.append(Problem(block=block.id, message=f"There's no {block.type} block in this version"))
+            problems.append(
+                ForgeProblem(block=block.id, message=f"There's no {block.type} block in this version")
+            )
             blocks.append(block)
             continue
         try:
             params = validate_block_params(spec, block.params)
         except (ParamError, ValueError) as exc:
-            problems.append(Problem(block=block.id, message=str(exc)))
+            problems.append(ForgeProblem(block=block.id, message=str(exc)))
             params = {p.name: p.default for p in spec.params}
         blocks.append(block.model_copy(update={"params": params}))
-    graph = ModelGraph(
+    graph = ForgeGraph(
         blocks=blocks, links=[link for link in raw.links if link.source in seen and link.target in seen]
     )
     by_id = {b.id: b for b in blocks}
@@ -163,7 +165,7 @@ def analyze(raw: ModelGraph) -> Analysis:
     inputs_of: dict[str, list[str]] = {b.id: [] for b in blocks}
     for link in graph.links:
         if link.source == link.target:
-            problems.append(Problem(block=link.source, message="A block can't feed itself"))
+            problems.append(ForgeProblem(block=link.source, message="A block can't feed itself"))
             continue
         if link.source in inputs_of[link.target]:
             continue
@@ -173,11 +175,11 @@ def analyze(raw: ModelGraph) -> Analysis:
     ends = [b for b in blocks if b.type == "output"]
     if len(starts) != 1:
         problems.append(
-            Problem(message="Add exactly one Input block" if not starts else "Use only one Input block")
+            ForgeProblem(message="Add exactly one Input block" if not starts else "Use only one Input block")
         )
     if len(ends) != 1:
         problems.append(
-            Problem(message="Add exactly one Output block" if not ends else "Use only one Output block")
+            ForgeProblem(message="Add exactly one Output block" if not ends else "Use only one Output block")
         )
     color = str(starts[0].params.get("color", "rgb")) if starts else "rgb"
     in_channels = 1 if color == "y" else 3
@@ -188,22 +190,24 @@ def analyze(raw: ModelGraph) -> Analysis:
     cost = _Cost()
     plan: list[dict[str, Any]] = []
     if order is None:
-        problems.append(Problem(message="The graph has a loop; data must flow one way, from Input to Output"))
+        problems.append(
+            ForgeProblem(message="The graph has a loop; data must flow one way, from Input to Output")
+        )
         order = []
 
-    def need(block: Block, message: str, fix: Fix | None = None) -> None:
-        problems.append(Problem(block=block.id, message=message, fix=fix))
+    def need(block: ForgeBlock, message: str, fix: ForgeFix | None = None) -> None:
+        problems.append(ForgeProblem(block=block.id, message=message, fix=fix))
 
-    def feeder_fix(source_id: str, channels: int, why: str) -> Fix | None:
+    def feeder_fix(source_id: str, channels: int, why: str) -> ForgeFix | None:
         source = by_id.get(source_id)
         if source is not None and source.type in ("conv", "down", "up"):
-            return Fix(
-                label=f"Set {why} to {channels} filters",
+            return ForgeFix(
+                label=f"Set {why} to {channels} filter{'' if channels == 1 else 's'}",
                 block=source.id,
                 params={**source.params, "filters": channels},
             )
         if source is not None and source.type == "rdb":
-            return Fix(
+            return ForgeFix(
                 label=f"Set {why} to {channels} channels",
                 block=source.id,
                 params={**source.params, "channels": channels},
@@ -390,14 +394,18 @@ def analyze(raw: ModelGraph) -> Analysis:
         reach = _reachable(starts[0].id, links)
         for block in blocks:
             if block.id not in reach and block.type != "input":
-                problems.append(Problem(block=block.id, message="This block isn't connected to the Input"))
+                problems.append(
+                    ForgeProblem(block=block.id, message="This block isn't connected to the Input")
+                )
         feeds = _feeds(ends[0].id, links)
         for block in blocks:
             if block.id not in feeds and block.type != "output" and block.id in reach:
-                problems.append(Problem(block=block.id, message="Nothing from this block reaches the Output"))
+                problems.append(
+                    ForgeProblem(block=block.id, message="Nothing from this block reaches the Output")
+                )
 
     # Deduplicate (a block can be reported twice through different paths).
-    unique: list[Problem] = []
+    unique: list[ForgeProblem] = []
     for problem in problems:
         if all(problem.message != u.message or problem.block != u.block for u in unique):
             unique.append(problem)
@@ -409,7 +417,7 @@ def analyze(raw: ModelGraph) -> Analysis:
         + cost.params * 16  # weights, gradients and Adam's two moments, float32
         + 300 * 2**20  # CUDA context and workspace
     )
-    stats = Stats(
+    stats = ForgeStats(
         params=cost.params,
         macs_per_pixel=int(cost.macs),
         gmacs_per_megapixel=round(float(cost.macs) * 1e6 / 1e9, 2),
@@ -420,16 +428,16 @@ def analyze(raw: ModelGraph) -> Analysis:
         patch_multiple=2**downs if downs else 1,
         context=min(96, max(8, math.ceil(cost.reach) + 4)),
     )
-    return Analysis(
+    return ForgeAnalysis(
         graph=graph,
-        shapes={k: Shape(channels=v.channels, scale=_scale_text(v.scale)) for k, v in shapes.items()},
+        shapes={k: ForgeShape(channels=v.channels, scale=_scale_text(v.scale)) for k, v in shapes.items()},
         problems=unique,
         stats=stats,
         plan=plan if not unique else [],
     )
 
 
-def _reachable(start: str, links: list[Link]) -> set[str]:
+def _reachable(start: str, links: list[ForgeLink]) -> set[str]:
     seen, stack = {start}, [start]
     while stack:
         current = stack.pop()
@@ -440,7 +448,7 @@ def _reachable(start: str, links: list[Link]) -> set[str]:
     return seen
 
 
-def _feeds(end: str, links: list[Link]) -> set[str]:
+def _feeds(end: str, links: list[ForgeLink]) -> set[str]:
     seen, stack = {end}, [end]
     while stack:
         current = stack.pop()

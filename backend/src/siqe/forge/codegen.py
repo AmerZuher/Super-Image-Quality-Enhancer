@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from siqe.forge.graph import Analysis
+from siqe.forge.graph import ForgeAnalysis
 
 BLOCKS_FILE = Path(__file__).resolve().parent.parent / "ai" / "archs" / "forge_blocks.py"
 MARKER = "# --- forge blocks ---"
@@ -55,9 +55,9 @@ def _blocks_source() -> str:
     return text.split(MARKER, 1)[1].strip("\n")
 
 
-def generate(name: str, analysis: Analysis) -> str:
+def generate(name: str, analysis: ForgeAnalysis) -> str:
     if analysis.problems or not analysis.plan:
-        lines = [f"# {name} can't be turned into code yet. Fix these first:"]
+        lines = [f"# {name} can't be turned into code yet. ForgeFix these first:"]
         lines += [f"#  - {p.message}" for p in analysis.problems] or ["#  - The graph is empty"]
         return "\n".join(lines) + "\n"
     stats = analysis.stats

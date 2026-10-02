@@ -229,7 +229,7 @@ async def _run_spec(run_id: str) -> tuple[Any, TrainSettings, str | None]:
     """The trainer's view of a run: its plan, data and settings."""
     from siqe.forge import trainer
     from siqe.forge.degrade import Degradation
-    from siqe.forge.graph import ModelGraph, analyze
+    from siqe.forge.graph import ForgeGraph, analyze
 
     async with session_scope() as session:
         run = await get_run(session, uuid.UUID(run_id))
@@ -237,7 +237,7 @@ async def _run_spec(run_id: str) -> tuple[Any, TrainSettings, str | None]:
             raise _fail("forge.dataset_missing", "The dataset for this run was deleted.", "Start a new run.")
         dataset = await get_dataset(session, run.dataset_id)
         settings = TrainSettings.model_validate(run.settings)
-        multiple = analyze(ModelGraph.model_validate(run.graph)).stats.patch_multiple
+        multiple = analyze(ForgeGraph.model_validate(run.graph)).stats.patch_multiple
         spec = trainer.RunSpec(
             run_id=run_id,
             dataset_id=str(dataset.id),
@@ -366,13 +366,13 @@ def _next_model_id(name: str) -> str:
 async def forge_publish(run_id: str, name: str, summary: str = "") -> dict[str, Any]:
     """Benchmark a run's best checkpoint and add it to AI Lab as a new model version."""
     from siqe.ai import runtime
-    from siqe.forge.graph import ModelGraph, analyze
+    from siqe.forge.graph import ForgeGraph, analyze
     from siqe.forge.publish import benchmark
 
     spec, _, _ = await _run_spec(run_id)
     async with session_scope() as session:
         run = await get_run(session, uuid.UUID(run_id))
-        stats = analyze(ModelGraph.model_validate(run.graph)).stats
+        stats = analyze(ForgeGraph.model_validate(run.graph)).stats
         project_name = run.project_name
     weights = best_weights(run_id)
     if not weights.exists():

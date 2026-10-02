@@ -7,12 +7,12 @@ from typing import Any
 import pytest
 
 from siqe.forge.codegen import class_name, generate
-from siqe.forge.graph import ModelGraph, analyze
+from siqe.forge.graph import ForgeGraph, analyze
 from siqe.forge.templates import EMPTY, TEMPLATES, TEMPLATES_BY_ID
 
 
-def _chain(*blocks: tuple[str, str, dict[str, Any]]) -> ModelGraph:
-    return ModelGraph.model_validate(
+def _chain(*blocks: tuple[str, str, dict[str, Any]]) -> ForgeGraph:
+    return ForgeGraph.model_validate(
         {
             "blocks": [{"id": i, "type": t, "params": p} for i, t, p in blocks],
             "links": [{"source": a[0], "target": b[0]} for a, b in pairwise(blocks)],
@@ -20,17 +20,17 @@ def _chain(*blocks: tuple[str, str, dict[str, Any]]) -> ModelGraph:
     )
 
 
-def _apply(graph: ModelGraph, fix: Any) -> ModelGraph:
+def _apply(graph: ForgeGraph, fix: Any) -> ForgeGraph:
     data = graph.model_dump()
     for block in data["blocks"]:
         if block["id"] == fix.block:
             block["params"] = fix.params
-    return ModelGraph.model_validate(data)
+    return ForgeGraph.model_validate(data)
 
 
 @pytest.mark.parametrize("template", TEMPLATES, ids=lambda t: t.id)
 def test_every_template_is_valid_and_compiles(template: Any) -> None:
-    analysis = analyze(ModelGraph.model_validate(template.graph))
+    analysis = analyze(ForgeGraph.model_validate(template.graph))
     assert analysis.problems == []
     assert analysis.plan and analysis.stats.scale in (1, 2, 3, 4)
     tree = ast.parse(generate(template.name, analysis))
@@ -39,14 +39,14 @@ def test_every_template_is_valid_and_compiles(template: Any) -> None:
 
 
 def test_siqe_classic_matches_the_real_network() -> None:
-    stats = analyze(ModelGraph.model_validate(TEMPLATES_BY_ID["siqe-classic"].graph)).stats
+    stats = analyze(ForgeGraph.model_validate(TEMPLATES_BY_ID["siqe-classic"].graph)).stats
     # Counted layer by layer from siqe.ai.archs.siqe_classic: 1,664 + 274,752 + 77,984 + 2,601.
     assert stats.params == 357_001
     assert (stats.scale, stats.color) == (3, "y")
 
 
 def test_shapes_follow_the_blocks() -> None:
-    analysis = analyze(ModelGraph.model_validate(TEMPLATES_BY_ID["unet-denoise"].graph))
+    analysis = analyze(ForgeGraph.model_validate(TEMPLATES_BY_ID["unet-denoise"].graph))
     shapes = {k: (v.channels, v.scale) for k, v in analysis.shapes.items()}
     assert shapes["down"] == (64, "1/2")
     assert shapes["join"] == (64, "1")  # 32 from the encoder + 32 from Up
@@ -76,7 +76,7 @@ def test_output_channels_must_match_the_input() -> None:
 
 
 def test_add_needs_matching_inputs() -> None:
-    graph = ModelGraph.model_validate(
+    graph = ForgeGraph.model_validate(
         {
             "blocks": [
                 {"id": "in", "type": "input"},
@@ -102,7 +102,7 @@ def test_add_needs_matching_inputs() -> None:
 @pytest.mark.parametrize(
     ("graph", "message"),
     [
-        (ModelGraph.model_validate(EMPTY), "Output needs one input"),
+        (ForgeGraph.model_validate(EMPTY), "Output needs one input"),
         (
             _chain(("in", "input", {}), ("out", "output", {}), ("x", "conv", {})),
             "isn't connected|reaches the Output",
@@ -116,14 +116,14 @@ def test_add_needs_matching_inputs() -> None:
         (_chain(("in", "input", {}), ("z", "zap", {}), ("out", "output", {})), "no zap block"),
     ],
 )
-def test_problems_are_explained(graph: ModelGraph, message: str) -> None:
+def test_problems_are_explained(graph: ForgeGraph, message: str) -> None:
     import re
 
     assert any(re.search(message, p.message) for p in analyze(graph).problems), analyze(graph).problems
 
 
 def test_loops_are_refused() -> None:
-    graph = ModelGraph.model_validate(
+    graph = ForgeGraph.model_validate(
         {
             "blocks": [
                 {"id": "in", "type": "input"},
@@ -142,12 +142,12 @@ def test_loops_are_refused() -> None:
 
 
 def test_code_for_a_broken_graph_lists_the_problems() -> None:
-    code = generate("Broken", analyze(ModelGraph.model_validate(EMPTY)))
+    code = generate("Broken", analyze(ForgeGraph.model_validate(EMPTY)))
     assert code.startswith("# Broken can't be turned into code yet")
 
 
 def test_memory_estimate_grows_with_the_model() -> None:
-    small = analyze(ModelGraph.model_validate(TEMPLATES_BY_ID["espcn"].graph)).stats
-    big = analyze(ModelGraph.model_validate(TEMPLATES_BY_ID["edsr-lite"].graph)).stats
+    small = analyze(ForgeGraph.model_validate(TEMPLATES_BY_ID["espcn"].graph)).stats
+    big = analyze(ForgeGraph.model_validate(TEMPLATES_BY_ID["edsr-lite"].graph)).stats
     assert big.train_memory_mb > small.train_memory_mb > 300
     assert big.params > small.params

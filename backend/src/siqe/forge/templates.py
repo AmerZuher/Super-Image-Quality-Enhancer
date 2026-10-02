@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 from typing import Any
 
-from siqe.forge.graph import ModelGraph
+from siqe.forge.graph import ForgeGraph
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class Template:
 def _graph(
     blocks: list[tuple[str, str, dict[str, Any], int, int]], links: list[tuple[str, str]]
 ) -> dict[str, Any]:
-    return ModelGraph.model_validate(
+    return ForgeGraph.model_validate(
         {
             "blocks": [
                 {"id": i, "type": t, "params": p, "position": {"x": x, "y": y}} for i, t, p, x, y in blocks

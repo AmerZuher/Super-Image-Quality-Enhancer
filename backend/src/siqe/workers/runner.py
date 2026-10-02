@@ -10,6 +10,7 @@ import asyncio
 import os
 import signal
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 from temporalio.client import Client
@@ -142,6 +143,8 @@ def build_worker(client: Client, kind: WorkerKind) -> Worker:
         task_queue=GPU_TASK_QUEUE,
         activities=GPU_ACTIVITIES,
         max_concurrent_activities=1,
+        # Cancellation reaches an activity with its next heartbeat; keep pausing a training run quick.
+        max_heartbeat_throttle_interval=timedelta(seconds=2),
         identity=f"gpu@{os.uname().nodename}",
     )
 
