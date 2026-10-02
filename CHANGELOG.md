@@ -6,6 +6,13 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Added
 
+- **Forge is here: design, train and publish your own models.** Start from SIQE Classic, ESPCN, EDSR-lite, a bicubic-plus-detail ×4 model or a U-Net denoiser, or from just an input and an output, and change it block by block: convolutions, residual and residual dense blocks, channel attention, add and concat, depth-to-space, resize, down and up.
+- **Checked as you draw:** every link shows its channels and size, and the model's parameters, compute and training memory update as you go. Blocks that can't work turn red and say why, usually with a one-click fix.
+- **Read the code:** the Code tab shows the plain PyTorch module your design compiles to, ready to copy or download. Trained weights load straight into it.
+- **Datasets from your Library:** cut training crops from selected images, an album, rules or everything. Training damages each crop differently every time (blur, downscaling, noise and JPEG, each with a range you choose), and a preview shows exactly what the model will learn to undo.
+- **Train with live charts:** loss and PSNR on held-out photos (against bicubic) stream in as it learns, with a side-by-side sample from the best checkpoint. Pause, resume or stop at any time; training runs in short chunks so your other AI jobs still get their turn, and picks up exactly where it left off after a restart. If the GPU runs out of memory the batch shrinks automatically; if training becomes unstable it slows down and tells you.
+- **Publish to AI Lab:** the best checkpoint is scored on your held-out photos and added to AI Lab as a new version, with a "Trained in Forge" badge and its score. Use it like any other model in AI Lab and Flows, or download its weights.
+
 - **Flows are here.** Chain blocks on a canvas to automate what you repeat: sort images with **If** (orientation, size, tags, faces, anything a smart album can use), edit them (adjustments, your Studio edits, resize, crop to a shape, rotate, trim, place on a canvas, watermark), enhance them with AI (upscale, denoise, remove background, restore faces), then export, save to the Library, tag, add to an album or quarantine.
 - **Five recipes to start from:** wallpaper pipeline, product shots, web gallery, old photo restoration and blurry photo triage. Flows save as you edit, and blocks that need fixing turn red and say why.
 - **Run on what you choose:** the images selected in the Library ("Run a flow" in the selection bar), an album, a set of rules, or everything. A **dry run** tries a flow on 10 images first and only pretends to change your Library.

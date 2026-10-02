@@ -37,6 +37,10 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Browser sign-in | The key in an HttpOnly, SameSite=Strict cookie on `/api`, Secure over HTTPS, 90 days | Page scripts reading the key, and cross-site requests **(P4)** |
 | Face counting | On the preview, at most 1,280 px; faces under 20 px ignored; halves the detection size on out-of-memory; waits at most 5 minutes for the GPU worker, then tries again on the next pass | Counting crowds, and the Library waiting behind a long AI job **(P4)** |
 | Run downloads | Zips are built on the data volume and deleted after sending; only files the run exported can be fetched | Large zips in memory, and path tricks reading other files **(P4)** |
+| Forge graphs | Checked in plain Python on every edit (no GPU, no PyTorch); a run starts only with no problems; patch sizes must fit the model's Down blocks and the dataset's crops | Training jobs that fail minutes in on a shape mistake **(P5)** |
+| Forge datasets | Crops of 64 to 1024 px, 1 to 64 per image, at most 20,000 images; smaller images and near-flat crops skipped; images read streamed with libvips; at most 64 validation crops scored | Datasets of empty sky, decompression bombs, and slow validations **(P5)** |
+| Forge training | Chunks of about 3 minutes on the GPU queue (one GPU job at a time); exact resume from a checkpoint after each chunk; history restarts every 100 chunks; checkpoints loaded with `weights_only=True` | Hogging the GPU for hours, losing progress to a crash, and unsafe pickles **(P5)** |
+| Forge models | Published to `/data/models/forge-<name>-v<n>/` with a checksum and a descriptor; run in full precision through the usual tiled pipeline | User models that bypass tiling or the out-of-memory ladder **(P5)** |
 | PostgreSQL connections | 200, Temporal capped at 10 per store | Connection exhaustion **(P0)** |
 | Event payload | 7,900 bytes; larger events become refetch pointers | NOTIFY's 8,000-byte limit **(P0)** |
 | WebSocket queue per browser | 500 events, oldest dropped | A slow or backgrounded tab growing server memory **(P0)** |
@@ -101,6 +105,26 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `flow.unknown_step` | n/a (per image) | A block type this version doesn't know (from a newer `.flow.json`) | P4 |
 | `flow.step_failed` | n/a (per image) | Any other failure in one block; the message says which | P4 |
 | `flow.all_failed` | n/a (job error) | Every image in a run failed | P4 |
+| `forge.project_not_found` | 404 | No model design with that id | P5 |
+| `forge.dataset_not_found` | 404 | No dataset with that id | P5 |
+| `forge.run_not_found` | 404 | No training run with that id | P5 |
+| `forge.template_not_found` | 404 | Starting a model from a template that doesn't exist | P5 |
+| `forge.invalid` | 422 | Training a model whose design still has problems (or is empty) | P5 |
+| `forge.patch_multiple` | 422 | The patch size isn't a multiple the model's Down blocks need | P5 |
+| `forge.patch_too_big` | 422 | The patch, times the model's scale, is larger than the dataset's crops | P5 |
+| `forge.no_images` | 422 or job error | The chosen images, album or filters have no images | P5 |
+| `forge.dataset_empty` | job error | No image was big or detailed enough for a crop | P5 |
+| `forge.dataset_not_ready` | 409 | Training on, or previewing, a dataset that hasn't finished building | P5 |
+| `forge.dataset_busy` | 409 | Rebuilding a dataset that is being built | P5 |
+| `forge.dataset_in_use` | 409 | Deleting or rebuilding a dataset a running training uses | P5 |
+| `forge.dataset_missing` | job error | The run's dataset no longer exists | P5 |
+| `forge.not_running` | 409 | Pausing, resuming or stopping a run that has finished | P5 |
+| `forge.run_busy` | 409 | Deleting a run that is still training | P5 |
+| `forge.no_sample` | 404 | No validation has run yet, so there is no sample image | P5 |
+| `forge.nothing_to_publish` | 409 or 404 | Publishing or downloading weights before the first validation saved a checkpoint | P5 |
+| `forge.out_of_memory` | job error | The model doesn't fit in GPU memory even one patch at a time | P5 |
+| `forge.diverged` | job error | Twenty steps in a row gave non-finite losses | P5 |
+| `forge.model_files_missing` | 409 | Re-adding a published Forge model whose files were removed | P5 |
 | `auth.required` | 401 | `SIQE_API_AUTH=keys` and the request has no key | P4 |
 | `auth.invalid_key` | 401 | The key is wrong or was revoked | P4 |
 | `auth.key_not_found` | 404 | Revoking a key that doesn't exist | P4 |
@@ -134,6 +158,11 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Face detector not installed | Face filters match nothing and the Library offers the download; everything else works **(P4)** |
 | GPU worker missing while counting faces | Counting waits up to 5 minutes, then the Library carries on; images are counted on a later pass **(P4)** |
 | Sign-in on and no key yet | The web app shows a sign-in screen with the command that makes a key (`siqe keys create`) **(P4)** |
+| GPU out of memory while training | The batch is halved and gradients accumulated, keeping the effective batch; the run's notes say when **(P5)** |
+| A training step gives a non-finite loss | The step is skipped and the learning rate halved; twenty in a row stop the run as `forge.diverged`, keeping the best checkpoint **(P5)** |
+| Worker restarts during training | The chunk is retried from the last checkpoint, with the same random state **(P5)** |
+| Pausing or stopping a run | The running chunk is cancelled, saves a checkpoint and ends; resuming continues from exactly that step **(P5)** |
+| Other GPU work while training | It runs between training chunks, so it waits at most about 3 minutes **(P5)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
 ## Input edge cases (P1 and P2)

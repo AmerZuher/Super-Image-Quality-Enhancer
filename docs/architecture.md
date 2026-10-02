@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library) and 4 (Flows) implemented. Living document, v3. |
+| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library), 4 (Flows) and 5 (Forge) implemented. Living document, v3. |
 | **Updated** | 2 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
@@ -140,7 +140,7 @@ PostgreSQL is the only stateful service. SQLite remains an option for a future s
 
 ### 4.2 Schema
 
-Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3); `flows`, `flow_runs`, `flow_run_items`, `api_keys` and the `faces` count on `assets` (Phase 4). Phase 5 adds Forge's tables.
+Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3); `flows`, `flow_runs`, `flow_run_items`, `api_keys` and the `faces` count on `assets` (Phase 4); `forge_projects`, `forge_datasets`, `forge_runs` and `forge_metrics`, and `source` and `spec` on `ai_models` (Phase 5).
 
 ```mermaid
 erDiagram
@@ -155,9 +155,11 @@ erDiagram
   FLOW_RUN ||--o{ FLOW_RUN_ITEM : "one per image"
   FLOW_RUN_ITEM }o--|| ASSET : "processes"
   FLOW_RUN ||--|| JOB : "shown as"
-  FORGE_PROJECT ||--o{ TRAINING_RUN : "trains"
-  TRAINING_RUN ||--o{ CHECKPOINT : "saves"
-  CHECKPOINT ||--o| MODEL : "published as"
+  FORGE_PROJECT ||--o{ FORGE_RUN : "trained in"
+  FORGE_DATASET ||--o{ FORGE_RUN : "feeds"
+  FORGE_RUN ||--o{ FORGE_METRIC : "charts"
+  FORGE_RUN ||--o| MODEL : "published as"
+  FORGE_RUN ||--|| JOB : "shown as"
   JOB {
     uuid id
     text kind
@@ -262,6 +264,29 @@ flowchart LR
 
 Details and trade-offs: [ADR 0008](adr/0008-flows-and-api-keys.md).
 
+### 4.7 Forge
+
+```mermaid
+flowchart LR
+  C[Canvas: blocks and links] -->|POST /check, every edit| A[analyze: shapes, problems, fixes, costs, plan]
+  A --> G[codegen: standalone PyTorch]
+  A --> N[GraphNet: same plan, same weight names]
+  L[(Library images)] -->|ForgeDatasetWorkflow, siqe-cpu| D[clean HR crops, train and val]
+  D -->|damage drawn per sample| T[ForgeTrainWorkflow]
+  N --> T
+  T -->|forge_train_chunk, about 3 min each, siqe-gpu| K[last.pt, best.safetensors, sample.png]
+  T -->|forge.metrics events| UI[Live charts]
+  K -->|ForgePublishWorkflow: benchmark| M["/data/models/forge-name-vN/"]
+  M -->|forge.json discovered by the registry| AI[AI Lab, Flows]
+```
+
+- **A model is a graph document** checked in plain Python (`siqe.forge.graph.analyze`): channels and scale per block, problems with one-click fixes, parameters, multiply-adds per pixel, a training-memory estimate, the patch multiple and the receptive field. The same analysis yields the plan that both `GraphNet` and the generated code are built from, so a checkpoint loads into either.
+- **Datasets** are clean crops cut from Library images, with every Nth image held out for validation. The degradation chain (blur, bicubic down, noise, JPEG) is applied to each sample as it is drawn, so its settings can change without a rebuild and one dataset serves every scale.
+- **Training** runs in chunks of about three minutes on the GPU queue, each resuming exactly from the last checkpoint, so other GPU work waits minutes at most. Pause, resume and stop are workflow signals; a cancelled chunk saves before it ends. Charts get a training point every 25 steps and a validation point (PSNR and SSIM on brightness, against bicubic) at the interval you choose.
+- **Publishing** scores the best checkpoint on the held-out crops and copies it, with a `forge.json` descriptor, to the models folder. The registry merges these into the catalog, and AI Lab and Flows run them through the usual tiled pipeline.
+
+Details and trade-offs: [ADR 0009](adr/0009-forge.md).
+
 ---
 
 ## 5. Robustness and resource safety
@@ -335,7 +360,7 @@ Implemented in `siqe.ai.tiling.run_tiled`. Halving the tile splits the tiles sti
 
 - The GPU worker polls the `siqe-gpu` Temporal task queue with **one activity at a time**. Parallelism comes from batching tiles inside an activity, never from two jobs sharing VRAM.
 - Interactive jobs (the image you're looking at) and batch jobs will use separate task queues, with interactive work picked first (Phase 4, when batches arrive).
-- From Phase 5, training runs as chunked activities on the same worker. Between chunks it checkpoints and yields if interactive work is waiting, so a training run never blocks an enhancement for hours.
+- Forge training runs as chunked activities of about three minutes on the same worker. Each chunk ends with a checkpoint, and GPU work queued meanwhile runs before the next chunk, so a training run never blocks an enhancement for hours.
 - One model stays loaded between runs (plus the face models when used); loading another releases it.
 
 ### 5.7 System memory and disk
@@ -362,9 +387,9 @@ stateDiagram-v2
 - Final states are never overwritten, so a late progress update can't revive a cancelled job.
 - Progress writes are throttled to at most four per second per job, and each is also a Temporal heartbeat.
 
-### 5.9 Training safety (Forge, Phase 5)
+### 5.9 Training safety (Forge)
 
-Shape checks and a VRAM estimate run before training. Batch size is found automatically (halve on OOM, then gradient accumulation). bf16 mixed precision is used by default; the RTX 3090 supports it. Runs checkpoint regularly and resume exactly. A NaN/Inf guard skips the step and lowers the learning rate. Datasets are validated once up front.
+A run starts only when the graph has no problems, the dataset is built, and the patch size fits the model (a multiple of its Down blocks) and the dataset's crops. Out of memory halves the batch and doubles gradient accumulation, keeping the effective batch. bfloat16 autocast is used where the GPU supports it (the RTX 3090 does). Each chunk ends with a checkpoint and the next resumes exactly, including random states. A non-finite loss skips the step and halves the learning rate; twenty in a row stop the run as diverged. Notes on the run say what was adjusted and when.
 
 ### 5.10 Input edge cases
 
@@ -412,7 +437,7 @@ flowchart LR
 | `init` | `siqe-studio-api` | One-shot: Alembic migrations and Temporal namespace |
 | `api` | `siqe-studio-api` (537 MB) | REST, WebSocket events, OpenAPI, Library text search, optional API-key sign-in; mounts the output folder for downloads |
 | `worker` | `siqe-studio-api` | All workflows plus CPU activities, Library indexing, flow blocks; mounts the import folder read-only and the output folder |
-| `worker-gpu` | `siqe-studio-ai` (9.3 GB, CUDA PyTorch) | GPU activities one at a time: AI runs, AI flow blocks, face counting |
+| `worker-gpu` | `siqe-studio-ai` (9.3 GB, CUDA PyTorch) | GPU activities one at a time: AI runs, AI flow blocks, face counting, Forge training chunks and benchmarks |
 | `web` | `siqe-studio-web` (94 MB) | Caddy with the built SPA, port 8080 on 127.0.0.1 |
 
 ### 7.2 Repository
@@ -440,6 +465,7 @@ flowchart LR
 │   │   ├── ai/              model catalog, downloads, tiling, memory governor, CLIP in numpy
 │   │   ├── library/         analysis, duplicates, rules, search, import folder, face counts
 │   │   ├── flows/           block catalog, flow documents, recipes, edit operations, run records
+│   │   ├── forge/           block catalog, graph checks, code generation, templates, datasets, training
 │   │   ├── auth/            API keys and the optional sign-in middleware
 │   │   ├── system/          container-aware CPU, memory and disk readings
 │   │   ├── updates/         GitHub release checks for the Update Center
@@ -503,7 +529,7 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P2 AI Lab and governor** | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, denoise, full-resolution compare | **Done** (erase, colorize, deblur and bring-your-own ONNX moved to P6: their weights are on Hugging Face, which this build environment can't reach) |
 | **P3 Library** | Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal | **Done** (face-based albums need face detection on the GPU queue; they move to P4) |
 | **P4 Flows** | Node editor, batch runs with paged child workflows, dry runs, recipes, folder watching, API keys and optional sign-in, `siqe` CLI commands, face counts and face rules | **Done** |
-| P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | Next |
-| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX, final docs and gallery, `docker compose up` verified on your PC | |
+| **P5 Forge** | Visual builder, shape checker with fixes, graph-to-PyTorch compiler, dataset builder with a damage preview, chunked and resumable training, live charts, publish to AI Lab | **Done** (ONNX export moves to P6, with bring-your-own ONNX) |
+| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | Next |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.

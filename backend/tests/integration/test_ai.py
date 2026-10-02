@@ -68,7 +68,9 @@ def photo(client: httpx.Client) -> dict[str, Any]:
 
 def test_catalog_lists_commercial_safe_models(client: httpx.Client) -> None:
     models = client.get("/api/models").json()
-    assert {m["license"] for m in models} <= {"MIT", "BSD-3-Clause", "Apache-2.0"}
+    # Models you train in Forge are your own; everything shipped in the catalog is commercial-safe.
+    shipped = [m for m in models if m["source"] == "catalog"]
+    assert {m["license"] for m in shipped} <= {"MIT", "BSD-3-Clause", "Apache-2.0"}
     assert {"siqe-classic", "realesrgan-x4plus", "isnet-general"} <= {m["id"] for m in models}
 
 

@@ -9,7 +9,7 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 - Architecture and decisions: [docs/architecture.md](docs/architecture.md) and [docs/adr/](docs/adr/)
 - Limits, error codes, fallbacks: [docs/robustness.md](docs/robustness.md)
 - Product plan and UI mockups: [docs/plan/blueprint.html](docs/plan/blueprint.html)
-- Current phase: **P4 (Flows) done; P5 (Forge) next.** Forge is a preview page until its phase lands.
+- Current phase: **P5 (Forge) done; P6 (Hardening) next.** All five workspaces are live.
 
 ## Map
 
@@ -28,12 +28,13 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 | `backend/src/siqe/assets/` | Asset and rendition rows, their events, and `ingest.add_file` (shared by uploads and the import folder) |
 | `backend/src/siqe/ai/` | Model catalog (`manifest`), downloads (`registry`), tiling and the OOM ladder (`tiling`), memory planning (`governor`, `plan`), the run pipeline, faces, background removal, torch-free checkpoint reading (`pth`) and CLIP in numpy (`clip`); `runtime` and `archs/` need torch |
 | `backend/src/siqe/library/` | Library: per-image analysis, CLIP embedder and tags, duplicates, smart-album rules (SQL and Python), search, face counts, the import folder and its schedule |
+| `backend/src/siqe/forge/` | Forge: block catalog, graph checks and plan (`graph`, torch-free), code generation (`codegen`), templates, degradation (`degrade`), datasets, training settings, the trainer (`trainer`, torch) and benchmark (`publish`), rows and events (`records`) |
 | `backend/src/siqe/flows/` | Flows: block catalog (`catalog`), document checks (`document`), recipes, edit operations (`ops`), run records and starting runs (`start`, also the folder trigger) |
 | `backend/src/siqe/auth/` | API keys (`keys`) and the optional sign-in middleware (`middleware`, `SIQE_API_AUTH=keys`) |
 | `backend/src/siqe/system/` | Container-aware CPU, memory and disk readings |
 | `backend/src/siqe/updates/` | GitHub release checks for the Update Center |
 | `frontend/src/app/` | Router, app shell, command palette, Update Center drawer |
-| `frontend/src/features/` | One folder per page or workspace; `studio/gl/` holds the WebGL preview, `ailab/` the model library and compare viewer, `library/` the grid, filters, albums and inspector, `flows/` the editor (React Flow), runs and run dialog, `access/` sign-in and API keys |
+| `frontend/src/features/` | One folder per page or workspace; `studio/gl/` holds the WebGL preview, `ailab/` the model library and compare viewer, `library/` the grid, filters, albums and inspector, `flows/` the editor (React Flow), runs and run dialog, `forge/` the model canvas, datasets, training charts and publishing, `access/` sign-in and API keys |
 | `frontend/src/components/ui/` | Lattice design-system primitives |
 | `frontend/src/lib/api/` | Generated OpenAPI types (`schema.d.ts`), client, queries |
 | `frontend/e2e/` | Playwright tests; `gallery.spec.ts` captures README screenshots |
@@ -59,7 +60,7 @@ make ops               # Temporal UI on http://localhost:8233
 
 The `siqe` command also talks to a running app (`SIQE_URL`, `SIQE_API_KEY`): `siqe flows list`, `siqe upload <files>`, `siqe run <flow name or .flow.json> <files> [--dry-run] [--download DIR]`. Inside the container: `docker compose exec api siqe keys create|list|revoke`.
 
-Single tests: `cd backend && uv run pytest tests/unit/test_tiling.py -k ladder` · `cd frontend && pnpm vitest run src/lib/format.test.ts` · `cd frontend && pnpm exec playwright test e2e/smoke.spec.ts`. `e2e/shader-parity.spec.ts` needs no running stack. PyTorch tests (`tests/unit/test_ai_torch.py`) skip without torch; run them in the `ai` image or after `uv sync --extra ai`, with `SIQE_TEST_MODELS` pointing at downloaded weights (the CLIP tokenizer test needs `bpe_simple_vocab_16e6.txt.gz` there too).
+Single tests: `cd backend && uv run pytest tests/unit/test_tiling.py -k ladder` · `cd frontend && pnpm vitest run src/lib/format.test.ts` · `cd frontend && pnpm exec playwright test e2e/smoke.spec.ts`. `e2e/shader-parity.spec.ts` needs no running stack. PyTorch tests (`tests/unit/test_ai_torch.py`, `test_forge_torch.py`) skip without torch; run them in the `ai` image or after `uv sync --extra ai`, with `SIQE_TEST_MODELS` pointing at downloaded weights (the CLIP tokenizer test needs `bpe_simple_vocab_16e6.txt.gz` there too).
 
 ## Golden rules
 
@@ -78,6 +79,7 @@ Breaking one of these is a bug, even if tests pass.
 11. **No model weights in git.** Models are added to `siqe.ai.manifest` with URL, size, sha256 and license (ADR 0006). Commercial-safe licenses only (MIT, BSD-3-Clause, Apache-2.0; no CodeFormer, no non-commercial Depth Anything sizes). Load `.pth` with `weights_only=True` (or, without torch, `siqe.ai.pth`); prefer safetensors or ONNX.
 12. **Gold means AI.** In the UI, gold (`--gold`, `variant="ai"`) marks things that run an AI model. Use cyan for everything else. Colours come from tokens in `frontend/src/styles/tokens.css`; never hard-code hex values in components. Every view must work in dark and light themes and at phone width.
 13. **Status needs more than colour.** States (ok, warning, error) always pair a colour with an icon and a label.
+14. **Forge's checker, models and code agree.** `siqe.forge.graph.analyze` (plain Python) is the only source of shapes and of the plan; `GraphNet` (`ai/archs/forge.py`) and `siqe.forge.codegen` both build from that plan with the same module names, so weights load into either. A new block needs its spec in `siqe.forge.catalog`, its shape and cost in `graph.py`, its module in `ai/archs/forge_blocks.py` and its constructor in `codegen`; `tests/unit/test_forge_torch.py` checks that the generated code and `GraphNet` give identical output. Training stays in chunks on the GPU queue and must save a checkpoint when cancelled.
 
 ## Definition of done
 

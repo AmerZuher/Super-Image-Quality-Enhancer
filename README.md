@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 4 of 6 is complete.** The foundation, the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder) and **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) are ready to use. Forge comes next; see the [roadmap](#roadmap).
+> **Status: Phase 5 of 6 is complete.** All five workspaces are ready to use: the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder), **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) and **Forge** (design, train and publish your own models). Hardening comes next; see the [roadmap](#roadmap).
 
 ---
 
@@ -35,8 +35,8 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 | **Studio** | Non-destructive editor with a live GPU preview: light and colour adjustments, crop and rotate, compare views, histogram, export to any common format with a target size. **Ready now.** | 1 |
 | **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
 | **Library** | Search by describing a photo, find similar images, automatic tags, duplicate groups that keep the best copy (with quarantine and undo), smart albums from rules, camera details and location removal without re-encoding, and an import folder. **Ready now.** | 3 |
-| **Flows** | Visual pipelines for batches and hot folders, runnable from the API and CLI | 4 |
-| **Forge** | Design neural networks by drawing them, train them with live charts, publish them to the AI Lab | 5 |
+| **Flows** | Visual pipelines for batches and watched folders: edits, AI models and exports, branching with If, dry runs, recipes, and the same flows from the REST API and the `siqe` command. **Ready now.** | 4 |
+| **Forge** | Design a super-resolution or denoising network by drawing it, with live shape checks and one-click fixes; read the PyTorch it makes; build datasets from your Library; train with live charts, pause and resume; publish to AI Lab. **Ready now.** | 5 |
 
 Built for real hardware limits: images are planned before processing, large ones are tiled and streamed, and running out of GPU memory steps down gracefully instead of crashing. See [docs/robustness.md](docs/robustness.md).
 
@@ -66,8 +66,12 @@ Built for real hardware limits: images are planned before processing, large ones
 | Flows: chain blocks, branch with If | Runs: what happened to every image |
 | <img src="gallery/flows-light.png" alt="Flows in the light theme with the flow list, block palette, a web gallery flow with image counts from its last run, and the flow watching a folder" /> | <img src="gallery/flows-run.png" alt="Run dialog: run on the Library selection, an album, rules or everything, with a dry run first" /> |
 | Watch a folder; each block shows its last run | Run on a selection, an album or everything, dry run first |
+| <img src="gallery/forge-design.png" alt="Forge designing a ×4 model: a small network with residual blocks and channel attention added to a bicubic copy of the input, channel counts on every link, the block palette on the left and the selected block's settings and shapes on the right" /> | <img src="gallery/forge-train.png" alt="A finished Forge training run: training loss on a log scale, PSNR on held-out crops rising past the bicubic line, a bicubic, model and original comparison of a mountain crop, and the model published to AI Lab" /> |
+| Forge: draw a model, shapes checked as you go | Train with live charts, then publish to AI Lab |
+| <img src="gallery/forge-data.png" alt="A Forge dataset in the light theme: image and crop counts, the damage chain of blur, bicubic downscaling, noise and JPEG with ranges, and a preview of damaged inputs beside clean crops" /> | <img src="gallery/forge-code.png" alt="The PyTorch code Forge generates for SIQE Classic, with copy and download buttons" /> |
+| Datasets: tune the damage, see it before training | The PyTorch it makes, ready to copy |
 
-<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /> &nbsp; <img src="gallery/library-phone.png" alt="Library on a phone with view chips, search and a two-column grid" width="240" /> &nbsp; <img src="gallery/flows-phone.png" alt="A flow run's results on a phone" width="240" /></p>
+<p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /> &nbsp; <img src="gallery/library-phone.png" alt="Library on a phone with view chips, search and a two-column grid" width="240" /> &nbsp; <img src="gallery/flows-phone.png" alt="A flow run's results on a phone" width="240" /> &nbsp; <img src="gallery/forge-phone.png" alt="A Forge training run's charts and sample on a phone" width="240" /></p>
 
 All screenshots are regenerated with `make gallery`.
 
@@ -118,9 +122,9 @@ Database changes are applied automatically when the new version starts. To stay 
 
 | Setup | What to expect |
 |---|---|
-| CPU only | Everything works. AI runs are slower: a ×4 upscale of a 1 MP photo takes about 25 s with Real-ESRGAN General v3. The Library analyses about 10 photos a second on four cores, so 10,000 photos take under 20 minutes, once. |
+| CPU only | Everything works. AI runs are slower: a ×4 upscale of a 1 MP photo takes about 25 s with Real-ESRGAN General v3. The Library analyses about 10 photos a second on four cores, so 10,000 photos take under 20 minutes, once. Forge trains SIQE Classic at about 8 steps a second (batch 8, 32 px patches): enough to try a design, not to finish one. |
 | NVIDIA, 8 GB VRAM | Full feature set. Tile size is measured per model; if memory still runs out, runs step down automatically instead of failing. |
-| NVIDIA, 24 GB VRAM (for example RTX 3090) | The reference setup. Bigger tiles and batches, and room for training in Forge. |
+| NVIDIA, 24 GB VRAM (for example RTX 3090) | The reference setup. Bigger tiles and batches, and room for training in Forge at batch 16 and up, in bfloat16. |
 | Apple Silicon | Runs on CPU; Docker can't pass the Apple GPU through. |
 
 GPU support needs the NVIDIA driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). The Overview shows exactly what the GPU worker sees.
@@ -188,7 +192,7 @@ flowchart LR
 
 - **FastAPI** serves the REST API (documented at `/api/docs`) and a WebSocket of live events.
 - **Temporal** runs every job durably: retries, heartbeats, cancellation, and resume after crashes.
-- **Workers** do the work: the CPU worker runs workflows, image processing, Library indexing and flow blocks; the GPU worker runs one GPU task at a time (AI runs, AI flow blocks, face counting) so jobs never fight over VRAM.
+- **Workers** do the work: the CPU worker runs workflows, image processing, Library indexing and flow blocks; the GPU worker runs one GPU task at a time (AI runs, AI flow blocks, face counting, Forge training in three-minute chunks) so jobs never fight over VRAM.
 - **PostgreSQL** is the only stateful service. It also delivers live events, so progress bars update the moment a worker commits.
 - **Caddy** serves the React app with a strict Content Security Policy and proxies the API.
 
@@ -241,6 +245,9 @@ The first time images are published, make the three packages public in GitHub (P
 | Files in the import folder don't appear | The Library's **Import folder** card shows when it last checked and lists files it couldn't read. Files wait until they've stopped changing for 15 seconds. After changing `SIQE_IMPORT_PATH`, run `make up` |
 | Library search says it needs CLIP | Download it from the gold banner in the Library (or AI Lab → Models). Without it, the search box matches file names and tags |
 | An image I expected is missing from Studio or AI Lab | It may be in the Library's **Quarantine**; restore it from there |
+| Forge won't start training | The model must have no problems (red blocks; the Design tab offers fixes), the dataset must be built, and the patch must fit: at most the crop size divided by the model's scale |
+| A Forge run says the batch was halved | It ran out of GPU memory; it now accumulates gradients over more steps, so the result is the same, just slower |
+| Forge training stopped as `forge.diverged` | Lower the learning rate or use L1 loss, then train again; the best checkpoint so far is kept |
 | Export refused with `format.dimension_limit` | WebP and AVIF stop at about 16,000 px per side: pick a smaller longest side, or PNG, TIFF or JPEG |
 
 Every API error has a stable code and a suggested fix; the full list is in [docs/robustness.md](docs/robustness.md#error-codes).
@@ -254,8 +261,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, faces, cutout, denoise | ✅ Done |
 | P3 Library | Search by description, similar images, tags, duplicates with quarantine, smart albums, location removal, import folder | ✅ Done |
 | P4 Flows | Visual pipelines, batch runs, dry runs, recipes, watched folders, API keys, CLI, people filters | ✅ Done |
-| P5 Forge | Visual model builder, training with live charts, publish to AI Lab | Next |
-| P6 Hardening | 8K+ robustness suite, performance, final docs | |
+| P5 Forge | Visual model builder with shape checks and fixes, generated PyTorch, datasets with a damage preview, resumable training with live charts, publish to AI Lab | ✅ Done |
+| P6 Hardening | 8K+ robustness suite, performance, erase, colorize, deblur, your own ONNX models and ONNX export, final docs | Next |
 
 The interactive product plan, with UI mockups of every workspace, is in [docs/plan/blueprint.html](docs/plan/blueprint.html).
 

@@ -86,7 +86,6 @@ test("command palette @gallery", async ({ page }) => {
 
 for (const [route, name] of [
   ["/jobs", "jobs"],
-  ["/forge", "forge-preview"],
   ["/settings", "settings"],
 ] as const) {
   test(`${name} @gallery`, async ({ page }) => {
@@ -462,5 +461,110 @@ test("flows on a phone @gallery", async ({ browser }) => {
   await expect(page.getByTestId("run-item").first()).toBeVisible({ timeout: 30_000 });
   await settle(page);
   await page.screenshot({ path: `${OUT}/flows-phone.png` });
+  await context.close();
+});
+
+// ----------------------------------------------------------------------------------- Forge
+
+const forge: Record<string, string> = {};
+
+async function waitFor(request: APIRequestContext, url: string, pick: (body: never) => string, want: string) {
+  await expect
+    .poll(async () => pick((await (await request.get(url)).json()) as never), {
+      timeout: 900_000,
+      intervals: [2_000],
+    })
+    .toBe(want);
+}
+
+test("prepare: two models, a dataset, a training run and a published model @gallery", async ({ request }) => {
+  test.setTimeout(1_200_000);
+  for (const [template, name] of [
+    ["siqe-classic", "Detail ×3"],
+    ["residual-x4", "Bicubic plus detail ×4"],
+  ] as const) {
+    const project = await (await request.post("/api/forge/projects", { data: { name, template } })).json();
+    forge[template] = project.id;
+  }
+  const dataset = await (
+    await request.post("/api/forge/datasets", {
+      data: {
+        name: "Landscapes",
+        source: { kind: "all" },
+        settings: { crop: 192, crops_per_image: 6, min_width: 400, min_height: 300, val_every: 4 },
+      },
+    })
+  ).json();
+  forge.dataset = dataset.id;
+  await waitFor(
+    request,
+    "/api/forge/datasets",
+    (list: { id: string; state: string }[]) => list.find((d) => d.id === dataset.id)?.state ?? "",
+    "succeeded",
+  );
+  const run = await (
+    await request.post(`/api/forge/projects/${forge["siqe-classic"]}/runs`, {
+      data: {
+        dataset_id: dataset.id,
+        settings: { steps: 600, batch: 8, patch: 32, val_every: 60, lr: 0.0005 },
+      },
+    })
+  ).json();
+  forge.run = run.id;
+  await waitFor(
+    request,
+    `/api/forge/runs/${run.id}`,
+    (d: { run: { state: string } }) => d.run.state,
+    "succeeded",
+  );
+  const published = await (
+    await request.post(`/api/forge/runs/${run.id}/publish`, { data: { name: "Detail", summary: "" } })
+  ).json();
+  await waitForJob(request, published.job.id, 600_000);
+});
+
+test("forge, designing a model @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.setViewportSize({ width: 1680, height: 940 });
+  await page.goto(`/forge?project=${forge["residual-x4"]}`);
+  await page.getByTestId("forge-block-attend").click();
+  await expect(page.getByTestId("forge-inspector")).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/forge-design.png` });
+});
+
+test("forge, a training run @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/forge?project=${forge["siqe-classic"]}&tab=train&run=${forge.run}`);
+  await expect(page.getByTestId("forge-sample")).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/forge-train.png` });
+});
+
+test("forge, dataset and damage preview in light @gallery", async ({ page }) => {
+  await useTheme(page, "light");
+  await page.goto(`/forge?project=${forge["siqe-classic"]}&tab=data&dataset=${forge.dataset}`);
+  await expect(page.getByTestId("forge-preview")).toBeVisible({ timeout: 30_000 });
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/forge-data.png` });
+});
+
+test("forge, generated code @gallery", async ({ page }) => {
+  await useTheme(page, "dark");
+  await page.goto(`/forge?project=${forge["siqe-classic"]}&tab=code`);
+  await expect(page.getByTestId("forge-code")).toContainText("class ");
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/forge-code.png` });
+});
+
+test("forge on a phone @gallery", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await useTheme(page, "dark");
+  await page.goto(`/forge?project=${forge["siqe-classic"]}&tab=train&run=${forge.run}`);
+  await expect(page.getByTestId("forge-run")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("forge-run").scrollIntoViewIfNeeded();
+  await settle(page);
+  await page.screenshot({ path: `${OUT}/forge-phone.png` });
   await context.close();
 });

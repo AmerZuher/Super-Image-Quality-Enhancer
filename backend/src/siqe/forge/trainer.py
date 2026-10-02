@@ -194,7 +194,10 @@ def validate(
     pairs = _validation_set(spec)
     color: Literal["rgb", "y"] = "y" if spec.color == "y" else "rgb"
     scores, structure, baseline = [], [], []
-    first = None
+    # The sample shows the most detailed held-out crop: a patch of clear sky shows nothing.
+    detail = [float(np.abs(np.diff(hr.astype(np.float32), axis=1)).mean()) for hr, _ in pairs]
+    pick = int(np.argmax(detail)) if detail else -1
+    sample = None
     model.eval()
     with torch.no_grad():
         for start in range(0, len(pairs), VAL_BATCH):
@@ -211,11 +214,12 @@ def validate(
                 else lr
             )
             baseline.extend(psnr(up, hr, border).tolist())
-            if first is None:
-                hr0, lr0 = chunk[0]
-                first = (lr0, _to_rgb8(sr[0], np.asarray(_upscaled(lr0, spec.scale)), color), hr0)
+            if start <= pick < start + len(chunk):
+                i = pick - start
+                hr0, lr0 = chunk[i]
+                sample = (lr0, _to_rgb8(sr[i], np.asarray(_upscaled(lr0, spec.scale)), color), hr0)
     model.train()
-    return float(np.mean(scores)), float(np.mean(structure)), float(np.mean(baseline)), first
+    return float(np.mean(scores)), float(np.mean(structure)), float(np.mean(baseline)), sample
 
 
 def _upscaled(lr: np.ndarray, scale: int) -> np.ndarray:
