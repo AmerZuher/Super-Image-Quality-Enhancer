@@ -193,6 +193,9 @@ importers:
       openapi-fetch:
         specifier: ^0.17.0
         version: 0.17.0
+      openseadragon:
+        specifier: ~6.1.1
+        version: 6.1.1
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -1531,6 +1534,9 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: ^5.x
+
+  openseadragon@6.1.1:
+    resolution: {integrity: sha512-g4iKe2q8B642SaBT3+x4ZF3/8b1TxPPydyjmtrOLgDrlYWMKd9ZXM+1Cb/xa9DVySkvs/7l6HR1nHKfD5F3Tsw==}
 
   parse-entities@4.0.2:
     resolution: {integrity: sha512-GG2AQYWoLgL877gQIKeRPGO1xF9+eG1ujIb5soS5gPvLQ1y2o8FL90w2QWNdf9I361Mpp7726c+lj3U0qK1uGw==}
@@ -3224,6 +3230,8 @@ snapshots:
       supports-color: 10.2.2
       typescript: 5.9.3
       yargs-parser: 21.1.1
+
+  openseadragon@6.1.1: {}
 
   parse-entities@4.0.2:
     dependencies:

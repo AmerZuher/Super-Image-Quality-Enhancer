@@ -36,6 +36,12 @@
   --overlay: rgb(3 6 14 / 0.62);
   --shadow: 0 24px 60px -24px rgb(0 0 0 / 0.8);
   --grid-dot: rgb(129 147 182 / 0.16);
+  /* Histogram channels: data colours, not theme accents. */
+  --hist-r: rgb(255 92 112 / 0.75);
+  --hist-g: rgb(69 216 157 / 0.7);
+  --hist-b: rgb(84 150 255 / 0.75);
+  --hist-l: rgb(227 235 250 / 0.55);
+  --stage: #050913;
 }
 
 @media (prefers-color-scheme: light) {
@@ -69,6 +75,11 @@
     --overlay: rgb(11 20 48 / 0.32);
     --shadow: 0 24px 50px -28px rgb(16 36 86 / 0.45);
     --grid-dot: rgb(86 100 138 / 0.18);
+    --hist-r: rgb(214 40 66 / 0.6);
+    --hist-g: rgb(11 143 92 / 0.6);
+    --hist-b: rgb(30 96 214 / 0.6);
+    --hist-l: rgb(11 20 48 / 0.4);
+    --stage: #dfe5ef;
   }
 }
 
@@ -102,4 +113,9 @@
   --overlay: rgb(11 20 48 / 0.32);
   --shadow: 0 24px 50px -28px rgb(16 36 86 / 0.45);
   --grid-dot: rgb(86 100 138 / 0.18);
+  --hist-r: rgb(214 40 66 / 0.6);
+  --hist-g: rgb(11 143 92 / 0.6);
+  --hist-b: rgb(30 96 214 / 0.6);
+  --hist-l: rgb(11 20 48 / 0.4);
+  --stage: #dfe5ef;
 }

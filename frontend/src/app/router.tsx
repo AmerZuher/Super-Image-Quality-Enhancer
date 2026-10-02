@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, Link } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, Link, lazyRouteComponent } from "@tanstack/react-router";
 import { JobsPage } from "@/features/jobs/JobsPage";
 import { OverviewPage } from "@/features/overview/OverviewPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
@@ -24,7 +24,9 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/studio",
-    component: () => <WorkspacePreview id="studio" />,
+    validateSearch: (search: Record<string, unknown>): { asset?: string } =>
+      typeof search.asset === "string" ? { asset: search.asset } : {},
+    component: lazyRouteComponent(() => import("@/features/studio/StudioPage"), "StudioPage"),
   }),
   createRoute({
     getParentRoute: () => rootRoute,

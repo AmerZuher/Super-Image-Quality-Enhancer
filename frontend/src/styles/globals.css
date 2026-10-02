@@ -27,6 +27,7 @@
   --color-warn-soft: var(--warn-soft);
   --color-err: var(--err);
   --color-err-soft: var(--err-soft);
+  --color-stage: var(--stage);
   --font-sans: "Instrument Sans Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Unbounded Variable", "Arial Black", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -73,6 +74,93 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
+  }
+  /* Transparent pixels show as a checkerboard behind the preview. */
+  .checker {
+    background-color: var(--panel-2);
+    background-image:
+      linear-gradient(45deg, var(--raised) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--raised) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--raised) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--raised) 75%);
+    background-size: 16px 16px;
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
+  }
+  /* Range slider: the fill runs from the default value (--from) to the current one (--to). */
+  .range {
+    appearance: none;
+    width: 100%;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+    --from: 0%;
+    --to: 0%;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--line) min(var(--from), var(--to)),
+      var(--cyan) min(var(--from), var(--to)),
+      var(--cyan) max(var(--from), var(--to)),
+      var(--line) max(var(--from), var(--to))
+    );
+  }
+  .range::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--line) min(var(--from), var(--to)),
+      var(--cyan) min(var(--from), var(--to)),
+      var(--cyan) max(var(--from), var(--to)),
+      var(--line) max(var(--from), var(--to))
+    );
+  }
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--fg);
+    border: 2px solid var(--cyan);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  }
+  .range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--fg);
+    border: 2px solid var(--cyan);
+  }
+  .range:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  /* Invisible full-size range input behind the compare divider: a 2 px thumb keeps it exact. */
+  .split-range {
+    appearance: none;
+    margin: 0;
+    background: transparent;
+  }
+  .split-range::-webkit-slider-runnable-track {
+    height: 100%;
+  }
+  .split-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 2px;
+    height: 100%;
+  }
+  .split-range::-moz-range-thumb {
+    width: 2px;
+    height: 100%;
+    border: 0;
   }
   .prose-notes {
     color: var(--fg-2);

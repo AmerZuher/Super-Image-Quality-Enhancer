@@ -30,6 +30,10 @@
     {
       "includes": ["src/styles/globals.css"],
       "linter": { "rules": { "complexity": { "noImportantStyles": "off" } } }
+    },
+    {
+      "includes": ["src/features/studio/gl/**", "e2e/shader-parity.spec.ts"],
+      "linter": { "rules": { "correctness": { "useHookAtTopLevel": "off" } } }
     }
   ],
   "assist": {

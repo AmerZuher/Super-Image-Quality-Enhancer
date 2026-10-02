@@ -23,6 +23,13 @@ export interface Workspace {
   capabilities: string[];
 }
 
+/** Phases that have shipped; workspaces from later phases show a preview page. */
+export const CURRENT_PHASE = 1;
+
+export function isAvailable(workspace: Workspace): boolean {
+  return workspace.phase <= CURRENT_PHASE;
+}
+
 export const OVERVIEW = { path: "/", label: "Overview", icon: LayoutDashboard } as const;
 
 export const WORKSPACES: Workspace[] = [
@@ -35,11 +42,11 @@ export const WORKSPACES: Workspace[] = [
     ai: false,
     summary: "A non-destructive editor with a live GPU preview.",
     capabilities: [
-      "Edit stack you can reorder, tweak or switch off at any time",
-      "Curves, levels, HSL, LUT import and colour grading",
-      "Histogram, waveform and vectorscope",
-      "Compare before and after with slider, split and difference views",
-      "Export with format-limit checks and a target file size",
+      "Edit stack you can switch off, tweak or remove at any time",
+      "Light, colour, detail and vignette adjustments with a live histogram",
+      "Crop, rotate and flip with aspect presets",
+      "Compare before and after with split, side-by-side and difference views",
+      "Export JPEG, PNG, WebP, AVIF or TIFF with format checks and a target file size",
     ],
   },
   {

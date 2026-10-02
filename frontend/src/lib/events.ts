@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
-import type { Job, SystemStatus, Worker } from "./api/client";
-import { keys, upsertJob } from "./api/keys";
+import type { Asset, Job, Rendition, SystemStatus, Worker } from "./api/client";
+import { keys, removeById, upsertById, upsertJob } from "./api/keys";
 
 type Status = "connecting" | "open" | "closed";
 
@@ -43,6 +43,35 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
       });
       return;
     }
+    case "asset.updated": {
+      const asset = event.data as unknown as Asset & { truncated?: boolean };
+      if (asset.truncated) {
+        void client.invalidateQueries({ queryKey: keys.assets, exact: true });
+        return;
+      }
+      // Events leave out the edit document; merge so a cached copy keeps it.
+      client.setQueryData<Asset[]>(keys.assets, (list) => upsertById(list, asset, true));
+      return;
+    }
+    case "asset.deleted":
+      client.setQueryData<Asset[]>(keys.assets, (list) => removeById(list, String(event.data.id)));
+      return;
+    case "rendition.updated": {
+      const rendition = event.data as unknown as Rendition & { truncated?: boolean };
+      if (rendition.truncated || !rendition.asset_id) {
+        void client.invalidateQueries({ predicate: (q) => q.queryKey[2] === "renditions" });
+        return;
+      }
+      client.setQueryData<Rendition[]>(keys.renditions(rendition.asset_id), (list) =>
+        list ? upsertById(list, rendition, true) : list,
+      );
+      return;
+    }
+    case "rendition.deleted":
+      client.setQueryData<Rendition[]>(keys.renditions(String(event.data.asset_id)), (list) =>
+        removeById(list, String(event.data.id)),
+      );
+      return;
     case "events.resync":
       void client.invalidateQueries();
       return;

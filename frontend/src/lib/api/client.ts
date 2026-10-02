@@ -7,6 +7,18 @@ export type SystemStatus = components["schemas"]["SystemOut"];
 export type Worker = components["schemas"]["WorkerOut"];
 export type UpdateStatus = components["schemas"]["UpdateStatusOut"];
 export type Release = components["schemas"]["ReleaseOut"];
+export type Asset = components["schemas"]["AssetOut"];
+export type Upload = components["schemas"]["UploadOut"];
+export type Catalog = components["schemas"]["CatalogOut"];
+export type OpSpec = components["schemas"]["OpOut"];
+export type OpParam = components["schemas"]["OpParamOut"];
+export type OutputFormat = components["schemas"]["OutputFormatOut"];
+export type EditDocument = components["schemas"]["EditDocumentIn"];
+export type Geometry = components["schemas"]["GeometryIn"];
+export type Crop = components["schemas"]["CropIn"];
+export type OpEntry = components["schemas"]["OpEntryIn"];
+export type ExportRequest = components["schemas"]["ExportIn"];
+export type Rendition = components["schemas"]["RenditionOut"];
 
 /** RFC 9457 problem details returned by every failing endpoint. */
 export interface Problem {
@@ -43,6 +55,12 @@ export function unwrap<T>(result: { data?: T; error?: unknown; response: Respons
     });
   }
   return result.data;
+}
+
+/** Like unwrap, for endpoints that answer 204 No Content. */
+export function unwrapEmpty(result: { error?: unknown; response: Response }): void {
+  if (result.response.ok && result.error === undefined) return;
+  unwrap({ ...result, data: undefined });
 }
 
 export function errorMessage(error: unknown): { message: string; fix?: string } {

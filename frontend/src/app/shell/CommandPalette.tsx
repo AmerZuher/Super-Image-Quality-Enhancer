@@ -4,7 +4,7 @@ import { ArrowUpCircle, BookOpen, ListChecks, Monitor, Moon, Play, Settings, Sun
 import { type ReactNode, useEffect } from "react";
 import { useStartSelfTest } from "@/lib/api/queries";
 import { useUi } from "@/lib/ui-store";
-import { OVERVIEW, WORKSPACES } from "../workspaces";
+import { isAvailable, OVERVIEW, WORKSPACES } from "../workspaces";
 
 function Item({
   onSelect,
@@ -81,7 +81,7 @@ export function CommandPalette() {
               key={w.id}
               icon={<w.icon />}
               onSelect={() => run(() => navigate({ to: w.path }))}
-              hint={`Phase ${w.phase}`}
+              hint={isAvailable(w) ? undefined : `Phase ${w.phase}`}
             >
               {w.label}
             </Item>

@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { clsx } from "clsx";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { JobStateChip } from "@/components/ui/JobStateChip";
 import { Panel } from "@/components/ui/Panel";
 import { useJobs, useSystem } from "@/lib/api/queries";
 import { useEventsStore } from "@/lib/events";
 import { relativeTime } from "@/lib/format";
-import { WORKSPACES } from "../../app/workspaces";
+import { isAvailable, WORKSPACES } from "../../app/workspaces";
 import { SelfTestPanel } from "./SelfTestPanel";
 import { AttentionIcon, attentionCount, GpuPanel, ResourcesPanel, ServicesPanel } from "./SystemPanels";
 
@@ -70,7 +70,13 @@ function WorkspaceCards() {
               >
                 <w.icon className="size-[18px]" />
               </span>
-              <Chip>Phase {w.phase}</Chip>
+              {isAvailable(w) ? (
+                <Chip tone="ok" icon={<CheckCircle2 />}>
+                  Ready
+                </Chip>
+              ) : (
+                <Chip>Phase {w.phase}</Chip>
+              )}
             </div>
             <h3 className="font-display text-[15px] font-medium text-fg">{w.label}</h3>
             <p className="text-[12.5px] text-fg-2">{w.summary}</p>
@@ -100,8 +106,8 @@ export function OverviewPage() {
           </h2>
         </div>
         <p className="max-w-[52ch] text-[13px] text-fg-2">
-          The foundation is in place: storage, job engine, workers and live updates. Workspaces arrive phase
-          by phase; each card below says what's coming.
+          Studio is ready: upload, edit and export your images. The other workspaces arrive phase by phase;
+          each card below says what's coming.
         </p>
       </header>
 
