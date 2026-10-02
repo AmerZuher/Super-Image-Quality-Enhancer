@@ -23,7 +23,7 @@ from siqe.events.bus import publish
 from siqe.imaging.io import inspect
 from siqe.imaging.metadata import remove_location
 from siqe.jobs.progress import ProgressReporter
-from siqe.library import embedder, imports, index
+from siqe.library import embedder, faces, imports, index
 from siqe.library.trigger import request_index
 from siqe.storage.store import StagedUpload, get_store
 
@@ -69,7 +69,13 @@ async def group_duplicates() -> dict[str, Any]:
     async with session_scope() as session:
         groups = await index.save_groups(session, plan)
         await publish(session, LIBRARY_EVENT, {"reason": "duplicates", "groups": groups})
-    return {"groups": groups, "duplicates": sum(1 for _, rank in plan.values() if rank > 0)}
+        # Tells the workflow whether face counting (on the GPU queue) has anything to do.
+        waiting = await faces.count_pending(session) if faces.detector_ready() else 0
+    return {
+        "groups": groups,
+        "duplicates": sum(1 for _, rank in plan.values() if rank > 0),
+        "faces_pending": waiting,
+    }
 
 
 @activity.defn

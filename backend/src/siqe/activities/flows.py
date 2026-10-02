@@ -293,6 +293,7 @@ def _facts(asset: Asset, width: int, height: int) -> dict[str, Any]:
         "created_at": asset.created_at,
         "name": asset.original_name,
         "folder": folder,
+        "faces": asset.faces,
     }
 
 

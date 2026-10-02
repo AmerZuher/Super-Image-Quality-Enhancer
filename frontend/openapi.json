@@ -3405,6 +3405,18 @@
             "title": "Sharpness",
             "description": "0 (blurred) to 1 (crisp)."
           },
+          "faces": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faces",
+            "description": "Faces found; null until counted, -1 if the image couldn't be checked."
+          },
           "color": {
             "anyOf": [
               {
@@ -5197,6 +5209,20 @@
             "type": "string",
             "title": "Search Model Id"
           },
+          "faces_ready": {
+            "type": "boolean",
+            "title": "Faces Ready",
+            "description": "Whether the face detector (part of the face restoration model) is installed."
+          },
+          "faces_pending": {
+            "type": "integer",
+            "title": "Faces Pending",
+            "description": "Images whose faces haven't been counted yet."
+          },
+          "faces_model_id": {
+            "type": "string",
+            "title": "Faces Model Id"
+          },
           "indexing": {
             "type": "boolean",
             "title": "Indexing"
@@ -5215,6 +5241,9 @@
           "pending",
           "search_model",
           "search_model_id",
+          "faces_ready",
+          "faces_pending",
+          "faces_model_id",
           "indexing",
           "tags"
         ],
@@ -5831,7 +5860,8 @@
               "taken",
               "added_days",
               "name",
-              "folder"
+              "folder",
+              "faces"
             ],
             "title": "Field"
           },

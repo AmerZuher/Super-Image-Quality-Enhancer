@@ -277,3 +277,15 @@ def test_search_by_description_when_clip_is_installed(client: httpx.Client, made
     similar = client.get("/api/library/assets", params={"similar_to": made["original"]["id"]}).json()
     assert similar["mode"] == "similar"
     assert made["original"]["id"] not in {i["id"] for i in similar["items"]}
+
+
+def test_faces_filter_and_status(client: httpx.Client) -> None:
+    status = client.get("/api/library/status").json()
+    assert {"faces_ready", "faces_pending", "faces_model_id"} <= status.keys()
+    people = {"match": "all", "rules": [{"field": "faces", "op": "gte", "value": 1}]}
+    page = client.get("/api/library/assets", params={"rules": json.dumps(people), "limit": 200})
+    assert page.status_code == 200
+    # Only counted images with faces match; uncounted ones (faces null) never do.
+    assert all((a["faces"] or 0) >= 1 for a in page.json()["items"])
+    bad = {"match": "all", "rules": [{"field": "faces", "op": "is", "value": 1}]}
+    assert client.get("/api/library/assets", params={"rules": json.dumps(bad)}).status_code == 422

@@ -42,7 +42,14 @@ def configure_logging(settings: Settings) -> None:
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(level)
-    for noisy in ("uvicorn.access", "temporalio.activity", "temporalio.workflow"):
+    # libvips reports every thread pool and deprecation through pyvips at INFO.
+    for noisy in (
+        "uvicorn.access",
+        "temporalio.activity",
+        "temporalio.workflow",
+        "pyvips",
+        "pyvips.voperation",
+    ):
         logging.getLogger(noisy).setLevel(max(level, logging.WARNING))
 
 

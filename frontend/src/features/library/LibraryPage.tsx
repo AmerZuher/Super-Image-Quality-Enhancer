@@ -85,6 +85,42 @@ function SearchSetup() {
   );
 }
 
+/** Face filters need the face detector; say so (and offer it) when one is in use without it. */
+function FacesSetup() {
+  const rules = useLibraryStore((s) => s.rules);
+  const { data: models } = useModels();
+  const { data: status } = useLibraryStatus();
+  const usesFaces = (rules.rules ?? []).some((r) => r.field === "faces");
+  const model = models?.find((m) => m.id === status?.faces_model_id);
+  if (!usesFaces || !status || !model) return null;
+  if (status.faces_ready) {
+    if (!status.faces_pending) return null;
+    return (
+      <div
+        className="flex items-center gap-2 border-b border-line bg-panel px-3 py-1.5 text-[12px] text-fg-2"
+        role="status"
+      >
+        <Spinner className="size-3.5 text-gold" />
+        Counting faces in {status.faces_pending.toLocaleString()} image{status.faces_pending === 1 ? "" : "s"}
+        ; they'll appear here once counted
+      </div>
+    );
+  }
+  return (
+    <div
+      className="flex flex-wrap items-center gap-3 border-b border-gold/30 bg-gold-soft px-3 py-2"
+      data-testid="faces-setup"
+    >
+      <Sparkles className="size-4 shrink-0 text-gold" aria-hidden="true" />
+      <p className="min-w-[240px] flex-1 text-[12.5px] text-fg">
+        <strong className="font-semibold">Finding people</strong> needs the face detector that comes with{" "}
+        {model.name} ({model.license}). Only the number of faces is kept.
+      </p>
+      <ModelControl model={model} compact />
+    </div>
+  );
+}
+
 function Empty({ view, query, onAdd }: { view: View; query: string; onAdd: () => void }) {
   const { data: imports } = useImportStatus();
   if (query) {
@@ -336,6 +372,7 @@ export function LibraryPage() {
           ))}
         </nav>
         <SearchSetup />
+        <FacesSetup />
         <Toolbar
           q={search.q ?? ""}
           onQuery={onQuery}

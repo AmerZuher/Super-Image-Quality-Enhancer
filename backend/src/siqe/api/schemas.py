@@ -108,6 +108,9 @@ class AssetOut(BaseModel):
     auto_tags: list[str] = Field(description="Tags CLIP chose (Library search).")
     analysed: bool
     sharpness: float | None = Field(default=None, description="0 (blurred) to 1 (crisp).")
+    faces: int | None = Field(
+        default=None, description="Faces found; null until counted, -1 if the image couldn't be checked."
+    )
     color: str | None = Field(default=None, description="Main colour family, or 'neutral'.")
     color_hex: str | None = None
     taken_at: datetime | None = Field(default=None, description="When the photo was taken (EXIF).")
@@ -372,6 +375,11 @@ class LibraryStatusOut(BaseModel):
     pending: int = Field(description="Images waiting to be analysed.")
     search_model: ModelStatusName = Field(description="Install state of the CLIP model behind search.")
     search_model_id: str
+    faces_ready: bool = Field(
+        description="Whether the face detector (part of the face restoration model) is installed."
+    )
+    faces_pending: int = Field(description="Images whose faces haven't been counted yet.")
+    faces_model_id: str
     indexing: bool
     tags: list[TagCountOut]
 

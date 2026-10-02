@@ -48,6 +48,7 @@ def asset_to_dict(asset: Asset) -> dict[str, Any]:
         "auto_tags": list(asset.auto_tags or []),
         "analysed": asset.analysis_version > 0,
         "sharpness": asset.sharpness,
+        "faces": asset.faces,
         "color": asset.color,
         "color_hex": asset.color_hex,
         "taken_at": asset.taken_at.isoformat() if asset.taken_at else None,

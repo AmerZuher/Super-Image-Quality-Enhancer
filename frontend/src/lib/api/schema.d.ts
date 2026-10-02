@@ -1274,6 +1274,11 @@ export interface components {
              */
             sharpness?: number | null;
             /**
+             * Faces
+             * @description Faces found; null until counted, -1 if the image couldn't be checked.
+             */
+            faces?: number | null;
+            /**
              * Color
              * @description Main colour family, or 'neutral'.
              */
@@ -1932,6 +1937,18 @@ export interface components {
             search_model: "available" | "downloading" | "installed" | "failed";
             /** Search Model Id */
             search_model_id: string;
+            /**
+             * Faces Ready
+             * @description Whether the face detector (part of the face restoration model) is installed.
+             */
+            faces_ready: boolean;
+            /**
+             * Faces Pending
+             * @description Images whose faces haven't been counted yet.
+             */
+            faces_pending: number;
+            /** Faces Model Id */
+            faces_model_id: string;
             /** Indexing */
             indexing: boolean;
             /** Tags */
@@ -2151,7 +2168,7 @@ export interface components {
              * Field
              * @enum {string}
              */
-            field: "orientation" | "width" | "height" | "megapixels" | "aspect" | "format" | "color" | "tag" | "sharpness" | "has_gps" | "ai_result" | "duplicate" | "taken" | "added_days" | "name" | "folder";
+            field: "orientation" | "width" | "height" | "megapixels" | "aspect" | "format" | "color" | "tag" | "sharpness" | "has_gps" | "ai_result" | "duplicate" | "taken" | "added_days" | "name" | "folder" | "faces";
             /**
              * Op
              * @enum {string}

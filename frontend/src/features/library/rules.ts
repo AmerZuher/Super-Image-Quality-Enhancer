@@ -51,6 +51,7 @@ export const FIELDS: Record<RuleField, FieldSpec> = {
   added_days: { label: "Added in the last", ops: ["lte", "gte"], kind: "number", unit: "days" },
   name: { label: "File name", ops: ["contains"], kind: "text", placeholder: "IMG_" },
   folder: { label: "Import folder", ops: ["starts_with"], kind: "text", placeholder: "Trips/2024" },
+  faces: { label: "Faces", ops: ["gte", "lte"], kind: "number" },
 };
 
 export const OP_LABELS: Record<RuleOp, string> = {
@@ -80,7 +81,9 @@ export function defaultRule(field: RuleField): Rule {
               ? 7
               : field === "megapixels"
                 ? 12
-                : 1920
+                : field === "faces"
+                  ? 1
+                  : 1920
         : spec.kind === "date"
           ? new Date().toISOString().slice(0, 10)
           : spec.kind === "choice"
@@ -97,6 +100,12 @@ export function describeRule(rule: Rule): string {
     const value = String(rule.value);
     const nice = value.charAt(0).toUpperCase() + value.slice(1);
     return rule.op === "is_not" ? `Not ${value}` : nice;
+  }
+  if (rule.field === "faces") {
+    const n = Number(rule.value);
+    if (rule.op === "gte" && n === 1) return "Has people";
+    if (rule.op === "lte" && n === 0) return "No people";
+    return `${rule.op === "gte" ? "At least" : "At most"} ${n} face${n === 1 ? "" : "s"}`;
   }
   if (rule.field === "added_days") {
     return rule.op === "lte" ? `Added in the last ${rule.value} days` : `Added over ${rule.value} days ago`;
@@ -116,6 +125,7 @@ export const QUICK_FILTERS: { label: string; rule: Rule }[] = [
   { label: "Square", rule: { field: "orientation", op: "is", value: "square" } },
   { label: "Low resolution", rule: { field: "width", op: "lte", value: 1000 } },
   { label: "Blurry", rule: { field: "sharpness", op: "lte", value: 0.3 } },
+  { label: "People", rule: { field: "faces", op: "gte", value: 1 } },
   { label: "Has location", rule: { field: "has_gps", op: "is", value: true } },
   { label: "AI results", rule: { field: "ai_result", op: "is", value: true } },
 ];

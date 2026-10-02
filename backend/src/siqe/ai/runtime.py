@@ -130,6 +130,26 @@ def calibrate(backend: TorchBackend, *, context: int, multiple: int) -> Calibrat
     return fit_calibration(samples)
 
 
+class FaceDetector:
+    """RetinaFace alone, for counting faces in the Library."""
+
+    def __init__(self, detector_path: Path, device: Device) -> None:
+        from siqe.ai.archs.retinaface import RetinaFace, load_state
+
+        self.device: str = device
+        try:
+            state = torch.load(detector_path, map_location="cpu", weights_only=True)
+        except Exception as exc:
+            raise ModelLoadError(f"{detector_path.name} can't be loaded safely: {exc}") from exc
+        self.model = load_state(RetinaFace(), state).to(device)
+
+    def detect(self, rgb: np.ndarray) -> list[tuple[float, np.ndarray, np.ndarray]]:
+        from siqe.ai.archs.retinaface import detect
+
+        with torch.inference_mode():
+            return detect(self.model, rgb, self.device)
+
+
 class FaceRestorer:
     """GFPGAN v1.4 on faces found by RetinaFace; plugs into ``siqe.ai.faces.restore_faces``."""
 

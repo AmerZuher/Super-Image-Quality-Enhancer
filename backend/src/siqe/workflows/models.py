@@ -9,7 +9,7 @@ from temporalio.exceptions import ActivityError, ApplicationError, CancelledErro
 with workflow.unsafe.imports_passed_through():
     from siqe.activities.jobs import JobUpdate
     from siqe.activities.models import ModelFailure, install_model, mark_model_failed
-    from siqe.ai.manifest import CLIP_MODEL_ID
+    from siqe.ai.manifest import CLIP_MODEL_ID, FACE_MODEL_ID
     from siqe.core.config import CPU_TASK_QUEUE
     from siqe.workflows.assets import QUICK, _failure, _update, wake_indexer
 
@@ -53,6 +53,6 @@ class ModelInstallWorkflow:
         await _update(
             JobUpdate(job_id, state="succeeded", message=f"Installed ({size_mb:,.0f} MB)", result=result)
         )
-        if model_id == CLIP_MODEL_ID:
-            await wake_indexer()  # embed and tag the images already in the library
+        if model_id in (CLIP_MODEL_ID, FACE_MODEL_ID):
+            await wake_indexer()  # embed, tag and count faces in the images already in the library
         return result

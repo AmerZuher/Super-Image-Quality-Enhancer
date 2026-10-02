@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio.common import WorkflowIDConflictPolicy
 
 from siqe.activities.library import IMPORT_STATUS_KEY
-from siqe.ai.manifest import CLIP_MODEL_ID
+from siqe.ai.manifest import CLIP_MODEL_ID, FACE_MODEL_ID
 from siqe.ai.registry import get_row, get_spec, status_of
 from siqe.api.deps import SessionDep, SettingsDep, TemporalDep
 from siqe.api.schemas import (
@@ -42,7 +42,7 @@ from siqe.db.models import Album, AlbumAsset, AlbumKind, AppSetting, Asset, Impo
 from siqe.events.bus import publish
 from siqe.jobs.records import job_to_dict
 from siqe.jobs.start import create_job, start_workflow
-from siqe.library import embedder, search
+from siqe.library import embedder, faces, search
 from siqe.library.index import count_pending
 from siqe.library.rules import RuleSet
 from siqe.library.trigger import index_running, request_index
@@ -201,6 +201,9 @@ async def library_status(session: SessionDep, temporal: TemporalDep) -> LibraryS
             "pending": pending,
             "search_model": model,
             "search_model_id": CLIP_MODEL_ID,
+            "faces_ready": faces.detector_ready(),
+            "faces_pending": await faces.count_pending(session),
+            "faces_model_id": FACE_MODEL_ID,
             "indexing": running,
             "tags": [{"tag": t, "count": n} for t, n in await search.tag_counts(session)],
         }

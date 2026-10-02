@@ -30,6 +30,7 @@ Field_ = Literal[
     "added_days",
     "name",
     "folder",
+    "faces",
 ]
 Op = Literal["is", "is_not", "gte", "lte", "approx", "has", "after", "before", "contains", "starts_with"]
 
@@ -50,8 +51,9 @@ OPS: dict[str, tuple[str, ...]] = {
     "added_days": ("lte", "gte"),
     "name": ("contains",),
     "folder": ("starts_with",),
+    "faces": ("gte", "lte"),
 }
-NUMERIC = frozenset({"width", "height", "megapixels", "aspect", "sharpness", "added_days"})
+NUMERIC = frozenset({"width", "height", "megapixels", "aspect", "sharpness", "added_days", "faces"})
 BOOLEAN = frozenset({"has_gps", "ai_result", "duplicate"})
 ORIENTATIONS = ("landscape", "portrait", "square")
 SQUARE_TOLERANCE = 0.02
@@ -119,6 +121,10 @@ def compile_rule(rule: Rule, *, now: datetime | None = None) -> ColumnElement[bo
             clause = func.abs(column - number) <= number * ASPECT_TOLERANCE
         else:
             clause = column >= number if op == "gte" else column <= number
+    elif f == "faces":
+        # Uncounted (NULL) and unreadable (-1) images match neither "at least" nor "at most".
+        number = float(v)
+        clause = Asset.faces >= number if op == "gte" else and_(Asset.faces >= 0, Asset.faces <= number)
     elif f == "format":
         clause = Asset.format == str(v).lower()
     elif f == "color":
@@ -210,7 +216,7 @@ def matches_rule(rule: Rule, facts: dict[str, Any], *, now: datetime | None = No
     """The same rule as ``compile_rule``, checked against one image's facts.
 
     ``facts`` holds width, height, format, color, tags (yours and automatic), sharpness,
-    has_gps, ai_result, duplicate, taken_at, created_at, name and folder. Width and height
+    has_gps, ai_result, duplicate, taken_at, created_at, name, folder and faces. Width and height
     are the current image's, so a condition after a resize sees the new size.
     """
     f, op, v = rule.field, rule.op, rule.value
@@ -233,6 +239,11 @@ def matches_rule(rule: Rule, facts: dict[str, Any], *, now: datetime | None = No
             result = abs(value - number) <= number * ASPECT_TOLERANCE
         else:
             result = value >= number if op == "gte" else value <= number
+    elif f == "faces":
+        faces = facts.get("faces")
+        if faces is None or faces < 0:
+            return False
+        result = faces >= float(v) if op == "gte" else faces <= float(v)
     elif f in ("format", "color"):
         result = str(facts.get(f) or "").lower() == str(v).lower()
     elif f == "tag":

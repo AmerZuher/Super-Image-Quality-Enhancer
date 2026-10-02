@@ -17,6 +17,7 @@ from temporalio.worker import Worker
 
 from siqe.activities.ai import discard_run_files, register_result, run_background, run_model
 from siqe.activities.assets import export_rendition, mark_asset_failed, mark_rendition_failed, prepare_asset
+from siqe.activities.faces import count_faces_batch
 from siqe.activities.flows import (
     flow_ai_cpu,
     flow_ai_gpu,
@@ -98,7 +99,7 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     flow_output,
     flow_trigger,
 ]
-GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model, flow_ai_gpu]
+GPU_ACTIVITIES: list[Callable[..., Any]] = [gpu_probe, run_model, flow_ai_gpu, count_faces_batch]
 
 
 def build_worker(client: Client, kind: WorkerKind) -> Worker:

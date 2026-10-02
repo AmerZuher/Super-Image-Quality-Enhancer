@@ -256,6 +256,9 @@ export function Inspector({
               </span>
             </Row>
           )}
+          {asset.faces !== null && asset.faces !== undefined && asset.faces >= 0 && (
+            <Row label="Faces">{asset.faces === 0 ? "None found" : asset.faces.toLocaleString()}</Row>
+          )}
           {asset.color && (
             <Row label="Colour">
               <span className="flex items-center gap-1.5 capitalize">

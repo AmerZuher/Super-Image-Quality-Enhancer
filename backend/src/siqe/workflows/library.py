@@ -8,6 +8,7 @@ from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.workflow import ParentClosePolicy
 
 with workflow.unsafe.imports_passed_through():
+    from siqe.activities.faces import count_faces_batch
     from siqe.activities.flows import flow_trigger
     from siqe.activities.jobs import JobUpdate
     from siqe.activities.library import (
@@ -16,12 +17,16 @@ with workflow.unsafe.imports_passed_through():
         remove_location_batch,
         scan_import_folder,
     )
-    from siqe.core.config import CPU_TASK_QUEUE
+    from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE
     from siqe.workflows.assets import HEAVY, IngestAssetWorkflow, _failure, _update, wake_indexer
 
 RETRY = RetryPolicy(maximum_attempts=5, initial_interval=timedelta(seconds=5), backoff_coefficient=2.0)
 # Keep the event history small: start afresh after this many batches.
 MAX_BATCHES = 300
+# Face counting waits this long for the GPU worker (busy with a long job, or not running) before
+# leaving the rest for the next pass.
+FACES_WAIT = timedelta(minutes=5)
+MAX_FACE_BATCHES = 50
 
 
 @workflow.defn
@@ -38,6 +43,28 @@ class LibraryIndexWorkflow:
     @workflow.signal
     def more(self) -> None:
         self._more = True
+
+    async def _count_faces(self) -> int:
+        """Count faces on the GPU queue; skipped quietly if the detector or the GPU worker isn't there."""
+        counted = 0
+        for _ in range(MAX_FACE_BATCHES):
+            if self._more:
+                return counted  # analyse newly added images first; counting resumes after
+            try:
+                result: dict[str, Any] = await workflow.execute_activity(
+                    count_faces_batch,
+                    task_queue=GPU_TASK_QUEUE,
+                    schedule_to_start_timeout=FACES_WAIT,
+                    start_to_close_timeout=timedelta(minutes=20),
+                    heartbeat_timeout=timedelta(minutes=2),
+                    retry_policy=RetryPolicy(maximum_attempts=2, initial_interval=timedelta(seconds=10)),
+                )
+            except ActivityError:
+                return counted
+            counted += int(result["done"])
+            if result["remaining"] == 0 or result["done"] == 0:
+                return counted
+        return counted
 
     @workflow.run
     async def run(self) -> dict[str, Any]:
@@ -61,6 +88,9 @@ class LibraryIndexWorkflow:
                     start_to_close_timeout=timedelta(minutes=15),
                     retry_policy=RETRY,
                 )
+                # Before flows start, so their If blocks can use face counts.
+                if groups.pop("faces_pending", 0):
+                    groups["faces_counted"] = await self._count_faces()
                 if arrived:
                     # Flows watching the import folder start once images are analysed and grouped.
                     await workflow.execute_activity(
