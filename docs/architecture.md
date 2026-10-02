@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phases 0 (foundation) and 1 (Studio) implemented. Living document, v3. |
+| **Status** | Approved. Phases 0 (foundation), 1 (Studio) and 2 (AI Lab) implemented. Living document, v3. |
 | **Updated** | 2 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
@@ -93,9 +93,21 @@ Measured in Phase 0: a job runs API → Temporal → CPU worker → GPU worker i
 ### 3.4 AI runtime
 
 - **PyTorch** runs built-in models and Forge training. The `ai` image ships the CUDA build, which also runs on CPU.
-- **spandrel** (MIT) loads ESRGAN, SwinIR, GFPGAN, NAFNet and similar weights. We use only core spandrel; its "extra arches" package includes non-commercial licenses and stays out.
-- **ONNX Runtime** runs `.onnx` models you bring, and is the CPU fallback where it's faster.
-- **SIQE Classic**: your `v10.h5` (still in git history at commit `588eb10`) is read with `h5py` and its Keras kernels mapped to PyTorch. TensorFlow isn't needed. A test checks both produce the same output.
+- **spandrel** (MIT) recognises ESRGAN, SwinIR, SCUNet and GFPGAN checkpoints. We use only core spandrel; its "extra arches" package includes non-commercial licenses and stays out. We load state dicts ourselves with `torch.load(weights_only=True)` and hand them to spandrel, so no checkpoint can run code.
+- **ONNX Runtime** (CPU) runs ISNet background removal on the CPU worker. Bring-your-own `.onnx` models come later.
+- **SIQE Classic**: your `v10.h5` (in git history at commit `588eb10`) is downloaded from that commit, converted with `h5py` to safetensors, and run by a PyTorch port of the network. TensorFlow isn't needed: a test checks the port against an independent numpy implementation of the Keras graph.
+- **Face restoration**: our own RetinaFace implementation loads the facexlib detector weights; faces are aligned to the FFHQ template, restored with GFPGAN v1.4 and blended back (section 5.4).
+
+The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-256 and allows only MIT, BSD-3-Clause and Apache-2.0 licenses. All sources are GitHub release assets. Details and trade-offs: [ADR 0006](adr/0006-ai-models-and-runs.md).
+
+| Model | Task | License |
+|---|---|---|
+| Real-ESRGAN x4plus, x2plus, General v3 | Upscale ×4, ×2, ×4 (fast) | BSD-3-Clause |
+| SwinIR-M ×4 (real-world) | Upscale ×4 | Apache-2.0 |
+| SIQE Classic | Upscale ×3 (brightness) | MIT |
+| SCUNet | Denoise | Apache-2.0 |
+| ISNet | Background removal | Apache-2.0 |
+| GFPGAN v1.4 + RetinaFace | Face restoration | Apache-2.0 + MIT |
 
 ### 3.5 Versions in use
 
@@ -126,7 +138,7 @@ PostgreSQL is the only stateful service. SQLite remains an option for a future s
 
 ### 4.2 Schema
 
-Implemented in Phase 0: `jobs`, `worker_heartbeats` and `app_settings`, plus the `vector` extension. Later phases add the rest.
+Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2). Later phases add the rest.
 
 ```mermaid
 erDiagram
@@ -174,7 +186,7 @@ Image bytes live on the `data` volume, never in the database:
 ├── media/originals/ab/cd/<sha256>.<ext>   immutable uploads, stored once per content hash
 ├── media/previews/<asset>/                320 px thumbnail, 2048 px preview, deep-zoom tile pyramid
 ├── media/renditions/<asset>/<id>.<ext>    exports are new files, written to a temp name and renamed
-├── models/<family>/<file>                 downloaded weights, verified by sha256
+├── models/<model id>/<file>               downloaded weights, verified by sha256
 ├── checkpoints/<run>/                     Forge training checkpoints
 └── tmp/                                   scratch space, cleaned on start and by age
 ```
@@ -240,7 +252,11 @@ Dimensions are read from the header without decoding, against `SIQE_MAX_INPUT_ME
 
 ### 5.4 Tiled inference
 
-Tiles are processed with surrounding context and only their centre is kept, so there are no seams and no full-size blending buffer. Models that need input sizes in multiples (SwinIR uses 8) are reflect-padded and cropped. The first run of a model on a device measures peak VRAM at two or three tile sizes and stores a curve in the model record; later jobs choose tile size and batch from it, leaving `SIQE_GPU_VRAM_RESERVE_MB` free. A tile manifest, carried in Temporal heartbeat details, lets a retried activity resume at the next tile.
+Tiles are processed with surrounding context (16 to 32 px per side, per model) and only their core is kept, so there are no seams and no full-size blending buffer; a test shows a tiled run equals a whole-image run with real Real-ESRGAN weights. Every input is reflect-padded to the same square size, rounded up to the multiple the model needs, so tiles batch into one forward pass. The result is written into a memory-mapped array in `tmp/` and encoded to PNG by libvips, so a 500-megapixel result never sits in RAM.
+
+The first run of a model on a GPU measures peak memory at two tile sizes and fits a line, stored per model and GPU in `ai_models.calibration`; later runs pick the largest tile, then the largest batch, that leaves `SIQE_GPU_VRAM_RESERVE_MB` free. The finished tiles ride along in Temporal heartbeats; with the on-disk result, a retried activity continues where it stopped.
+
+Face restoration runs after the upscale: faces are detected on a copy at most 1,280 px wide, each is warped to a 512 px aligned crop with a least-squares similarity transform, restored, and blended back with a feathered mask. Only the region around each face is read.
 
 ### 5.5 OOM fallback ladder
 
@@ -251,7 +267,7 @@ flowchart TD
   A -->|ok| N
   A -->|out of memory| B[Halve tile batch]
   B -->|ok| N
-  B -->|batch is 1 and out of memory| C[Halve tile size, minimum 128 px]
+  B -->|batch is 1 and out of memory| C[Halve tile size, minimum 64 px]
   C -->|ok| N
   C -->|still out of memory| D[Move job to CPU and tell the user]
   D -->|ok| N
@@ -259,14 +275,14 @@ flowchart TD
   N --> W[Record the settings that worked for this model and device]
 ```
 
-The core of this ladder, `siqe.ai.oom.run_with_halving`, exists now. The self-test uses it to find the largest matrix that fits in VRAM, and unit tests walk it with a fake device. Phase 2 adds the batch, tile and CPU steps.
+Implemented in `siqe.ai.tiling.run_tiled`. Halving the tile splits the tiles still to do; finished ones are kept. Unit tests walk the whole ladder with a fake GPU and check the result still equals a whole-image run. The settings that worked are stored on the model, and any step taken is shown on the job.
 
 ### 5.6 GPU arbitration
 
 - The GPU worker polls the `siqe-gpu` Temporal task queue with **one activity at a time**. Parallelism comes from batching tiles inside an activity, never from two jobs sharing VRAM.
-- Interactive jobs (the image you're looking at) and batch jobs use separate task queues, both polled by the GPU worker, with interactive work picked first.
+- Interactive jobs (the image you're looking at) and batch jobs will use separate task queues, with interactive work picked first (Phase 4, when batches arrive).
 - From Phase 5, training runs as chunked activities on the same worker. Between chunks it checkpoints and yields if interactive work is waiting, so a training run never blocks an enhancement for hours.
-- Models stay cached up to a VRAM budget and unload when idle.
+- One model stays loaded between runs (plus the face models when used); loading another releases it.
 
 ### 5.7 System memory and disk
 
@@ -423,10 +439,10 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 |---|---|---|
 | **P0 Foundation** | Repo restructure, backend and frontend skeletons, Temporal pipeline, live events, Overview with hardware and self-test, Update Center, Compose stack, CI and release workflows, AGENTS.md, README, gallery | **Done** |
 | **P1 Studio and storage** | Content-addressed storage, admission checks, previews and deep zoom, classic operations, edit stack, WebGL preview, Compare viewer, export with format checks | **Done** |
-| P2 AI Lab and governor | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, erase, colorize, denoise, deblur | Next |
-| P3 Library | Import and hot folders, hashing and embeddings, duplicates with quarantine, similar and text search, smart albums, EXIF and GPS tools | |
+| **P2 AI Lab and governor** | Model registry and downloads, tiling engine, VRAM calibration, full OOM ladder, SIQE Classic port, upscalers, faces, cutout, denoise, full-resolution compare | **Done** (erase, colorize, deblur and bring-your-own ONNX moved to P6: their weights are on Hugging Face, which this build environment can't reach) |
+| P3 Library | Import and hot folders, hashing and embeddings, duplicates with quarantine, similar and text search, smart albums, EXIF and GPS tools | Next |
 | P4 Flows | Node editor, batch runs with paged child workflows, recipes, API keys, `siqe` CLI commands | |
 | P5 Forge | Visual builder, shape checker, graph-to-PyTorch compiler, dataset builder, resumable training, live charts, publish to AI Lab | |
-| P6 Hardening | 8K+ robustness suite, performance pass, final docs and gallery, `docker compose up` verified on your PC | |
+| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX, final docs and gallery, `docker compose up` verified on your PC | |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.

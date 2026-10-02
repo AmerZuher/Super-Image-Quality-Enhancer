@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 1 of 6 is complete.** The foundation (job engine, workers, live updates, hardware monitoring, self-test, Update Center) and the **Studio** editor are ready to use. AI Lab, Library, Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
+> **Status: Phase 2 of 6 is complete.** The foundation, the **Studio** editor and the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model) are ready to use. Library, Flows and Forge arrive phase by phase; see the [roadmap](#roadmap).
 
 ---
 
@@ -33,7 +33,7 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 | Workspace | What it does | Phase |
 |---|---|---|
 | **Studio** | Non-destructive editor with a live GPU preview: light and colour adjustments, crop and rotate, compare views, histogram, export to any common format with a target size. **Ready now.** | 1 |
-| **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, erase objects, colorize, denoise. Includes **SIQE Classic**, the original model | 2 |
+| **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
 | **Library** | Duplicates that keep the sharpest copy, similar-image and text search, smart albums, EXIF and GPS privacy tools | 3 |
 | **Flows** | Visual pipelines for batches and hot folders, runnable from the API and CLI | 4 |
 | **Forge** | Design neural networks by drawing them, train them with live charts, publish them to the AI Lab | 5 |
@@ -50,12 +50,14 @@ Built for real hardware limits: images are planned before processing, large ones
 | Crop, rotate and flip | Export with format checks and a target size |
 | <img src="gallery/studio-light.png" alt="Studio in the light theme showing side-by-side compare" /> | <img src="gallery/studio-inspect.png" alt="Full-resolution inspector zoomed into the original pixels" /> |
 | Side by side, light theme | Full-resolution inspector |
+| <img src="gallery/ailab-compare.png" alt="AI Lab comparing a photo with its ×4 Real-ESRGAN result at full resolution, split by a gold divider, with the run plan on the right" /> | <img src="gallery/ailab-models.png" alt="AI Lab model library with licenses, sizes and download buttons" /> |
+| AI Lab: ×4 result compared at full resolution | Model library: commercial-safe models, verified downloads |
 | <img src="gallery/overview-light.png" alt="Overview in the light theme" /> | <img src="gallery/update-center.png" alt="Update Center drawer listing a newer release with release notes and update commands" /> |
 | Overview, light theme | Update Center (example release notes) |
 | <img src="gallery/command-palette.png" alt="Command palette open over the Overview" /> | <img src="gallery/jobs.png" alt="Jobs page with job states, progress and durations" /> |
 | Command palette (Ctrl K) | Jobs with live progress |
-| <img src="gallery/ai-lab-preview.png" alt="AI Lab workspace preview" /> | <img src="gallery/settings.png" alt="Settings page with theme, updates and about" /> |
-| AI Lab (arrives in Phase 2) | Settings |
+| <img src="gallery/ailab-cutout.png" alt="AI Lab showing a car photo and its background removal result side by side, the cutout on a transparency checkerboard" /> | <img src="gallery/settings.png" alt="Settings page with theme, updates and about" /> |
+| Background removal, side by side | Settings |
 
 <p align="center"><img src="gallery/overview-phone.png" alt="Overview on a phone with bottom navigation" width="240" /> &nbsp; <img src="gallery/studio-phone.png" alt="Studio on a phone with the preview above the tools" width="240" /></p>
 
@@ -74,7 +76,7 @@ make up-gpu      # or: with your NVIDIA GPU
 
 Open **http://localhost:8080** and press **Run self-test** on the Overview. In about a second it confirms every service works and benchmarks your hardware.
 
-Then open **Studio** (second icon in the left rail) and drop a photo onto the page. Keyboard shortcuts there: `Ctrl Z` / `Ctrl Shift Z` undo and redo, hold `\` to see the original, `[` and `]` move between images, `I` inspects at full resolution.
+Then open **Studio** (second icon in the left rail) and drop a photo onto the page. For AI, open **AI Lab** (third icon), download a model from the **Models** tab (Real-ESRGAN General v3 is 5 MB and fast even without a GPU), and press **Upscale ×4**. Keyboard shortcuts there: `Ctrl Z` / `Ctrl Shift Z` undo and redo, hold `\` to see the original, `[` and `]` move between images, `I` inspects at full resolution.
 
 <details>
 <summary>Without <code>make</code> (for example on Windows)</summary>
@@ -106,8 +108,8 @@ Database changes are applied automatically when the new version starts. To stay 
 
 | Setup | What to expect |
 |---|---|
-| CPU only | Everything works. AI features (from Phase 2) are much slower. |
-| NVIDIA, 8 GB VRAM | Full feature set. Large images are tiled automatically. |
+| CPU only | Everything works. AI runs are slower: a ×4 upscale of a 1 MP photo takes about 25 s with Real-ESRGAN General v3. |
+| NVIDIA, 8 GB VRAM | Full feature set. Tile size is measured per model; if memory still runs out, runs step down automatically instead of failing. |
 | NVIDIA, 24 GB VRAM (for example RTX 3090) | The reference setup. Bigger tiles and batches, and room for training in Forge. |
 | Apple Silicon | Runs on CPU; Docker can't pass the Apple GPU through. |
 
@@ -123,6 +125,7 @@ All settings live in `.env` (created by `make env` from [.env.example](.env.exam
 | `SIQE_VERSION` | `latest` | Image tag to run; pin a version to stay on it |
 | `SIQE_MAX_INPUT_MEGAPIXELS` | `250` | Largest image accepted |
 | `SIQE_MAX_UPLOAD_MB` | `2048` | Largest single upload |
+| `SIQE_MAX_OUTPUT_MEGAPIXELS` | `1000` | Largest AI result (8K ×4 is 531 MP) |
 | `SIQE_GPU_VRAM_RESERVE_MB` | `1536` | VRAM always left free |
 | `SIQE_GPU_WORKER_MEMORY` | `12g` | System RAM cap for the GPU worker |
 | `SIQE_UPDATE_REPO` | this repository | Where the Update Center looks for releases |
@@ -193,6 +196,8 @@ The first time images are published, make the three packages public in GitHub (P
 | `toomanyrequests` while pulling images | Docker Hub's anonymous limit: `docker login`, or wait an hour |
 | Studio says the live preview needs WebGL 2 | Turn on hardware acceleration in your browser's settings. Edits still apply to exports. |
 | An upload is refused as too large | Raise `SIQE_MAX_UPLOAD_MB` or `SIQE_MAX_INPUT_MEGAPIXELS` in `.env`, then `make up` |
+| A model download fails | Downloads come from github.com release assets; check that the machine can reach it. Interrupted downloads resume on retry |
+| An AI run says it was "adjusted" | It ran out of GPU memory and stepped down (smaller batch or tile, or the CPU). The result is the same, just slower |
 | Export refused with `format.dimension_limit` | WebP and AVIF stop at about 16,000 px per side: pick a smaller longest side, or PNG, TIFF or JPEG |
 
 Every API error has a stable code and a suggested fix; the full list is in [docs/robustness.md](docs/robustness.md#error-codes).
@@ -203,8 +208,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 |---|---|---|
 | P0 Foundation | Job engine, workers, live updates, Overview, self-test, Update Center, Docker stack, CI | ✅ Done |
 | P1 Studio | Storage, previews and deep zoom, classic edits, edit stack, WebGL preview, Compare, export | ✅ Done |
-| P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, restoration | Next |
-| P3 Library | Duplicates, similar and text search, smart albums, EXIF and GPS tools | |
+| P2 AI Lab | Model registry, tiled inference, VRAM planner, OOM ladder, SIQE Classic, upscalers, faces, cutout, denoise | ✅ Done |
+| P3 Library | Duplicates, similar and text search, smart albums, EXIF and GPS tools | Next |
 | P4 Flows | Pipelines, batches, hot folders, API keys, CLI | |
 | P5 Forge | Visual model builder, training with live charts, publish to AI Lab | |
 | P6 Hardening | 8K+ robustness suite, performance, final docs | |
@@ -213,11 +218,11 @@ The interactive product plan, with UI mockups of every workspace, is in [docs/pl
 
 ## Heritage and credits
 
-SIQE Studio grows out of **Super Image Quality Enhancer**, a research project on super-resolution with Residual Dense Blocks working on the luminance (Y) channel. Read the paper, *Resolution Revolution: Unleashing AI for Superior Image Quality*, in [docs/research/](docs/research/resolution-revolution.pdf). The trained model returns as **SIQE Classic** in Phase 2.
+SIQE Studio grows out of **Super Image Quality Enhancer**, a research project on super-resolution with Residual Dense Blocks working on the luminance (Y) channel. Read the paper, *Resolution Revolution: Unleashing AI for Superior Image Quality*, in [docs/research/](docs/research/resolution-revolution.pdf). The trained model is back as **SIQE Classic** in the AI Lab: the original Keras weights, ported to PyTorch and checked layer for layer.
 
 **Authors:** Amer Zuher ALriahy and Hisham Maher Sunjaq.
 
-Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack and Caddy. Third-party AI models added in later phases are limited to commercial-safe licenses, each listed with its license in the app.
+Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack and Caddy. AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT).
 
 The images in `samples/` were collected from the web for testing and have unknown licenses; replace them before any commercial use.
 

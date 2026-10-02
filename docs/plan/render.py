@@ -116,7 +116,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 
 <div class="page">
   <header class="top">
-    <div class="eyebrow">Architecture · v3 · approved · Phases 0 and 1 implemented · 2 Oct 2026</div>
+    <div class="eyebrow">Architecture · v3 · approved · Phases 0, 1 and 2 implemented · 2 Oct 2026</div>
     <h1>SIQE Studio<span>How the platform is built, and why</span></h1>
     <p>Stack, Temporal orchestration, database, memory safety for 8K+ images, the Update Center, repository layout and build order. Rendered from docs/architecture.md, the source of truth.</p>
   </header>

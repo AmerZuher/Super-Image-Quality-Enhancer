@@ -6,6 +6,16 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Added
 
+- **AI Lab is here.** Upscale ×2, ×3 or ×4, remove noise, cut out the subject, or restore faces. Every result becomes a new image linked to its original, which never changes.
+- **Model library:** seven commercial-safe models download with one click from their authors' GitHub releases, are checked against a published checksum, and can be removed again. Interrupted downloads pick up where they stopped.
+- **SIQE Classic is back:** the original Super Image Quality Enhancer model, ported from its Keras weights.
+- **Face restoration** with GFPGAN, on its own or as an option when upscaling.
+- **See the plan before you run:** result size, GPU or CPU, tiles, memory and disk, with warnings when something won't fit.
+- **Any size, any GPU:** images are processed in tiles that fit your GPU's memory, measured on the first run. If memory still runs out, the run steps down (smaller batches, smaller tiles, then the CPU) instead of failing, and tells you.
+- **Full-resolution compare** of an original and its result: a split divider or synced side-by-side view, zoomable down to single pixels.
+- AI results open in Studio for editing and export like any other image, and carry an AI badge.
+- New setting `SIQE_MAX_OUTPUT_MEGAPIXELS` (default 1000) caps the size of AI results.
+
 - **Studio is here.** Upload images by dropping them anywhere on the page or with Add images; each one gets a thumbnail, a preview and full-resolution zoom tiles. The same file uploaded twice is recognised and opened instead of stored again.
 - **Live editing:** exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance, saturation, black and white, sharpen and vignette, previewed instantly on your graphics card. Your original file is never changed.
 - **Edit stack and history:** switch any adjustment off or remove it, undo and redo (Ctrl Z, Ctrl Shift Z), or jump back to any step. Edits save automatically.
