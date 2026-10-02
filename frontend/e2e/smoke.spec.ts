@@ -31,8 +31,11 @@ test("command palette navigates", async ({ page }) => {
   await page.keyboard.press("Control+k");
   await page.getByPlaceholder("Go to a page or run an action…").fill("forge");
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/forge$/);
-  await expect(page.getByRole("heading", { name: "Forge", level: 2 })).toBeVisible();
+  await expect(page).toHaveURL(/\/forge/);
+  // Forge opens on a model (or offers to make the first one).
+  await expect(
+    page.getByRole("button", { name: /^(New model|Make your first model|Models)$/ }).first(),
+  ).toBeVisible();
 });
 
 test("unknown pages show a way back", async ({ page }) => {
