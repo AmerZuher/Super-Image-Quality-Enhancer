@@ -151,7 +151,9 @@ export function FlowsPage() {
   const navigate = useNavigate({ from: "/flows" });
   const wide = useMedia("(min-width: 1024px)");
   // The flow list gets its own column only when the canvas still has room beside it.
-  const roomy = useMedia("(min-width: 1536px)");
+  const roomy = useMedia("(min-width: 1800px)");
+  // The palette gets its own column a little earlier.
+  const docked = useMedia("(min-width: 1536px)");
   const [listOpen, setListOpen] = useState(false);
   const { data: flows, isLoading } = useFlows();
   const { data: catalog } = useFlowCatalog();
@@ -446,7 +448,7 @@ export function FlowsPage() {
 
         {tab === "edit" ? (
           <div className="flex min-h-0 flex-1">
-            {roomy && (
+            {docked && (
               <aside className="w-[200px] shrink-0 overflow-y-auto border-r border-line bg-panel p-3">
                 <Palette catalog={blocks} onAdd={addBlock} />
               </aside>
@@ -465,7 +467,7 @@ export function FlowsPage() {
                 onSelect={setSelected}
                 onDropBlock={addBlock}
               />
-              {!roomy && (
+              {!docked && (
                 <Button
                   variant="primary"
                   size="sm"
@@ -477,7 +479,7 @@ export function FlowsPage() {
                   Add block
                 </Button>
               )}
-              {wide && !roomy && adding && (
+              {wide && !docked && adding && (
                 <div className="absolute top-12 left-3 max-h-[calc(100%-4rem)] w-[220px] overflow-y-auto rounded-xl border border-line bg-panel p-3 shadow-float">
                   <Palette catalog={blocks} onAdd={addBlock} />
                 </div>

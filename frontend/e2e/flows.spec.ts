@@ -21,6 +21,15 @@ async function upload(request: APIRequestContext, name: string): Promise<string>
   return id;
 }
 
+/** Opens "New flow", wherever the flow list is at this width (docked, in a drawer, or empty state). */
+async function openNewFlow(page: Page) {
+  await page.goto("/flows");
+  const start = page.getByRole("button", { name: /^(New flow|Make your first flow|Flows)$/ }).first();
+  await start.click();
+  const drawer = page.getByRole("dialog", { name: "Flows" });
+  if (await drawer.isVisible()) await drawer.getByRole("button", { name: "New flow" }).click();
+}
+
 async function flowId(page: Page): Promise<string> {
   await expect(page).toHaveURL(/flow=/);
   return new URL(page.url()).searchParams.get("flow") as string;
@@ -35,11 +44,7 @@ test.afterAll(async ({ request }) => {
 test("start from a recipe, change a block, and dry-run it", async ({ page, request }) => {
   test.setTimeout(180_000);
   await upload(request, `e2e flow ${STAMP}.png`);
-  await page.goto("/flows");
-  await page
-    .getByRole("button", { name: /New flow|Make your first flow/ })
-    .first()
-    .click();
+  await openNewFlow(page);
   const dialog = page.getByRole("dialog", { name: "New flow" });
   await dialog.getByLabel("Name").fill(`e2e gallery ${STAMP}`);
   await dialog.getByText("Web gallery", { exact: true }).click();
@@ -71,14 +76,7 @@ test("start from a recipe, change a block, and dry-run it", async ({ page, reque
 
 test("build a flow from blocks; problems show until it can run", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/flows");
-  await page
-    .getByRole("button", { name: /New flow|Flows/ })
-    .first()
-    .click();
-  if (await page.getByRole("dialog", { name: "Flows" }).isVisible()) {
-    await page.getByRole("dialog", { name: "Flows" }).getByRole("button", { name: "New flow" }).click();
-  }
+  await openNewFlow(page);
   const dialog = page.getByRole("dialog", { name: "New flow" });
   await dialog.getByLabel("Name").fill(`e2e blank ${STAMP}`);
   await dialog.getByText("A blank canvas").click();

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { clsx } from "clsx";
 import { AlertTriangle, FolderInput, Info, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useState } from "react";
@@ -235,13 +236,23 @@ function ParamInput({
             {options.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
-                {m.status === "installed" ? "" : " (downloads on first run)"}
+                {m.status === "installed" ? "" : " (not downloaded)"}
               </option>
             ))}
           </select>
           {chosen && (
             <span className="text-[11.5px] text-muted">
               {chosen.summary} · {chosen.license}
+            </span>
+          )}
+          {chosen && chosen.status !== "installed" && (
+            <span className="flex items-center gap-1 text-[11.5px] text-warn">
+              <AlertTriangle className="size-3.5" aria-hidden="true" />
+              Download it in{" "}
+              <Link to="/ai-lab" className="underline">
+                AI Lab
+              </Link>{" "}
+              before running this flow.
             </span>
           )}
         </label>

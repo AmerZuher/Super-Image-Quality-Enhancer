@@ -90,11 +90,11 @@ export const WORKSPACES: Workspace[] = [
     ai: false,
     summary: "Chain operations into pipelines you can reuse.",
     capabilities: [
-      "Visual node editor for multi-step pipelines",
-      "Batch runs that keep going when one image fails",
-      "Branch on orientation, size or tags",
-      "Run from the API, the siqe CLI or a hot folder",
-      "API keys for automation",
+      "Visual editor: chain edits, AI models and exports, and branch with If",
+      "Runs that keep going when one image fails, with a dry run first",
+      "Branch on orientation, size, tags, faces or anything a smart album can",
+      "Run on a selection, an album or new images in a watched folder",
+      "API keys, the REST API and the siqe command line",
     ],
   },
   {

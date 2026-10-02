@@ -30,6 +30,26 @@ RUN_TIMEOUT = timedelta(days=30)
 MAX_ITEMS = 20_000
 
 
+async def require_models(session: AsyncSession, document: dict[str, Any]) -> None:
+    """Refuse a run up front when an AI block's model isn't downloaded, instead of failing every image."""
+    from siqe.ai.manifest import FACE_MODEL_ID
+    from siqe.ai.registry import get_spec, require_installed
+    from siqe.flows.catalog import NODES_BY_TYPE
+
+    needed: list[str] = []
+    for node in document.get("nodes", []):
+        spec = NODES_BY_TYPE.get(node.get("type", ""))
+        if spec is None or not spec.ai:
+            continue
+        params = node.get("params") or {}
+        if params.get("model"):
+            needed.append(str(params["model"]))
+        if params.get("restore_faces"):
+            needed.append(FACE_MODEL_ID)
+    for model_id in dict.fromkeys(needed):
+        await require_installed(session, get_spec(model_id))
+
+
 def runnable_document(flow: Flow) -> dict[str, Any]:
     doc, problems = check(FlowDocument.model_validate(flow.document or {}))
     if problems:
@@ -55,6 +75,7 @@ async def create_run(
 ) -> tuple[FlowRun, Job]:
     """Rows for a new run, its items and its job. The caller commits and starts the workflow."""
     document = runnable_document(flow)
+    await require_models(session, document)
     if len(asset_ids) > MAX_ITEMS:
         raise AppError(
             "flow.too_many_images",

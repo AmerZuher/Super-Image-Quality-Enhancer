@@ -214,6 +214,28 @@ def test_a_failing_image_is_recorded_and_the_run_reports_it(client: httpx.Client
     assert detail["items"][0]["error"]["code"] == "flow.album_missing"
 
 
+def test_a_run_needing_a_missing_model_is_refused_up_front(client: httpx.Client) -> None:
+    models = {m["id"]: m["status"] for m in client.get("/api/models").json()}
+    missing = next(
+        (
+            m
+            for m in ("scunet-real-psnr", "realesrgan-x2plus", "swinir-m-x4-realsr")
+            if models.get(m) == "available"
+        ),
+        None,
+    )
+    if missing is None:
+        pytest.skip("every candidate model is installed")
+    task = {"scunet-real-psnr": "denoise"}.get(missing, "upscale")
+    flow = _flow(
+        client,
+        [_node("in", "input", 0), _node("ai", task, 200, model=missing), _node("out", "export", 400)],
+        [("in", "ai", "out"), ("ai", "out", "out")],
+    )
+    r = client.post(f"/api/flows/{flow['id']}/runs", json={"source": {"kind": "all"}})
+    assert r.status_code == 409 and r.json()["code"] == "model.not_installed"
+
+
 def test_flow_files_round_trip(client: httpx.Client) -> None:
     flow = client.post("/api/flows", json={"name": "Round trip", "recipe": "web-gallery"}).json()
     file = client.get(f"/api/flows/{flow['id']}/file")

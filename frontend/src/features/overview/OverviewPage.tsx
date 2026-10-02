@@ -106,8 +106,8 @@ export function OverviewPage() {
           </h2>
         </div>
         <p className="max-w-[52ch] text-[13px] text-fg-2">
-          Studio, AI Lab and Library are ready: edit, upscale and restore your images, then search, sort and
-          tidy them. Flows and Forge arrive phase by phase; each card below says what's coming.
+          Studio, AI Lab, Library and Flows are ready: edit, upscale and restore your images, search and sort
+          them, and automate the steps you repeat. Forge, for training your own models, comes next.
         </p>
       </header>
 
