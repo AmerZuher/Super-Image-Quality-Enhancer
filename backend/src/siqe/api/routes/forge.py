@@ -19,6 +19,7 @@ from siqe.api.schemas import (
     ForgeDatasetIn,
     ForgeDatasetOut,
     ForgeDegradationIn,
+    ForgeExportOut,
     ForgeMetricOut,
     ForgeProjectIn,
     ForgeProjectOut,
@@ -53,11 +54,16 @@ from siqe.forge.records import (
     run_to_dict,
 )
 from siqe.forge.templates import EMPTY, TEMPLATES, TEMPLATES_BY_ID
-from siqe.forge.training import TrainSettings, best_weights, run_dir, sample_path
+from siqe.forge.training import TrainSettings, best_weights, onnx_path, run_dir, sample_path
 from siqe.jobs.records import job_to_dict
 from siqe.jobs.start import create_job, start_workflow
 from siqe.orchestration.client import TemporalGateway
-from siqe.workflows.forge import ForgeDatasetWorkflow, ForgePublishWorkflow, ForgeTrainWorkflow
+from siqe.workflows.forge import (
+    ForgeDatasetWorkflow,
+    ForgeExportWorkflow,
+    ForgePublishWorkflow,
+    ForgeTrainWorkflow,
+)
 
 router = APIRouter(prefix="/forge", tags=["forge"])
 
@@ -523,6 +529,53 @@ async def run_weights(run_id: uuid.UUID, session: SessionDep) -> FileResponse:
     if not path.exists():
         raise NotFoundError("forge.nothing_to_publish", "This run hasn't saved a validated checkpoint yet.")
     name = f"{class_name(run.project_name).lower()}-step{run.best_step or 0}.safetensors"
+    return FileResponse(path, filename=name, media_type="application/octet-stream")
+
+
+@router.post(
+    "/runs/{run_id}/onnx",
+    response_model=ForgeExportOut,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Export the best checkpoint to ONNX, checked against PyTorch",
+    description=(
+        "Runs on the AI worker. The file takes one N×C×H×W input named `input` (values 0 to 1, any batch, "
+        "height and width in steps of the model's patch multiple) and returns `output`. Download it from "
+        "`GET /runs/{run_id}/onnx` once the job succeeds."
+    ),
+)
+async def export_run_onnx(run_id: uuid.UUID, session: SessionDep, temporal: TemporalDep) -> ForgeExportOut:
+    run = await get_run(session, run_id)
+    if not best_weights(run.id).exists():
+        raise AppError(
+            "forge.nothing_to_publish",
+            "This run hasn't saved a validated checkpoint yet.",
+            status=409,
+            fix="Let it train past its first validation, then export.",
+        )
+    job = await create_job(
+        session,
+        kind="forge.export",
+        title=f"Export {run.project_name} to ONNX",
+        params={"run_id": str(run.id)},
+    )
+    await start_workflow(session, temporal, job, ForgeExportWorkflow.run, [str(job.id), str(run.id)])
+    return ForgeExportOut(job=JobOut.model_validate(job_to_dict(job)))
+
+
+@router.get(
+    "/runs/{run_id}/onnx",
+    response_class=FileResponse,
+    summary="The exported ONNX file",
+)
+async def run_onnx(run_id: uuid.UUID, session: SessionDep) -> FileResponse:
+    run = await get_run(session, run_id)
+    path = onnx_path(run.id)
+    if not run.onnx_export or not path.exists():
+        raise NotFoundError(
+            "forge.no_onnx", "This run hasn't been exported to ONNX yet.", title="Not exported"
+        )
+    step = run.onnx_export.get("step", run.best_step or 0)
+    name = f"{class_name(run.project_name).lower()}-step{step}.onnx"
     return FileResponse(path, filename=name, media_type="application/octet-stream")
 
 

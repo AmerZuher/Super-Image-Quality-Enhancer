@@ -50,6 +50,10 @@ def best_weights(run_id: uuid.UUID | str) -> Path:
     return run_dir(run_id) / "best.safetensors"
 
 
+def onnx_path(run_id: uuid.UUID | str) -> Path:
+    return run_dir(run_id) / "model.onnx"
+
+
 def sample_path(run_id: uuid.UUID | str) -> Path:
     return run_dir(run_id) / "sample.png"
 

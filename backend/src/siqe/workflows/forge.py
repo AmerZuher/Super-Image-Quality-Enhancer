@@ -12,6 +12,7 @@ with workflow.unsafe.imports_passed_through():
     from siqe.activities.forge import (
         forge_build_dataset,
         forge_dataset_failed,
+        forge_export_onnx,
         forge_publish,
         forge_run_finish,
         forge_run_start,
@@ -189,5 +190,37 @@ class ForgePublishWorkflow:
             f"Added {result['name']} to AI Lab: {result['psnr']:.2f} dB "
             f"(bicubic {result['bicubic_psnr']:.2f} dB)"
         )
+        await _update(JobUpdate(job_id, state="succeeded", progress=1.0, message=message, result=result))
+        return result
+
+
+@workflow.defn
+class ForgeExportWorkflow:
+    """Export a run's best checkpoint to ONNX and check the file against PyTorch."""
+
+    @workflow.run
+    async def run(self, job_id: str, run_id: str) -> dict[str, Any]:
+        await _update(JobUpdate(job_id, state="running", message="Waiting for the AI worker"))
+        try:
+            result: dict[str, Any] = await workflow.execute_activity(
+                forge_export_onnx,
+                args=[job_id, run_id],
+                task_queue=GPU_TASK_QUEUE,
+                schedule_to_start_timeout=timedelta(hours=12),
+                start_to_close_timeout=timedelta(minutes=20),
+                heartbeat_timeout=timedelta(minutes=2),
+                retry_policy=QUICK,
+            )
+        except asyncio.CancelledError:
+            await _update(JobUpdate(job_id, state="cancelled", message="Cancelled"))
+            raise
+        except ActivityError as exc:
+            code, message = _failure(exc)
+            await _update(
+                JobUpdate(job_id, state="failed", message=message, error={"code": code, "message": message})
+            )
+            raise ApplicationError(message, type=code, non_retryable=True) from exc
+        size_mb = result["size"] / 1e6
+        message = f"Exported step {result['step']} ({size_mb:,.1f} MB), matches PyTorch"
         await _update(JobUpdate(job_id, state="succeeded", progress=1.0, message=message, result=result))
         return result

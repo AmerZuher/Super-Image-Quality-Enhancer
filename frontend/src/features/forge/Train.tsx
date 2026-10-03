@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  FileOutput,
   Info,
   Pause,
   Play,
@@ -28,8 +29,16 @@ import {
   type ForgeRunDetail,
   type TrainSettings,
 } from "@/lib/api/client";
-import { formatDuration, relativeTime } from "@/lib/format";
-import { downloadWeights, useDeleteRun, usePublish, useRunControl, useStartTraining } from "./api";
+import { formatBytes, formatDuration, relativeTime } from "@/lib/format";
+import {
+  downloadOnnx,
+  downloadWeights,
+  useDeleteRun,
+  useExportOnnx,
+  usePublish,
+  useRunControl,
+  useStartTraining,
+} from "./api";
 import { LineChart } from "./Chart";
 import { suggestedPatch } from "./graph";
 
@@ -392,7 +401,103 @@ function PublishPanel({ run }: { run: ForgeRun }) {
       >
         Download weights
       </Button>
+      <OnnxExport run={run} />
     </section>
+  );
+}
+
+interface OnnxInfo {
+  step: number;
+  size: number;
+  max_difference: number;
+  multiple: number;
+}
+
+/** Export the best checkpoint to ONNX (checked against PyTorch on the AI worker) and download it. */
+function OnnxExport({ run }: { run: ForgeRun }) {
+  const exporter = useExportOnnx();
+  const [jobId, setJobId] = useState<string | null>(null);
+  const { data: job } = useJob(jobId);
+  const [downloading, setDownloading] = useState(false);
+  const busy = exporter.isPending || job?.state === "queued" || job?.state === "running";
+  const info = run.onnx as OnnxInfo | null | undefined;
+  const stale = info && run.best_step !== null && info.step !== run.best_step;
+  const failure = exporter.error
+    ? errorMessage(exporter.error)
+    : job?.state === "failed"
+      ? { message: job.message, fix: undefined }
+      : null;
+
+  return (
+    <div className="grid gap-2 border-t border-line pt-3" data-testid="onnx-export">
+      <div>
+        <h4 className="text-[12.5px] font-semibold text-fg">ONNX</h4>
+        <p className="text-[12px] text-fg-2">
+          One file for ONNX Runtime and other tools: input <span className="font-mono">input</span>, N ×{" "}
+          {run.color === "y" ? 1 : 3} × H × W with values 0 to 1
+          {info && info.multiple > 1 ? `, sides in steps of ${info.multiple}` : ""}. It is checked against
+          PyTorch before it's offered.
+        </p>
+      </div>
+      {info && (
+        <p className="flex flex-wrap items-center gap-2 text-[12px] text-fg-2" role="status">
+          <Chip tone="ok" icon={<CheckCircle2 />}>
+            Matches PyTorch
+          </Chip>
+          <span>
+            Step {info.step.toLocaleString()} · {formatBytes(info.size)} · largest difference{" "}
+            <span className="font-mono">{info.max_difference.toExponential(1)}</span>
+          </span>
+          {stale && (
+            <span className="flex items-center gap-1 text-warn">
+              <AlertTriangle className="size-3.5" aria-hidden="true" />
+              Older than the best checkpoint (step {run.best_step?.toLocaleString()})
+            </span>
+          )}
+        </p>
+      )}
+      {busy && (
+        <p className="flex items-center gap-2 text-[12px] text-fg-2">
+          <Spinner className="size-3.5" />
+          {job?.message || "Waiting for the AI worker"}
+        </p>
+      )}
+      {failure && (
+        <p role="alert" className="flex items-start gap-1.5 text-[12px] text-err">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          {failure.message} {failure.fix ?? ""}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          icon={<FileOutput />}
+          disabled={run.best_step === null}
+          loading={busy}
+          onClick={() => exporter.mutate(run.id, { onSuccess: (j) => setJobId(j.id) })}
+        >
+          {info ? "Export again" : "Export to ONNX"}
+        </Button>
+        {info && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Download />}
+            loading={downloading}
+            onClick={async () => {
+              setDownloading(true);
+              try {
+                await downloadOnnx(run);
+              } finally {
+                setDownloading(false);
+              }
+            }}
+          >
+            Download ONNX
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

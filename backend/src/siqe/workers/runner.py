@@ -35,6 +35,7 @@ from siqe.activities.flows import (
 from siqe.activities.forge import (
     forge_build_dataset,
     forge_dataset_failed,
+    forge_export_onnx,
     forge_publish,
     forge_run_finish,
     forge_run_start,
@@ -62,7 +63,12 @@ from siqe.workers.heartbeat import HeartbeatLoop, WorkerKind
 from siqe.workflows.ai import AiRunWorkflow
 from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 from siqe.workflows.flows import FlowItemWorkflow, FlowRunWorkflow
-from siqe.workflows.forge import ForgeDatasetWorkflow, ForgePublishWorkflow, ForgeTrainWorkflow
+from siqe.workflows.forge import (
+    ForgeDatasetWorkflow,
+    ForgeExportWorkflow,
+    ForgePublishWorkflow,
+    ForgeTrainWorkflow,
+)
 from siqe.workflows.library import ImportFolderWorkflow, LibraryIndexWorkflow, RemoveLocationWorkflow
 from siqe.workflows.models import ModelImportWorkflow, ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
@@ -84,6 +90,7 @@ WORKFLOWS = [
     ForgeDatasetWorkflow,
     ForgeTrainWorkflow,
     ForgePublishWorkflow,
+    ForgeExportWorkflow,
 ]
 CPU_ACTIVITIES: list[Callable[..., Any]] = [
     update_job,
@@ -126,6 +133,7 @@ GPU_ACTIVITIES: list[Callable[..., Any]] = [
     count_faces_batch,
     forge_train_chunk,
     forge_publish,
+    forge_export_onnx,
 ]
 
 

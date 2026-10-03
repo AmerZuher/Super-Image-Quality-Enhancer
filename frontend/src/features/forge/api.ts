@@ -311,18 +311,44 @@ export function usePublish() {
 }
 
 /** Download the best checkpoint's weights through the API client (works with sign-in on). */
-export async function downloadWeights(run: ForgeRun): Promise<void> {
-  const result = await api.GET("/api/forge/runs/{run_id}/weights", {
-    params: { path: { run_id: run.id } },
-    parseAs: "blob",
+export function useExportOnnx() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(await api.POST("/api/forge/runs/{run_id}/onnx", { params: { path: { run_id: id } } })).job,
+    onSuccess: (job: Job) => {
+      client.setQueryData<Job[]>(keys.jobs, (list) => upsertJob(list, job));
+      client.setQueryData(keys.job(job.id), job);
+    },
   });
-  const blob = unwrap(result) as Blob;
-  const disposition = result.response.headers.get("content-disposition") ?? "";
-  const name = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? "weights.safetensors";
+}
+
+function save(blob: Blob, disposition: string, fallback: string): void {
+  const name = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallback;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function downloadWeights(run: ForgeRun): Promise<void> {
+  const result = await api.GET("/api/forge/runs/{run_id}/weights", {
+    params: { path: { run_id: run.id } },
+    parseAs: "blob",
+  });
+  save(
+    unwrap(result) as Blob,
+    result.response.headers.get("content-disposition") ?? "",
+    "weights.safetensors",
+  );
+}
+
+export async function downloadOnnx(run: ForgeRun): Promise<void> {
+  const result = await api.GET("/api/forge/runs/{run_id}/onnx", {
+    params: { path: { run_id: run.id } },
+    parseAs: "blob",
+  });
+  save(unwrap(result) as Blob, result.response.headers.get("content-disposition") ?? "", "model.onnx");
 }

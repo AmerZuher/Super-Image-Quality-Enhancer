@@ -435,6 +435,8 @@ class ForgeRun(TimestampMixin, Base):
     notes: Mapped[list[str]] = mapped_column(JSONB, default=list)
     error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     model_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # The last ONNX export of the best checkpoint (siqe.forge.onnx_export): step, size, checks.
+    onnx_export: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

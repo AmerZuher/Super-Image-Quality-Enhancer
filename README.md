@@ -36,7 +36,7 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 | **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, deblur, colorize black and white photos, erase objects, add your own ONNX models, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
 | **Library** | Search by describing a photo, find similar images, automatic tags, duplicate groups that keep the best copy (with quarantine and undo), smart albums from rules, camera details and location removal without re-encoding, and an import folder. **Ready now.** | 3 |
 | **Flows** | Visual pipelines for batches and watched folders: edits, AI models and exports, branching with If, dry runs, recipes, and the same flows from the REST API and the `siqe` command. **Ready now.** | 4 |
-| **Forge** | Design a super-resolution or denoising network by drawing it, with live shape checks and one-click fixes; read the PyTorch it makes; build datasets from your Library; train with live charts, pause and resume; publish to AI Lab. **Ready now.** | 5 |
+| **Forge** | Design a super-resolution or denoising network by drawing it, with live shape checks and one-click fixes; read the PyTorch it makes; build datasets from your Library; train with live charts, pause and resume; publish to AI Lab or export a checked ONNX file. **Ready now.** | 5 |
 
 Built for real hardware limits: images are planned before processing, large ones are tiled and streamed, and running out of GPU memory steps down gracefully instead of crashing. See [docs/robustness.md](docs/robustness.md).
 

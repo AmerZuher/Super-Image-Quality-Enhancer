@@ -1238,6 +1238,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forge/runs/{run_id}/onnx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The exported ONNX file */
+        get: operations["run_onnx_api_forge_runs__run_id__onnx_get"];
+        put?: never;
+        /**
+         * Export the best checkpoint to ONNX, checked against PyTorch
+         * @description Runs on the AI worker. The file takes one N×C×H×W input named `input` (values 0 to 1, any batch, height and width in steps of the model's patch multiple) and returns `output`. Download it from `GET /runs/{run_id}/onnx` once the job succeeds.
+         */
+        post: operations["export_run_onnx_api_forge_runs__run_id__onnx_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/forge/runs/{run_id}/publish": {
         parameters: {
             query?: never;
@@ -2364,6 +2385,10 @@ export interface components {
         ForgeDegradationIn: {
             degradation: components["schemas"]["Degradation"];
         };
+        /** ForgeExportOut */
+        ForgeExportOut: {
+            job: components["schemas"]["JobOut"];
+        };
         /** ForgeFix */
         ForgeFix: {
             /** Label */
@@ -2626,6 +2651,13 @@ export interface components {
             model_id: string | null;
             /** Sample Url */
             sample_url: string | null;
+            /**
+             * Onnx
+             * @description The last ONNX export of the best checkpoint: step, size, exporter and the largest difference from PyTorch measured after exporting; `url` downloads it.
+             */
+            onnx?: {
+                [key: string]: unknown;
+            } | null;
             /** Created At */
             created_at: string | null;
             /** Started At */
@@ -5855,6 +5887,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_onnx_api_forge_runs__run_id__onnx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_run_onnx_api_forge_runs__run_id__onnx_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeExportOut"];
+                };
             };
             /** @description Validation Error */
             422: {

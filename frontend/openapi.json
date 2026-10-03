@@ -3517,6 +3517,84 @@
         }
       }
     },
+    "/api/forge/runs/{run_id}/onnx": {
+      "post": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "Export the best checkpoint to ONNX, checked against PyTorch",
+        "description": "Runs on the AI worker. The file takes one N\u00d7C\u00d7H\u00d7W input named `input` (values 0 to 1, any batch, height and width in steps of the model's patch multiple) and returns `output`. Download it from `GET /runs/{run_id}/onnx` once the job succeeds.",
+        "operationId": "export_run_onnx_api_forge_runs__run_id__onnx_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeExportOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "forge"
+        ],
+        "summary": "The exported ONNX file",
+        "operationId": "run_onnx_api_forge_runs__run_id__onnx_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/forge/runs/{run_id}/publish": {
       "post": {
         "tags": [
@@ -6422,6 +6500,18 @@
         ],
         "title": "ForgeDegradationIn"
       },
+      "ForgeExportOut": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job"
+        ],
+        "title": "ForgeExportOut"
+      },
       "ForgeFix": {
         "properties": {
           "label": {
@@ -7159,6 +7249,19 @@
               }
             ],
             "title": "Sample Url"
+          },
+          "onnx": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onnx",
+            "description": "The last ONNX export of the best checkpoint: step, size, exporter and the largest difference from PyTorch measured after exporting; `url` downloads it."
           },
           "created_at": {
             "anyOf": [

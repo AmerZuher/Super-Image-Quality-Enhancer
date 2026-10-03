@@ -66,6 +66,7 @@ def run_to_dict(r: ForgeRun) -> dict[str, Any]:
         "error": r.error,
         "model_id": r.model_id,
         "sample_url": f"/api/forge/runs/{r.id}/sample" if r.best_step is not None else None,
+        "onnx": {**r.onnx_export, "url": f"/api/forge/runs/{r.id}/onnx"} if r.onnx_export else None,
         "created_at": _iso(r.created_at),
         "started_at": _iso(r.started_at),
         "finished_at": _iso(r.finished_at),

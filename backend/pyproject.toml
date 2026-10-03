@@ -39,6 +39,8 @@ ai = [
   "torchvision>=0.29",
   "spandrel>=0.4.2",
   "nvidia-ml-py>=13.615",
+  "onnxscript>=0.6",
+  "onnx>=1.23.1",
 ]
 
 [project.scripts]
@@ -91,7 +93,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # torch is only installed in the ai image; its nn.Module is Any to mypy elsewhere.
-module = ["siqe.ai.archs.*", "siqe.ai.runtime", "siqe.ai.clip"]
+module = ["siqe.ai.archs.*", "siqe.ai.runtime", "siqe.ai.clip", "siqe.forge.onnx_export"]
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
 warn_return_any = false

@@ -264,6 +264,26 @@ def test_train_publish_and_run_in_ai_lab(client: httpx.Client, dataset: dict[str
     weights = client.get(f"/api/forge/runs/{run_id}/weights")
     assert weights.status_code == 200 and len(weights.content) > 20_000
 
+    # Export to ONNX: checked against PyTorch, and it comes back in as your own ONNX model.
+    assert client.get(f"/api/forge/runs/{run_id}/onnx").json()["code"] == "forge.no_onnx"
+    exported = client.post(f"/api/forge/runs/{run_id}/onnx")
+    assert exported.status_code == 202, exported.text
+    job = _wait_job(client, exported.json()["job"]["id"])
+    assert job["state"] == "succeeded", job
+    onnx = client.get(f"/api/forge/runs/{run_id}").json()["run"]["onnx"]
+    assert onnx["step"] == run["best_step"] and onnx["max_difference"] < 1e-3
+    file = client.get(onnx["url"])
+    assert file.status_code == 200 and 'onnx"' in file.headers["content-disposition"]
+    added = client.post(
+        "/api/models/onnx",
+        params={"filename": "espcn.onnx", "name": f"Exported {uuid.uuid4().hex[:4]}"},
+        content=file.content,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+    job = _wait_job(client, added.json()["job"]["id"])
+    assert job["state"] == "succeeded" and job["result"]["scale"] == 3, job
+    assert client.delete(f"/api/models/{added.json()['model_id']}").status_code == 204
+
     name = f"Test {uuid.uuid4().hex[:4]}"
     started = client.post(f"/api/forge/runs/{run_id}/publish", json={"name": name, "summary": "From a test"})
     assert started.status_code == 202, started.text

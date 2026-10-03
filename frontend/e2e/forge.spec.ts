@@ -133,6 +133,15 @@ test("build a dataset, train on it, watch it learn, and publish to AI Lab", asyn
   await publish.getByRole("button", { name: "Publish", exact: true }).click();
   await expect(publish.getByText(/^Added e2e model .* to AI Lab/)).toBeVisible({ timeout: 180_000 });
   await expect(publish.getByText("Published", { exact: true })).toBeVisible();
+
+  // Export to ONNX: it's checked against PyTorch, then offered as a download.
+  const onnx = publish.getByTestId("onnx-export");
+  await onnx.getByRole("button", { name: "Export to ONNX" }).click();
+  await expect(onnx.getByText("Matches PyTorch", { exact: true })).toBeVisible({ timeout: 180_000 });
+  const download = page.waitForEvent("download");
+  await onnx.getByRole("button", { name: "Download ONNX" }).click();
+  expect((await download).suggestedFilename()).toMatch(/-step\d+\.onnx$/);
+
   const runId = new URL(page.url()).searchParams.get("run") as string;
   const modelId = (await (await request.get(`/api/forge/runs/${runId}`)).json()).run.model_id as string;
   models.push(modelId);

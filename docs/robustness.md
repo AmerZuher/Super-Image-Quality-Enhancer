@@ -42,6 +42,7 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Forge datasets | Crops of 64 to 1024 px, 1 to 64 per image, at most 20,000 images; smaller images and near-flat crops skipped; images read streamed with libvips; at most 64 validation crops scored | Datasets of empty sky, decompression bombs, and slow validations **(P5)** |
 | Forge training | Chunks of about 3 minutes on the GPU queue (one GPU job at a time); exact resume from a checkpoint after each chunk; history restarts every 100 chunks; checkpoints loaded with `weights_only=True` | Hogging the GPU for hours, losing progress to a crash, and unsafe pickles **(P5)** |
 | Forge models | Published to `/data/models/forge-<name>-v<n>/` with a checksum and a descriptor; run in full precision through the usual tiled pipeline | User models that bypass tiling or the out-of-memory ladder **(P5)** |
+| Forge ONNX export | On the AI worker queue, from the best checkpoint; dynamic batch (1 to 64) and height and width up to 8,192 in steps of the patch multiple; one file (no external data); written via a temporary name and kept only if ONNX Runtime matches PyTorch within 0.001 at three batches and sizes | Exports that silently compute something else, and half-written files **(P6)** |
 | Erase masks | At most 400 strokes of 4,000 points each; brush radius at most half the image width; at most 24 separate areas per run | Huge request bodies and runs that never end **(P6)** |
 | Erase regions | The mask is grown a third past the brush (plus 2 px) so no edge of the object is left for the model to continue; each painted area is cut out with about 2.2 times its size of surroundings (at least 512 px), filled at 512 × 512 by LaMa on the CPU worker and blended back with a feathered edge; nothing outside the painted areas changes | Blurry fills on large images, and seams **(P6)** |
 | Deblur | NAFNet (int8 ONNX) on the CPU worker through the tiled pipeline, tiles of at least 384 px in multiples of 16; the plan warns when a run will take minutes (about 30 s per megapixel on 4 cores) | The network failing on small tiles, and surprise waits **(P6)** |
@@ -141,6 +142,9 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `forge.nothing_to_publish` | 409 or 404 | Publishing or downloading weights before the first validation saved a checkpoint | P5 |
 | `forge.out_of_memory` | job error | The model doesn't fit in GPU memory even one patch at a time | P5 |
 | `forge.diverged` | job error | Twenty steps in a row gave non-finite losses | P5 |
+| `forge.no_onnx` | 404 | Downloading a run's ONNX file before exporting it | P6 |
+| `forge.export_failed` | job error | Neither ONNX exporter could convert the model | P6 |
+| `forge.export_mismatch` | job error | The exported file's output differed from PyTorch by more than 0.001 (or had another shape); nothing is offered | P6 |
 | `forge.model_files_missing` | 409 | Re-adding a published Forge model whose files were removed | P5 |
 | `job.unexpected` | n/a (job error) | An activity failed in a way that has no typed error; the details go to the worker's log, never to the UI | P6 |
 | `job.timed_out` | n/a (job error) | A worker stopped responding (restart, out of memory) and the job ran out of retries | P6 |

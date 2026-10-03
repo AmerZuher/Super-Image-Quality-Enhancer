@@ -26,7 +26,7 @@ from siqe.db.session import session_scope
 from siqe.events.bus import publish
 from siqe.forge import datasets
 from siqe.forge.records import METRIC_EVENT, get_dataset, get_run, publish_dataset, publish_run
-from siqe.forge.training import CHUNK_SECONDS, TrainSettings, best_weights, last_checkpoint
+from siqe.forge.training import CHUNK_SECONDS, TrainSettings, best_weights, last_checkpoint, onnx_path
 from siqe.jobs.progress import ProgressReporter
 from siqe.jobs.records import apply_update
 from siqe.library.rules import RuleSet
@@ -425,6 +425,49 @@ async def forge_publish(run_id: str, name: str, summary: str = "") -> dict[str, 
         await publish_run(session, run)
         await session.commit()
     return {"model_id": model_id, "name": info["name"], **scores}
+
+
+@activity.defn
+async def forge_export_onnx(job_id: str, run_id: str) -> dict[str, Any]:
+    """Export a run's best checkpoint to ONNX and check it against PyTorch."""
+    from siqe.forge.graph import ForgeGraph, analyze
+    from siqe.forge.onnx_export import export_onnx
+
+    async with session_scope() as session:
+        run = await get_run(session, uuid.UUID(run_id))
+        plan, scale, color = list(run.plan), run.scale, run.color
+        multiple = analyze(ForgeGraph.model_validate(run.graph)).stats.patch_multiple
+        step = run.best_step
+    weights = best_weights(run_id)
+    if step is None or not weights.exists():
+        raise _fail(
+            "forge.nothing_to_publish",
+            "This run hasn't saved a validated checkpoint yet.",
+            "Let it train past its first validation, then export.",
+        )
+    reporter = ProgressReporter(job_id)
+
+    def work(state: ThreadProgress) -> dict[str, Any]:
+        return export_onnx(
+            plan=plan,
+            scale=scale,
+            color=color,
+            multiple=multiple,
+            weights=weights,
+            out=onnx_path(run_id),
+            on_progress=state.update,
+        )
+
+    try:
+        info = await run_threaded(work, reporter)
+    except AppError as exc:
+        raise _fail(exc.code, exc.detail, exc.fix) from exc
+    info = {**info, "step": step, "exported_at": utcnow().isoformat()}
+    async with session_scope() as session:
+        run = await get_run(session, uuid.UUID(run_id), for_update=True)
+        run.onnx_export = info
+        await publish_run(session, run)
+    return info
 
 
 def run_step(run_id: str) -> int | None:

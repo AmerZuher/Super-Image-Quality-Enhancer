@@ -793,6 +793,11 @@ class ForgeRunOut(BaseModel):
     error: dict[str, Any] | None
     model_id: str | None
     sample_url: str | None
+    onnx: dict[str, Any] | None = Field(
+        default=None,
+        description="The last ONNX export of the best checkpoint: step, size, exporter and the largest "
+        "difference from PyTorch measured after exporting; `url` downloads it.",
+    )
     created_at: datetime | None
     started_at: datetime | None
     finished_at: datetime | None
@@ -815,6 +820,10 @@ class ForgeRunDetailOut(BaseModel):
 class ForgePublishIn(BaseModel):
     name: str = Field(min_length=1, max_length=60, description="Shown in AI Lab; a version number is added.")
     summary: str = Field(default="", max_length=300)
+
+
+class ForgeExportOut(BaseModel):
+    job: JobOut
 
 
 class ForgePublishOut(BaseModel):

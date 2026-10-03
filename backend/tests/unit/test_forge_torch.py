@@ -233,3 +233,37 @@ def test_publishing_scores_the_model_and_ai_lab_can_load_it(tiny_run: Any) -> No
     x = torch.rand(1, 3, 20, 20)
     with torch.no_grad():
         assert torch.allclose(loaded.module(x), reference.eval()(x))
+
+
+@pytest.mark.parametrize("template", TEMPLATES, ids=lambda t: t.id)
+def test_onnx_export_matches_pytorch_at_any_allowed_size(template: Any, tmp_path: Any) -> None:
+    pytest.importorskip("onnxscript")
+    ort = pytest.importorskip("onnxruntime")
+    from safetensors.torch import save_file
+
+    from siqe.forge.onnx_export import export_onnx
+
+    torch.manual_seed(2)
+    net, analysis = _net(template)
+    save_file(net.state_dict(), str(tmp_path / "best.safetensors"))
+    multiple = analysis.stats.patch_multiple
+    info = export_onnx(
+        plan=analysis.plan,
+        scale=net.scale,
+        color=analysis.stats.color or "rgb",
+        multiple=multiple,
+        weights=tmp_path / "best.safetensors",
+        out=tmp_path / "model.onnx",
+    )
+    assert info["max_difference"] < 1e-3 and info["multiple"] == max(multiple, 1)
+    assert not (tmp_path / "model.onnx.partial").exists()
+
+    # Sizes and a batch the export never saw, the way the tiled pipeline would call it.
+    session = ort.InferenceSession(str(tmp_path / "model.onnx"), providers=["CPUExecutionProvider"])
+    step = max(multiple, 1)
+    x = torch.rand(3, net.in_channels, 11 * step, 7 * step)
+    (got,) = session.run(None, {"input": x.numpy()})
+    with torch.no_grad():
+        expected = net.eval()(x).numpy()
+    assert got.shape == expected.shape
+    assert float(abs(got - expected).max()) < 1e-3
