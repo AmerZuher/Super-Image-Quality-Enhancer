@@ -21,7 +21,9 @@ def events_dep(request: Request) -> EventHub:
     return request.app.state.events  # type: ignore[no-any-return]
 
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+# scope="function": commit before the response is sent, so a client that writes and then reads
+# always sees its change, and a failed commit is an error response instead of a lost write.
+SessionDep = Annotated[AsyncSession, Depends(get_session, scope="function")]
 SettingsDep = Annotated[Settings, Depends(settings_dep)]
 TemporalDep = Annotated[TemporalGateway, Depends(temporal_dep)]
 EventsDep = Annotated[EventHub, Depends(events_dep)]

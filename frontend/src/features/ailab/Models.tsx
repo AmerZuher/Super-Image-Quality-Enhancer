@@ -177,6 +177,7 @@ export function ModelCard({ model }: { model: Model }) {
               {bench.gain_db.toFixed(2)} vs bicubic)
             </span>
           )}
+          {model.tags.includes("yours") && <Chip tone="gold">Your model</Chip>}
           {model.source === "user" && (
             <Chip tone="cyan" icon={<FileUp className="size-3" />}>
               Added by you
