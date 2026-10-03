@@ -5,8 +5,11 @@ import {
   Cpu,
   Download,
   Eraser,
+  Focus,
   Maximize2,
+  Palette,
   ScanSearch,
+  Scissors,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -23,11 +26,18 @@ import { formatBytes, relativeTime } from "@/lib/format";
 import { formatDimensions } from "../studio/format";
 import { usePlan, useRemoveResult, useStartRun } from "./api";
 import { ModelControl, RUN_TASKS } from "./Models";
+import { strokesFor, useAiLabStore } from "./store";
+
+/** Tasks whose models run on the CPU worker, whatever the device setting. */
+const CPU_TASKS: ModelTask[] = ["background", "deblur", "erase"];
 
 const TASK_ICON: Record<ModelTask, ReactNode> = {
   upscale: <Maximize2 />,
   denoise: <Wand2 />,
-  background: <Eraser />,
+  deblur: <Focus />,
+  colorize: <Palette />,
+  erase: <Eraser />,
+  background: <Scissors />,
   face: <Sparkles />,
   embed: <ScanSearch />,
 };
@@ -35,6 +45,9 @@ const TASK_ICON: Record<ModelTask, ReactNode> = {
 function runLabel(task: ModelTask, model: Model | undefined): string {
   if (task === "upscale") return model ? `Upscale ×${model.scale}` : "Upscale";
   if (task === "denoise") return "Denoise";
+  if (task === "deblur") return "Deblur";
+  if (task === "colorize") return "Colorize";
+  if (task === "erase") return "Erase painted areas";
   if (task === "background") return "Remove background";
   if (task === "face") return "Restore faces";
   return "Restore faces";
@@ -241,14 +254,19 @@ export function RunPanel({
   results,
   selectedResult,
   onSelectResult,
+  onPaint,
 }: {
   asset: Asset;
   models: Model[];
   results: Asset[];
   selectedResult: string | undefined;
   onSelectResult: (id: string) => void;
+  /** Picking Erase shows the paint layer, so any compared result is put away. */
+  onPaint?: () => void;
 }) {
-  const [task, setTask] = useState<ModelTask>("upscale");
+  const task = useAiLabStore((s) => s.task);
+  const setTask = useAiLabStore((s) => s.setTask);
+  const strokes = useAiLabStore((s) => strokesFor(s, asset.id));
   const [modelId, setModelId] = useState<string | undefined>();
   const [device, setDevice] = useState<"auto" | "cpu">("auto");
   const [faces, setFaces] = useState(false);
@@ -259,8 +277,18 @@ export function RunPanel({
     installed.find((m) => m.id === modelId) ?? installed.find((m) => m.recommended) ?? installed[0];
   const ready = asset.status === "ready";
   const withFaces = task === "upscale" && faces && faceModel?.status === "installed";
+  const painted = task !== "erase" || strokes.length > 0;
+  // The plan doesn't depend on the mask, so it shows before anything is painted.
   const request =
-    chosen && ready ? { asset_id: asset.id, model_id: chosen.id, device, restore_faces: withFaces } : null;
+    chosen && ready
+      ? {
+          asset_id: asset.id,
+          model_id: chosen.id,
+          device,
+          restore_faces: withFaces,
+          ...(task === "erase" && painted ? { mask: { strokes } } : {}),
+        }
+      : null;
   const plan = usePlan(request);
   const start = useStartRun();
   const planError = plan.error ? errorMessage(plan.error) : null;
@@ -276,7 +304,10 @@ export function RunPanel({
               key={t.id}
               type="button"
               aria-pressed={task === t.id}
-              onClick={() => setTask(t.id)}
+              onClick={() => {
+                setTask(t.id);
+                if (t.id === "erase") onPaint?.();
+              }}
               className={clsx(
                 "grid h-14 place-items-center content-center gap-1 rounded-md border px-1 text-center text-[11.5px] leading-tight transition [&_svg]:size-4",
                 task === t.id
@@ -348,7 +379,15 @@ export function RunPanel({
         </div>
       )}
 
-      {task !== "background" && (
+      {task === "erase" && !strokes.length && (
+        <p className="flex items-start gap-1.5 text-[12px] text-fg-2">
+          <Eraser className="mt-0.5 size-3.5 shrink-0 text-gold" aria-hidden="true" />
+          Paint over what to remove on the image, then erase it. Each area is filled in from its surroundings;
+          small to medium objects work best.
+        </p>
+      )}
+
+      {!CPU_TASKS.includes(task) && (
         <label className="flex items-center justify-between gap-2 text-[12.5px] text-fg-2">
           Run on
           <select
@@ -376,9 +415,9 @@ export function RunPanel({
       <Button
         variant="ai"
         icon={TASK_ICON[task]}
-        disabled={!chosen || !ready || Boolean(planError)}
+        disabled={!chosen || !ready || !painted || Boolean(planError)}
         loading={start.isPending}
-        onClick={() => request && start.mutate(request)}
+        onClick={() => request && painted && start.mutate(request)}
       >
         {chosen ? runLabel(task, chosen) : "Download a model first"}
       </Button>

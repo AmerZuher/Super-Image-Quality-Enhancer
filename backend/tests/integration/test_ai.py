@@ -3,11 +3,14 @@
 import os
 import time
 import uuid
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
 import pytest
 import pyvips
+
+from siqe.ai.manifest import COMMERCIAL_SAFE
 
 pytestmark = pytest.mark.integration
 
@@ -15,7 +18,7 @@ BASE = os.environ.get("SIQE_TEST_BASE_URL", "http://localhost:8080")
 
 
 @pytest.fixture(scope="module")
-def client() -> httpx.Client:
+def client() -> Iterator[httpx.Client]:
     with httpx.Client(base_url=BASE, timeout=60) as c:
         deadline = time.monotonic() + 120
         while c.get("/api/health/ready").json().get("status") != "ok":
@@ -46,7 +49,7 @@ def install(client: httpx.Client, model_id: str) -> dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def photo(client: httpx.Client) -> dict[str, Any]:
+def photo(client: httpx.Client) -> Iterator[dict[str, Any]]:
     """A fresh 160×120 image with a bright square subject on a dark background."""
     xy = pyvips.Image.xyz(160, 120)
     inside = (xy[0] > 50) & (xy[0] < 110) & (xy[1] > 30) & (xy[1] < 90)
@@ -70,7 +73,7 @@ def test_catalog_lists_commercial_safe_models(client: httpx.Client) -> None:
     models = client.get("/api/models").json()
     # Models you train in Forge are your own; everything shipped in the catalog is commercial-safe.
     shipped = [m for m in models if m["source"] == "catalog"]
-    assert {m["license"] for m in shipped} <= {"MIT", "BSD-3-Clause", "Apache-2.0"}
+    assert {m["license"] for m in shipped} <= set(COMMERCIAL_SAFE)
     assert {"siqe-classic", "realesrgan-x4plus", "isnet-general"} <= {m["id"] for m in models}
 
 
@@ -122,3 +125,52 @@ def test_background_removal_adds_transparency(client: httpx.Client, photo: dict[
     assert result["has_alpha"] is True
     png = pyvips.Image.new_from_buffer(client.get(result["original_url"]).content, "")
     assert png.bands == 4
+
+
+def _result(client: httpx.Client, photo: dict[str, Any], model_id: str, **extra: Any) -> dict[str, Any]:
+    started = client.post("/api/ai/runs", json={"asset_id": photo["id"], "model_id": model_id, **extra})
+    assert started.status_code == 201, started.text
+    job = wait(client, started.json()["job"]["id"])
+    assert job["state"] == "succeeded", job
+    return dict(client.get(f"/api/assets/{job['result']['asset_id']}").json())
+
+
+def _pixels(client: httpx.Client, asset: dict[str, Any]) -> Any:
+    import numpy as np
+
+    image = pyvips.Image.new_from_buffer(client.get(asset["original_url"]).content, "")
+    return np.asarray(image.numpy(), np.int32)
+
+
+def test_erase_fills_the_painted_area_and_needs_a_mask(client: httpx.Client, photo: dict[str, Any]) -> None:
+    install(client, "lama-erase")
+    planned = client.post("/api/ai/plan", json={"asset_id": photo["id"], "model_id": "lama-erase"})
+    assert planned.status_code == 200  # the plan shows before anything is painted
+    assert (planned.json()["output_width"], planned.json()["output_height"]) == (160, 120)
+    refused = client.post("/api/ai/runs", json={"asset_id": photo["id"], "model_id": "lama-erase"})
+    assert refused.status_code == 422 and refused.json()["code"] == "erase.mask_required"
+    # Paint over the bright square (x 50..110, y 30..90 of 160×120).
+    mask = {"strokes": [{"points": [[0.4, 0.5], [0.6, 0.5]], "radius": 0.2}]}
+    result = _result(client, photo, "lama-erase", mask=mask)
+    assert (result["width"], result["height"]) == (160, 120)
+    assert result["original_name"].endswith("retouched.png")
+    before, after = _pixels(client, photo), _pixels(client, result)
+    assert before[60, 80, 0] > 200  # the square was bright
+    assert after[60, 80, 0] < 120  # and is filled in with the dark background
+    assert abs(int(after[5, 5, 0]) - int(before[5, 5, 0])) <= 2  # far away nothing changed
+
+
+def test_colorize_adds_colour_and_keeps_size(client: httpx.Client, photo: dict[str, Any]) -> None:
+    install(client, "siggraph17-colorize")
+    result = _result(client, photo, "siggraph17-colorize")
+    assert (result["width"], result["height"]) == (160, 120)
+    assert result["original_name"].endswith("colorized.png")
+
+
+def test_deblur_runs_on_the_cpu_and_keeps_size(client: httpx.Client, photo: dict[str, Any]) -> None:
+    install(client, "nafnet-deblur")
+    plan = client.post("/api/ai/plan", json={"asset_id": photo["id"], "model_id": "nafnet-deblur"}).json()
+    assert plan["device"] == "cpu"
+    result = _result(client, photo, "nafnet-deblur")
+    assert (result["width"], result["height"]) == (160, 120)
+    assert result["derivation"]["device_name"] == "CPU"

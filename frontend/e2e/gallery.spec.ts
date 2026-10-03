@@ -286,6 +286,44 @@ test("ai lab, cutout @gallery", async ({ page }) => {
   await page.screenshot({ path: `${OUT}/ailab-cutout.png` });
 });
 
+test("ai lab, erase @gallery", async ({ page, request }) => {
+  test.setTimeout(300_000);
+  await install(request, "lama-erase");
+  if (!runs.pier) throw new Error("run the prepare step first");
+  // Start from no earlier erase results, so the list shows only this one.
+  const children: { id: string; derivation?: { task?: string } }[] = await (
+    await request.get(`/api/assets?parent_id=${runs.pier.asset}`)
+  ).json();
+  for (const child of children.filter((c) => c.derivation?.task === "erase")) {
+    await request.delete(`/api/assets/${child.id}`);
+  }
+  await useTheme(page, "dark");
+  await page.goto(`/ai-lab?asset=${runs.pier.asset}`);
+  await page.getByRole("tab", { name: "Run" }).click();
+  await page.getByRole("button", { name: "Erase objects", exact: true }).click();
+  const layer = page.getByLabel("Paint over what to erase");
+  await expect(layer).toBeVisible();
+  await settle(page);
+  const box = await layer.boundingBox();
+  if (!box) throw new Error("paint layer not visible");
+  // The two nearest pier posts.
+  for (const x of [0.362, 0.617]) {
+    await page.mouse.move(box.x + box.width * x, box.y + box.height * 0.57);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * x, box.y + box.height * 0.91, { steps: 12 });
+    await page.mouse.up();
+  }
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/ailab-erase.png` });
+
+  await page.getByRole("button", { name: "Erase painted areas" }).click();
+  await expect(page.getByText("After", { exact: true })).toBeVisible({ timeout: 240_000 });
+  await page.getByRole("button", { name: "Side by side" }).click();
+  await settle(page);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${OUT}/ailab-erase-result.png` });
+});
+
 // --------------------------------------------------------------------------------- Library
 
 const LIBRARY_SAMPLES = [

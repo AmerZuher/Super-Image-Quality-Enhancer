@@ -12,8 +12,8 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from siqe.ai.governor import Calibration, choose_settings, cpu_settings, estimate_tiles
-from siqe.ai.manifest import ModelSpec
+from siqe.ai.governor import Calibration, choose_settings, cpu_settings, estimate_tiles, min_input_settings
+from siqe.ai.manifest import CPU_ARCHS, TILED_ARCHS, ModelSpec
 from siqe.db.base import utcnow
 from siqe.db.models import WorkerHeartbeat
 from siqe.imaging.formats import OUTPUT_FORMATS
@@ -76,24 +76,31 @@ def plan_run(
     restore_faces: bool = False,
 ) -> dict[str, Any]:
     out_w, out_h = output_size(spec, width, height)
+    if spec.arch in CPU_ARCHS:
+        device = DeviceInfo("cpu", "CPU", None, True)  # ONNX models run on the CPU worker
     alpha = has_alpha or spec.task == "background"
     channels = 4 if alpha else 3
     sample_bytes = 2 if bit_depth == 16 else 1
     raw_bytes = out_w * out_h * channels * sample_bytes
-    tiled = spec.task not in ("background", "face")
+    tiled = spec.arch in TILED_ARCHS
     if not tiled:
         settings = None
     elif device.kind == "cuda":
         free = (device.free_bytes or 0) - reserve_mb * 1024 * 1024
         settings = choose_settings(
-            calibration, free, width=width, height=height, context=spec.context, multiple=1
+            calibration, free, width=width, height=height, context=spec.context, multiple=spec.multiple
         )
     else:
-        settings = cpu_settings(width=width, height=height, context=spec.context, multiple=1)
+        settings = cpu_settings(width=width, height=height, context=spec.context, multiple=spec.multiple)
+    if settings is not None:
+        settings = min_input_settings(settings, spec.min_input)
     warnings: list[str] = []
     if not device.worker_online:
         warnings.append("The AI worker is offline. The run will start when it's back.")
-    if device.kind == "cpu" and tiled and spec.speed != "fast" and width * height > 2_000_000:
+    if spec.arch == "onnx" and width * height > 2_000_000:
+        minutes = width * height / 1e6 * 30 / 60
+        warnings.append(f"{spec.name} runs on the CPU: about {minutes:,.0f} minutes for this image.")
+    elif device.kind == "cpu" and tiled and spec.speed != "fast" and width * height > 2_000_000:
         warnings.append(
             f"No GPU: {spec.name} will be slow on the CPU. Real-ESRGAN General v3 is much faster."
         )

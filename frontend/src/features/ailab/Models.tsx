@@ -22,6 +22,9 @@ import { useInstallModel, useRemoveModel } from "./api";
 export const TASKS: { id: ModelTask; label: string }[] = [
   { id: "upscale", label: "Upscale" },
   { id: "denoise", label: "Denoise" },
+  { id: "deblur", label: "Deblur" },
+  { id: "colorize", label: "Colorize" },
+  { id: "erase", label: "Erase objects" },
   { id: "background", label: "Remove background" },
   { id: "face", label: "Restore faces" },
   { id: "embed", label: "Library search and tags" },

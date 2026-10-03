@@ -335,6 +335,8 @@ async def flow_edit(call: StepCall) -> dict[str, Any]:
 TASK_FOR_NODE = {
     "upscale": "upscale",
     "denoise": "denoise",
+    "deblur": "deblur",
+    "colorize": "colorize",
     "remove_background": "background",
     "restore_faces": "face",
 }
@@ -357,7 +359,8 @@ async def _model(call: StepCall) -> tuple[ModelSpec, dict[str, Any]]:
 
 
 async def _ai(call: StepCall) -> dict[str, Any]:
-    from siqe.activities.ai import run_background_file, run_model_file
+    from siqe.activities.ai import run_cpu_file, run_model_file
+    from siqe.ai.manifest import CPU_ARCHS
 
     started = asyncio.get_running_loop().time()
     spec, calibrations = await _model(call)
@@ -366,8 +369,8 @@ async def _ai(call: StepCall) -> dict[str, Any]:
     folder = _item_dir(call.run_id, call.item_id)
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / f"{call.key}.png"
-    if spec.task == "background":
-        result = await run_background_file(spec, src, out, reporter=HeartbeatOnly(), limit=limit)
+    if spec.arch in CPU_ARCHS:
+        result = await run_cpu_file(spec, src, out, reporter=HeartbeatOnly(), limit=limit)
     else:
         result = await run_model_file(
             spec,

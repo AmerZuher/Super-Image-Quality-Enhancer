@@ -1372,7 +1372,7 @@ export interface components {
              * Task
              * @enum {string}
              */
-            task: "upscale" | "denoise" | "background" | "face" | "embed";
+            task: "upscale" | "denoise" | "deblur" | "colorize" | "erase" | "background" | "face" | "embed";
             /** Scale */
             scale: number;
             /**
@@ -1435,6 +1435,8 @@ export interface components {
              * @default false
              */
             restore_faces: boolean;
+            /** @description For erase: brush strokes over what to remove, in image-relative units. */
+            mask?: components["schemas"]["Mask"] | null;
         };
         /** AiRunStartOut */
         AiRunStartOut: {
@@ -2857,6 +2859,11 @@ export interface components {
             /** Tags */
             tags: components["schemas"]["TagCountOut"][];
         };
+        /** Mask */
+        Mask: {
+            /** Strokes */
+            strokes: components["schemas"]["Stroke"][];
+        };
         /** ModelInstallOut */
         ModelInstallOut: {
             model: components["schemas"]["ModelOut"];
@@ -2873,7 +2880,7 @@ export interface components {
              * Task
              * @enum {string}
              */
-            task: "upscale" | "denoise" | "background" | "face" | "embed";
+            task: "upscale" | "denoise" | "deblur" | "colorize" | "erase" | "background" | "face" | "embed";
             /** Task Label */
             task_label: string;
             /** Arch */
@@ -3125,6 +3132,19 @@ export interface components {
         SignInIn: {
             /** Key */
             key: string;
+        };
+        /** Stroke */
+        Stroke: {
+            /** Points */
+            points: [
+                number,
+                number
+            ][];
+            /**
+             * Radius
+             * @description Brush radius as a share of the image width.
+             */
+            radius: number;
         };
         /** SystemOut */
         SystemOut: {

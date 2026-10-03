@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from siqe.ai.inpaint import Mask
 from siqe.forge.datasets import DatasetSettings
 from siqe.forge.degrade import Degradation
 from siqe.forge.graph import ForgeAnalysis, ForgeGraph
@@ -230,7 +231,7 @@ class ExportStartOut(BaseModel):
 
 
 ModelStatusName = Literal["available", "downloading", "installed", "failed"]
-ModelTask = Literal["upscale", "denoise", "background", "face", "embed"]
+ModelTask = Literal["upscale", "denoise", "deblur", "colorize", "erase", "background", "face", "embed"]
 
 
 class ModelOut(BaseModel):
@@ -276,6 +277,9 @@ class AiRunIn(BaseModel):
     )
     restore_faces: bool = Field(
         default=False, description="After upscaling, restore faces with GFPGAN (it must be installed)."
+    )
+    mask: Mask | None = Field(
+        default=None, description="For erase: brush strokes over what to remove, in image-relative units."
     )
 
 

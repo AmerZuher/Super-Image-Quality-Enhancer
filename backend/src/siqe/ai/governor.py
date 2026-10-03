@@ -98,5 +98,14 @@ def cpu_settings(*, width: int, height: int, context: int, multiple: int) -> Til
     )
 
 
+def min_input_settings(settings: TileSettings, min_input: int) -> TileSettings:
+    """Grow the tile so tile plus context reaches ``min_input`` (models with a fixed minimum)."""
+    if not min_input or settings.tile + 2 * settings.context >= min_input:
+        return settings
+    tile = min_input - 2 * settings.context
+    tile += -tile % settings.multiple
+    return TileSettings(tile=tile, batch=settings.batch, context=settings.context, multiple=settings.multiple)
+
+
 def estimate_tiles(width: int, height: int, tile: int) -> int:
     return math.ceil(width / tile) * math.ceil(height / tile)

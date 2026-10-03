@@ -34,7 +34,7 @@ from siqe.storage.store import StagedUpload, get_store
 
 log = get_logger(__name__)
 
-TORCH_ARCHS = frozenset({"spandrel", "siqe_classic", "gfpgan", "forge"})
+TORCH_ARCHS = frozenset({"spandrel", "siqe_classic", "gfpgan", "forge", "siggraph_color"})
 _SAFE_NAME = re.compile(r"[^\w.\- ()×]+")
 
 
@@ -44,6 +44,8 @@ class AiRunRequest:
     model_id: str
     device: str = "auto"
     restore_faces: bool = False
+    # Brush strokes for the eraser (siqe.ai.inpaint.Mask as a dict).
+    mask: dict[str, Any] | None = None
 
 
 def _paths(job_id: str) -> tuple[Path, Path]:
@@ -193,6 +195,8 @@ async def run_model_file(
     device = runtime.pick_device(device_request)
     if spec.arch == "gfpgan":
         return await _run_faces(out_png, spec, src, limit, device, reporter)
+    if spec.arch == "siggraph_color":
+        return await _run_colorize(out_png, spec, src, limit, device, reporter)
     if restore_faces:
         await _faces_installed()
     try:
@@ -329,10 +333,157 @@ async def _run_faces(
 
 @activity.defn
 async def run_background(job_id: str, request: AiRunRequest) -> dict[str, Any]:
+    """Models that run on the CPU worker (ONNX Runtime): background removal, deblur, erase."""
     spec, src, limit, _, _, _ = await _source(request)
     _, out_png = _paths(job_id)
     reporter = ProgressReporter(job_id, start=0.0, span=0.85)
+    return await run_cpu_file(spec, src, out_png, reporter=reporter, limit=limit, mask=request.mask)
+
+
+async def run_cpu_file(
+    spec: ModelSpec,
+    src: Path,
+    out_png: Path,
+    *,
+    reporter: Any,
+    limit: int | None,
+    mask: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run a CPU-worker model on one file. Shared by AI Lab runs and flow steps."""
+    if spec.arch == "onnx":
+        return await _run_onnx_tiled(spec, src, out_png, reporter=reporter, limit=limit)
+    if spec.arch == "lama_onnx":
+        if not mask:
+            raise _non_retryable(
+                "erase.mask_required", "Paint over what to erase first.", "Use the brush in AI Lab."
+            )
+        return await _run_erase(spec, src, out_png, mask, reporter=reporter, limit=limit)
     return await run_background_file(spec, src, out_png, reporter=reporter, limit=limit)
+
+
+def _single_pass(path: Path, width: int, height: int, seconds: float) -> dict[str, Any]:
+    return {
+        "path": str(path),
+        "width": width,
+        "height": height,
+        "device": "cpu",
+        "device_name": "CPU",
+        "tile": None,
+        "batch": None,
+        "tiles": 1,
+        "seconds": round(seconds, 1),
+        "fallbacks": [],
+    }
+
+
+async def _run_onnx_tiled(
+    spec: ModelSpec, src: Path, out_png: Path, *, reporter: Any, limit: int | None
+) -> dict[str, Any]:
+    """An image-to-image ONNX model, tile by tile on the CPU (the same tiler as GPU models)."""
+    from siqe.ai.governor import cpu_settings, min_input_settings
+    from siqe.ai.onnx_model import OnnxBackend
+    from siqe.ai.pipeline import run_model_on_file
+    from siqe.imaging.io import inspect as inspect_image
+
+    info = await asyncio.to_thread(inspect_image, src, max_megapixels=limit)
+    width, height = info.oriented_size
+    tile = min_input_settings(
+        cpu_settings(width=width, height=height, context=spec.context, multiple=spec.multiple), spec.min_input
+    )
+    backend = await asyncio.to_thread(OnnxBackend, weights_path(spec))
+    canvas = out_png.with_suffix(".raw")
+    resume = _resume_details()
+    done = {Rect.from_list(r) for r in resume["done"]} if resume else set()
+
+    def work(state: ThreadProgress) -> Any:
+        return run_model_on_file(
+            src,
+            out_png,
+            canvas,
+            backend=backend,
+            scale=spec.scale,
+            channels=spec.channels,
+            settings=tile,
+            done=done,
+            on_progress=lambda f, m, d: state.update(f, m, d),
+            should_stop=state.cancelled.is_set,
+            max_megapixels=limit,
+        )
+
+    try:
+        out = await run_threaded(work, reporter)
+    except AppError as exc:
+        raise _non_retryable(exc.code, exc.detail, exc.fix) from exc
+    return {
+        "path": str(out.path),
+        "width": out.width,
+        "height": out.height,
+        "device": "cpu",
+        "device_name": "CPU",
+        "tile": out.tiled.settings.tile,
+        "batch": out.tiled.settings.batch,
+        "tiles": out.tiled.tiles_run,
+        "seconds": round(out.tiled.seconds, 1),
+        "fallbacks": [s.detail for s in out.tiled.steps],
+        "nonfinite": out.tiled.nonfinite,
+    }
+
+
+async def _run_erase(
+    spec: ModelSpec, src: Path, out_png: Path, mask: dict[str, Any], *, reporter: Any, limit: int | None
+) -> dict[str, Any]:
+    from pydantic import ValidationError
+
+    from siqe.ai.inpaint import Mask, inpaint_file, lama_runner
+    from siqe.ai.onnx_model import session
+
+    try:
+        strokes = Mask.model_validate(mask)
+    except ValidationError as exc:
+        raise _non_retryable(
+            "erase.bad_mask", "The painted area couldn't be read.", "Paint it again."
+        ) from exc
+    run = lama_runner(await asyncio.to_thread(session, weights_path(spec)))
+    start = asyncio.get_running_loop().time()
+
+    def work(state: ThreadProgress) -> tuple[int, int]:
+        return inpaint_file(
+            src, out_png, strokes, run, on_progress=lambda f, m: state.update(f, m), max_megapixels=limit
+        )
+
+    try:
+        width, height = await run_threaded(work, reporter)
+    except AppError as exc:
+        raise _non_retryable(exc.code, exc.detail, exc.fix) from exc
+    return _single_pass(out_png, width, height, asyncio.get_running_loop().time() - start)
+
+
+async def _run_colorize(
+    out_png: Path, spec: ModelSpec, src: Path, limit: int | None, device: str, reporter: Any
+) -> dict[str, Any]:
+    from siqe.ai import runtime
+    from siqe.ai.colorize import colorize_file
+
+    try:
+        predict = await asyncio.to_thread(runtime.load_colorizer, weights_path(spec), device)  # type: ignore[arg-type]
+    except runtime.ModelLoadError as exc:
+        raise _non_retryable(
+            "model.load_failed", str(exc), "Remove the model in AI Lab and download it again."
+        ) from exc
+    start = asyncio.get_running_loop().time()
+
+    def work(state: ThreadProgress) -> tuple[int, int]:
+        return colorize_file(
+            src, out_png, predict, on_progress=lambda f, m: state.update(f, m), max_megapixels=limit
+        )
+
+    try:
+        width, height = await run_threaded(work, reporter)
+    except AppError as exc:
+        raise _non_retryable(exc.code, exc.detail, exc.fix) from exc
+    result = _single_pass(out_png, width, height, asyncio.get_running_loop().time() - start)
+    result.update(device=device, device_name=runtime.device_name(device), restore_faces=False, nonfinite=0)
+    return result
 
 
 async def run_background_file(
@@ -375,6 +526,12 @@ def derived_name(original: str, spec: ModelSpec) -> str:
         label = f"{stem} cutout"
     elif spec.task == "denoise":
         label = f"{stem} denoised"
+    elif spec.task == "deblur":
+        label = f"{stem} deblurred"
+    elif spec.task == "colorize":
+        label = f"{stem} colorized"
+    elif spec.task == "erase":
+        label = f"{stem} retouched"
     else:
         label = f"{stem} faces restored"
     return (_SAFE_NAME.sub("_", label).strip(" .") or "image")[:190] + ".png"

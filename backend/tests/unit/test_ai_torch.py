@@ -197,3 +197,27 @@ def test_pth_reader_matches_torch_load(tmp_path: Path) -> None:
         loaded = pth.state_dict(tmp_path / name)
         for key, value in state.items():
             np.testing.assert_array_equal(loaded[key], value.numpy())
+
+
+def test_colorizer_port_shapes_and_state_dict() -> None:
+    from siqe.ai.archs.colorizer import SiggraphColorizer
+
+    model = SiggraphColorizer().eval()
+    with torch.inference_mode():
+        ab = model(torch.full((1, 1, 256, 256), 50.0))
+    assert tuple(ab.shape) == (1, 2, 256, 256)
+    assert float(ab.abs().max()) <= 110.0 + 1e-3
+    # Every tensor of the published checkpoint has a home in the port.
+    assert "model_class.0.weight" in model.state_dict()
+
+
+@pytest.mark.skipif(not (MODELS / "siggraph17-df00044c.pth").exists(), reason="needs downloaded weights")
+def test_colorizer_loads_the_published_weights_and_adds_colour() -> None:
+    from siqe.ai.runtime import load_colorizer
+
+    predict = load_colorizer(MODELS / "siggraph17-df00044c.pth", "cpu")
+    yy, _ = np.mgrid[0:256, 0:256]
+    lightness = (30 + 50 * (yy / 255)).astype(np.float32)  # a sky-to-ground gradient
+    ab = predict(lightness)
+    assert ab.shape == (2, 256, 256)
+    assert float(np.abs(ab).mean()) > 1.0  # it predicts colour, not grey

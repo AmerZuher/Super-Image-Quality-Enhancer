@@ -6,6 +6,10 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Added
 
+- **Erase objects:** paint over what you don't want (a post, a passer-by, a sensor spot) in AI Lab and it is filled in from its surroundings. Only the painted areas change. Uses LaMa (Apache-2.0) on the CPU, about 10 seconds per area.
+- **Colorize black and white photos** with the SIGGRAPH 2017 colorizer (BSD-2-Clause). Every detail of the photo is kept; only colour is added. Also a block in Flows.
+- **Deblur** slightly blurred or shaken photos with NAFNet (MIT). Runs on the CPU at any size; the plan tells you when it will take minutes. Also a block in Flows.
+
 - **Forge is here: design, train and publish your own models.** Start from SIQE Classic, ESPCN, EDSR-lite, a bicubic-plus-detail ×4 model or a U-Net denoiser, or from just an input and an output, and change it block by block: convolutions, residual and residual dense blocks, channel attention, add and concat, depth-to-space, resize, down and up.
 - **Checked as you draw:** every link shows its channels and size, and the model's parameters, compute and training memory update as you go. Blocks that can't work turn red and say why, usually with a one-click fix.
 - **Read the code:** the Code tab shows the plain PyTorch module your design compiles to, ready to copy or download. Trained weights load straight into it.
@@ -56,10 +60,16 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 
 ### Changed
 
+- Big AVIF exports are about three times faster (an 8K image: 18 seconds instead of 52), for files about 15% larger. Exports with a target size on large images are quicker too.
+- The free disk space SIQE Studio keeps in reserve is capped at 20 GB, so large drives aren't held back, and the "not enough disk" message explains the reserve.
+- The app's first load is about a quarter smaller.
 - The Overview marks Studio as ready; the other workspaces still describe what's coming.
 - The API's default memory cap (`SIQE_API_MEMORY`) is now 1.5 GB, to hold the search model.
 
 ### Fixed
+
+- A damaged or truncated image now fails with a clear "can't read this image" message instead of a bare "Error".
+- Unexpected failures and timeouts show a stable error with a hint instead of internal details.
 
 - Some interface text could fall back to a system font, because small font files were blocked by the app's security policy.
 

@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 5 of 7 is complete.** All five workspaces are ready to use: the **Studio** editor, the **AI Lab** (upscaling, denoising, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder), **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) and **Forge** (design, train and publish your own models). Hardening comes next, then model packages for text-to-image and image editing; see the [roadmap](#roadmap).
+> **Status: Phase 5 of 7 is complete.** All five workspaces are ready to use: the **Studio** editor, the **AI Lab** (upscaling, denoising, deblurring, colorizing, object removal, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder), **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) and **Forge** (design, train and publish your own models). Hardening comes next, then model packages for text-to-image and image editing; see the [roadmap](#roadmap).
 
 ---
 
@@ -33,7 +33,7 @@ SIQE Studio brings three earlier projects together into one platform: the **Supe
 | Workspace | What it does | Phase |
 |---|---|---|
 | **Studio** | Non-destructive editor with a live GPU preview: light and colour adjustments, crop and rotate, compare views, histogram, export to any common format with a target size. **Ready now.** | 1 |
-| **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
+| **AI Lab** | Upscale ×2/×3/×4 at any size with tiled inference, restore faces, remove backgrounds, denoise, deblur, colorize black and white photos, erase objects, and compare at full resolution. Includes **SIQE Classic**, the original model. **Ready now.** | 2 |
 | **Library** | Search by describing a photo, find similar images, automatic tags, duplicate groups that keep the best copy (with quarantine and undo), smart albums from rules, camera details and location removal without re-encoding, and an import folder. **Ready now.** | 3 |
 | **Flows** | Visual pipelines for batches and watched folders: edits, AI models and exports, branching with If, dry runs, recipes, and the same flows from the REST API and the `siqe` command. **Ready now.** | 4 |
 | **Forge** | Design a super-resolution or denoising network by drawing it, with live shape checks and one-click fixes; read the PyTorch it makes; build datasets from your Library; train with live charts, pause and resume; publish to AI Lab. **Ready now.** | 5 |
@@ -58,6 +58,8 @@ Built for real hardware limits: images are planned before processing, large ones
 | Command palette (Ctrl K) | Jobs with live progress |
 | <img src="gallery/ailab-cutout.png" alt="AI Lab showing a car photo and its background removal result side by side, the cutout on a transparency checkerboard" /> | <img src="gallery/settings.png" alt="Settings page with theme, updates and about" /> |
 | Background removal, side by side | Settings |
+| <img src="gallery/ailab-erase.png" alt="AI Lab with the Erase objects task chosen and two pier posts painted over in gold" /> | <img src="gallery/ailab-erase-result.png" alt="The pier photo before and after erasing, side by side: the two nearest posts are gone and the water behind them is filled in" /> |
+| Erase objects: paint over what to remove | The posts are gone; nothing else changed |
 | <img src="gallery/library-dark.png" alt="Library grid of photos with shape badges, a duplicate badge and automatic tags; albums and the import folder on the left; details, tags, sharpness and colour of the selected lake photo on the right" /> | <img src="gallery/library-search.png" alt="Library search for 'mountains reflected in a lake' showing the four matching photos ranked with gold match scores" /> |
 | Library: tags, details and albums | Search by description |
 | <img src="gallery/library-duplicates.png" alt="Library duplicates view in the light theme: a pier photo marked Keep and its smaller copy marked Quarantine, lower resolution" /> | <img src="gallery/library-album.png" alt="Smart album editor with rules for landscape orientation and a width of at least 1920 pixels" /> |
@@ -262,7 +264,7 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | P3 Library | Search by description, similar images, tags, duplicates with quarantine, smart albums, location removal, import folder | ✅ Done |
 | P4 Flows | Visual pipelines, batch runs, dry runs, recipes, watched folders, API keys, CLI, people filters | ✅ Done |
 | P5 Forge | Visual model builder with shape checks and fixes, generated PyTorch, datasets with a damage preview, resumable training with live charts, publish to AI Lab | ✅ Done |
-| P6 Hardening | 8K+ robustness suite, performance, erase, colorize, deblur, your own ONNX models and ONNX export, final docs | Next |
+| P6 Hardening | 8K+ robustness suite, performance, erase, colorize, deblur, your own ONNX models and ONNX export, final docs | In progress |
 | P7 Model packages | Install multi-file models as packages; **text to image and image to image** with Qwen-Image (Apache-2.0) and, opt-in for personal use, Qwen-Image-2.1. [Plan and prerequisites](docs/plan/phase7-model-packages.md) | Planned |
 
 The interactive product plan, with UI mockups of every workspace, is in [docs/plan/blueprint.html](docs/plan/blueprint.html).
@@ -273,7 +275,7 @@ SIQE Studio grows out of **Super Image Quality Enhancer**, a research project on
 
 **Authors:** Amer Zuher ALriahy and Hisham Maher Sunjaq.
 
-Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack, React Flow and Caddy. Watermark text uses DejaVu Sans Bold (Bitstream Vera license, bundled in `backend/src/siqe/flows/fonts/`). AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT); and [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained on LAION-400M (MIT) for Library search.
+Built with FastAPI, Temporal, PostgreSQL and pgvector, libvips, PyTorch, React, Vite, TanStack, React Flow and Caddy. Watermark text uses DejaVu Sans Bold (Bitstream Vera license, bundled in `backend/src/siqe/flows/fonts/`). AI models (each shown with its license in the app; all allow commercial use): [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3-Clause), [SwinIR](https://github.com/JingyunLiang/SwinIR) (Apache-2.0), [SCUNet](https://github.com/cszn/SCUNet) (Apache-2.0), [ISNet/DIS](https://github.com/xuebinqin/DIS) (Apache-2.0), [GFPGAN](https://github.com/TencentARC/GFPGAN) (Apache-2.0) and the RetinaFace detector from [facexlib](https://github.com/xinntao/facexlib) (MIT), loaded through [spandrel](https://github.com/chaiNNer-org/spandrel) (MIT); [LaMa](https://github.com/advimman/lama) (Apache-2.0) and [NAFNet](https://github.com/megvii-research/NAFNet) (MIT) as ONNX files from the [OpenCV Zoo](https://github.com/opencv/opencv_zoo); the [SIGGRAPH 2017 colorizer](https://github.com/richzhang/colorization) (BSD-2-Clause); and [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained on LAION-400M (MIT) for Library search.
 
 The images in `samples/` were collected from the web for testing and have unknown licenses; replace them before any commercial use.
 

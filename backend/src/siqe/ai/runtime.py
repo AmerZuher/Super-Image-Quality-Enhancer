@@ -6,6 +6,7 @@ Imported only by the GPU worker (the ``ai`` image has torch). Weights are loaded
 
 import contextlib
 import gc
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -77,6 +78,25 @@ def load_siqe_classic(path: Path) -> LoadedModel:
     module = SiqeClassic()
     module.load_state_dict(load_file(str(path), device="cpu"))
     return LoadedModel(module=module.eval(), scale=3, in_channels=1, out_channels=1, multiple=1, half_ok=True)
+
+
+def load_colorizer(path: Path, device: Device) -> Callable[[np.ndarray], np.ndarray]:
+    """The SIGGRAPH 2017 colorizer as a function: 256×256 lightness → 2×256×256 ab."""
+    from siqe.ai.archs.colorizer import SiggraphColorizer
+
+    module = SiggraphColorizer()
+    try:
+        module.load_state_dict(torch.load(str(path), map_location="cpu", weights_only=True))
+    except Exception as exc:
+        raise ModelLoadError(f"The colorizer's weights didn't load: {exc}") from exc
+    module = module.eval().to(device)
+
+    def predict(lightness: np.ndarray) -> np.ndarray:
+        with torch.inference_mode():
+            x = torch.from_numpy(np.ascontiguousarray(lightness, np.float32))[None, None].to(device)
+            return module(x)[0].float().cpu().numpy()
+
+    return predict
 
 
 def load_forge(path: Path, info: dict[str, Any]) -> LoadedModel:

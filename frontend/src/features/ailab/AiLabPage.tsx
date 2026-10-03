@@ -20,8 +20,10 @@ import { formatDimensions } from "../studio/format";
 import { useUploader } from "../studio/useUploader";
 import { useChildren, useModels } from "./api";
 import { type CompareMode, DeepCompare } from "./DeepCompare";
+import { EraseCanvas } from "./EraseCanvas";
 import { ModelLibrary } from "./Models";
 import { RunPanel } from "./RunPanel";
+import { useAiLabStore } from "./store";
 
 type Tab = "run" | "models";
 
@@ -75,7 +77,16 @@ export function AiLabPage() {
       }),
     [navigate],
   );
+  const putAwayResult = useCallback(
+    () =>
+      void navigate({
+        search: (s: { asset?: string; result?: string }) => ({ asset: s.asset }),
+        replace: true,
+      }),
+    [navigate],
+  );
   useAutoSelect(children, selectResult);
+  const painting = useAiLabStore((s) => s.task === "erase");
   const { upload, rejected, clearRejected, accept } = useUploader((a) => select(a.id));
 
   if (isPending) {
@@ -173,7 +184,9 @@ export function AiLabPage() {
               ))}
             </fieldset>
           </header>
-          {asset?.status === "ready" ? (
+          {asset?.status === "ready" && painting && !result ? (
+            <EraseCanvas key={asset.id} asset={asset} />
+          ) : asset?.status === "ready" ? (
             <DeepCompare
               key={`${asset.id}:${result?.id ?? ""}`}
               before={asset}
@@ -258,6 +271,7 @@ export function AiLabPage() {
                 results={results}
                 selectedResult={result?.id}
                 onSelectResult={selectResult}
+                onPaint={putAwayResult}
               />
             ) : (
               <p className="text-[12.5px] text-muted">Add an image first.</p>

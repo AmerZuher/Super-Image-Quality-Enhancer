@@ -94,12 +94,13 @@ Measured in Phase 0: a job runs API → Temporal → CPU worker → GPU worker i
 
 - **PyTorch** runs built-in models and Forge training. The `ai` image ships the CUDA build, which also runs on CPU.
 - **spandrel** (MIT) recognises ESRGAN, SwinIR, SCUNet and GFPGAN checkpoints. We use only core spandrel; its "extra arches" package includes non-commercial licenses and stays out. We load state dicts ourselves with `torch.load(weights_only=True)` and hand them to spandrel, so no checkpoint can run code.
-- **ONNX Runtime** (CPU) runs ISNet background removal on the CPU worker. Bring-your-own `.onnx` models come later.
+- **ONNX Runtime** (CPU) runs ISNet background removal, LaMa erase and NAFNet deblur on the CPU worker; `OnnxBackend` lets ONNX models use the same tiled pipeline as PyTorch ones ([ADR 0011](adr/0011-restore-models.md)).
+- **Erase and colorize** don't tile: the eraser fills each painted region with its surroundings at 512 × 512 and blends it back; the colorizer predicts colour at 256 × 256 and joins it with the photo's own lightness.
 - **SIQE Classic**: your `v10.h5` (in git history at commit `588eb10`) is downloaded from that commit, converted with `h5py` to safetensors, and run by a PyTorch port of the network. TensorFlow isn't needed: a test checks the port against an independent numpy implementation of the Keras graph.
 - **Face restoration**: our own RetinaFace implementation loads the facexlib detector weights; faces are aligned to the FFHQ template, restored with GFPGAN v1.4 and blended back (section 5.4).
 - **Library search**: OpenCLIP ViT-B/32 runs in numpy (`siqe.ai.clip`) on the CPU worker and in the API, so searching never waits for the GPU worker. Its checkpoint is read without torch by a restricted unpickler (`siqe.ai.pth`) and stored as float16 safetensors (section 4.5, [ADR 0007](adr/0007-library-search-and-duplicates.md)).
 
-The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-256 and allows only MIT, BSD-3-Clause and Apache-2.0 licenses. All sources are GitHub release assets. Details and trade-offs: [ADR 0006](adr/0006-ai-models-and-runs.md).
+The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-256 and allows only MIT, BSD-2-Clause, BSD-3-Clause and Apache-2.0 licenses. Sources are GitHub release assets, GitHub LFS files pinned to a commit (OpenCV Zoo), or the authors' own buckets; none needs Hugging Face. Details and trade-offs: [ADR 0006](adr/0006-ai-models-and-runs.md).
 
 | Model | Task | License |
 |---|---|---|
@@ -109,6 +110,9 @@ The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-2
 | SCUNet | Denoise | Apache-2.0 |
 | ISNet | Background removal | Apache-2.0 |
 | GFPGAN v1.4 + RetinaFace | Face restoration | Apache-2.0 + MIT |
+| NAFNet (GoPro, int8 ONNX) | Deblur | MIT |
+| LaMa (ONNX) | Erase objects | Apache-2.0 |
+| SIGGRAPH17 colorizer | Colorize black and white photos | BSD-2-Clause |
 | CLIP ViT-B/32 (OpenCLIP, LAION-400M) | Library search, similar images, automatic tags | MIT |
 
 ### 3.5 Versions in use
@@ -549,7 +553,7 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P3 Library** | Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal | **Done** (face-based albums need face detection on the GPU queue; they move to P4) |
 | **P4 Flows** | Node editor, batch runs with paged child workflows, dry runs, recipes, folder watching, API keys and optional sign-in, `siqe` CLI commands, face counts and face rules | **Done** |
 | **P5 Forge** | Visual builder, shape checker with fixes, graph-to-PyTorch compiler, dataset builder with a damage preview, chunked and resumable training, live charts, publish to AI Lab | **Done** (ONNX export moves to P6, with bring-your-own ONNX) |
-| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | Next |
+| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | In progress (robustness suite, performance pass, erase, colorize and deblur done) |
 | P7 Model packages | Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, `/api/generate` and `siqe generate` | Planned: [plan](plan/phase7-model-packages.md), [ADR 0010](adr/0010-model-packages.md) (proposed) |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.

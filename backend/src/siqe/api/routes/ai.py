@@ -36,7 +36,7 @@ async def _plan(body: AiRunIn, session: SessionDep, settings: Settings) -> tuple
             f"{spec.name} powers Library search and doesn't make images.",
             status=422,
             title="Not an image model",
-            fix="Pick an upscale, denoise, background or face model.",
+            fix="Pick an upscale, denoise, deblur, colorize, erase, background or face model.",
         )
     asset = await get_asset(session, asset_id)
     if asset.status != AssetStatus.ready:
@@ -93,6 +93,15 @@ async def start_run(
     body: AiRunIn, session: SessionDep, settings: SettingsDep, temporal: TemporalDep
 ) -> AiRunStartOut:
     result, spec, asset = await _plan(body, session, settings)
+    # Planning an erase needs no mask (the result is the same size); running one does.
+    if spec.task == "erase" and body.mask is None:
+        raise AppError(
+            "erase.mask_required",
+            "Paint over what to erase first.",
+            status=422,
+            title="Nothing to erase",
+            fix="Use the brush to cover the object, then run it again.",
+        )
     get_store().ensure_space(settings, int(result["disk_bytes"]))
     title = f"{TASK_LABELS[spec.task]} {asset.original_name}"
     if spec.task == "upscale":
@@ -115,6 +124,7 @@ async def start_run(
         model_id=spec.id,
         device=body.device,
         restore_faces=bool(result["restore_faces"]) and spec.task == "upscale",
+        mask=body.mask.model_dump() if body.mask is not None and spec.task == "erase" else None,
     )
     await start_workflow(session, temporal, job, AiRunWorkflow.run, [str(job.id), request])
     return AiRunStartOut(job=JobOut.model_validate(job_to_dict(job)), plan=AiPlanOut.model_validate(result))

@@ -42,6 +42,10 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Forge datasets | Crops of 64 to 1024 px, 1 to 64 per image, at most 20,000 images; smaller images and near-flat crops skipped; images read streamed with libvips; at most 64 validation crops scored | Datasets of empty sky, decompression bombs, and slow validations **(P5)** |
 | Forge training | Chunks of about 3 minutes on the GPU queue (one GPU job at a time); exact resume from a checkpoint after each chunk; history restarts every 100 chunks; checkpoints loaded with `weights_only=True` | Hogging the GPU for hours, losing progress to a crash, and unsafe pickles **(P5)** |
 | Forge models | Published to `/data/models/forge-<name>-v<n>/` with a checksum and a descriptor; run in full precision through the usual tiled pipeline | User models that bypass tiling or the out-of-memory ladder **(P5)** |
+| Erase masks | At most 400 strokes of 4,000 points each; brush radius at most half the image width; at most 24 separate areas per run | Huge request bodies and runs that never end **(P6)** |
+| Erase regions | The mask is grown a third past the brush (plus 2 px) so no edge of the object is left for the model to continue; each painted area is cut out with about 2.2 times its size of surroundings (at least 512 px), filled at 512 × 512 by LaMa on the CPU worker and blended back with a feathered edge; nothing outside the painted areas changes | Blurry fills on large images, and seams **(P6)** |
+| Deblur | NAFNet (int8 ONNX) on the CPU worker through the tiled pipeline, tiles of at least 384 px in multiples of 16; the plan warns when a run will take minutes (about 30 s per megapixel on 4 cores) | The network failing on small tiles, and surprise waits **(P6)** |
+| Colorize | Colour is predicted at 256 × 256 and scaled up; the photo's own lightness (every detail) and transparency are kept | Large photos needing gigabytes of GPU memory **(P6)** |
 | PostgreSQL connections | 200, Temporal capped at 10 per store | Connection exhaustion **(P0)** |
 | Event payload | 7,900 bytes; larger events become refetch pointers | NOTIFY's 8,000-byte limit **(P0)** |
 | WebSocket queue per browser | 500 events, oldest dropped | A slow or backgrounded tab growing server memory **(P0)** |
@@ -85,6 +89,9 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `model.load_failed` | n/a (job error) | The weights couldn't be loaded safely (for example a pickle with code in it) | P2 |
 | `ai.output_too_large` | 422 | The result would exceed `SIQE_MAX_OUTPUT_MEGAPIXELS` | P2 |
 | `model.not_runnable` | 422 | Running the search model (CLIP) as an AI Lab job; it only powers the Library | P3 |
+| `erase.mask_required` | 422 | Erasing without painting anything (or with an empty mask) | P6 |
+| `erase.bad_mask` | n/a (job error) | The painted strokes reached the worker in a shape it can't read | P6 |
+| `erase.too_many_regions` | n/a (job error) | More than 24 separate painted areas in one run; erase in a few passes or join nearby strokes | P6 |
 | `library.invalid_rules` | 422 | A filter or album rule with an unknown field, a wrong operator or a value of the wrong type | P3 |
 | `library.not_indexed` | 409 | "Find similar" on an image that hasn't been analysed by the search model yet | P3 |
 | `library.no_location` | 422 | Removing location from images that have none | P3 |
@@ -166,6 +173,8 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Worker restarts during training | The chunk is retried from the last checkpoint, with the same random state **(P5)** |
 | Pausing or stopping a run | The running chunk is cancelled, saves a checkpoint and ends; resuming continues from exactly that step **(P5)** |
 | Other GPU work while training | It runs between training chunks, so it waits at most about 3 minutes **(P5)** |
+| Erase painted on another image | Strokes belong to the image they were painted on; switching images starts a fresh mask, so a mask never lands on the wrong photo **(P6)** |
+| An ONNX model file is damaged | The run fails with `model.load_failed`; remove and download the model again **(P6)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
 ## Input edge cases

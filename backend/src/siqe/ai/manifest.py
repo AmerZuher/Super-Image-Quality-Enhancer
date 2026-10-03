@@ -2,18 +2,20 @@
 
 Weights are never stored in git. Each model lists where to download its files, their exact
 size and SHA-256, and its license. Only licenses that allow commercial use are accepted
-(``COMMERCIAL_SAFE``); a unit test enforces it. All sources are GitHub release assets, which
-download even where Hugging Face is blocked.
+(``COMMERCIAL_SAFE``); a unit test enforces it. Sources are GitHub release assets, GitHub LFS
+files pinned to a commit, or the authors' own buckets, all reachable where Hugging Face is blocked.
 """
 
 from dataclasses import dataclass, field
 from typing import Literal
 
-Task = Literal["upscale", "denoise", "background", "face", "embed"]
-Arch = Literal["spandrel", "siqe_classic", "isnet_onnx", "gfpgan", "clip", "forge"]
+Task = Literal["upscale", "denoise", "deblur", "colorize", "erase", "background", "face", "embed"]
+Arch = Literal[
+    "spandrel", "siqe_classic", "isnet_onnx", "gfpgan", "clip", "forge", "onnx", "lama_onnx", "siggraph_color"
+]
 Speed = Literal["fast", "balanced", "slow"]
 
-COMMERCIAL_SAFE = frozenset({"MIT", "BSD-3-Clause", "Apache-2.0"})
+COMMERCIAL_SAFE = frozenset({"MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0"})
 
 _SIQE_REPO = "https://github.com/AmerZuher/Super-Image-Quality-Enhancer"
 # The original Keras weights, kept in this repository's history before the rebuild.
@@ -53,6 +55,10 @@ class ModelSpec:
     # Pixels of surrounding image each tile needs, so the model's view never reaches a seam.
     context: int = 24
     channels: Literal["rgb", "y"] = "rgb"
+    # Input sides must be a multiple of this, and tiles at least this big (with context), for
+    # models that can't say so themselves (ONNX exports).
+    multiple: int = 1
+    min_input: int = 0
     speed: Speed = "balanced"
     recommended: bool = False
     tags: tuple[str, ...] = field(default_factory=tuple)
@@ -297,12 +303,102 @@ MODELS = (
     ),
 )
 
+# OpenCV Zoo keeps ONNX exports in Git LFS; pinned to a commit so the files can't change under us.
+_OPENCV_ZOO = (
+    "https://media.githubusercontent.com/media/opencv/opencv_zoo/47534e27c9851bb1128ccc0102f1145e27f23f98"
+)
+_COLORIZATION = "https://github.com/richzhang/colorization"
+
+MODELS = (
+    *MODELS,
+    ModelSpec(
+        id="nafnet-deblur",
+        name="NAFNet deblur",
+        task="deblur",
+        arch="onnx",
+        scale=1,
+        summary=(
+            "Removes motion blur and camera shake (trained on GoPro footage). Runs on the CPU, tile by tile."
+        ),
+        license="MIT",
+        license_url="https://github.com/megvii-research/NAFNet/blob/main/LICENSE",
+        homepage="https://github.com/megvii-research/NAFNet",
+        files=(
+            ModelFile(
+                "deblurring_nafnet_2025may.onnx",
+                f"{_OPENCV_ZOO}/models/deblurring_nafnet/deblurring_nafnet_2025may.onnx",
+                "07263f416febecce10193dd648e950b22e397cf521eedab1a114ef77b2bc9587",
+                91736251,
+            ),
+        ),
+        context=32,
+        multiple=16,
+        min_input=384,
+        speed="slow",
+        tags=("blur",),
+    ),
+    ModelSpec(
+        id="lama-erase",
+        name="LaMa object eraser",
+        task="erase",
+        arch="lama_onnx",
+        scale=1,
+        summary="Paint over something and it's removed, with the background filled in. Best for small to "
+        "medium objects. Runs on the CPU.",
+        license="Apache-2.0",
+        license_url="https://github.com/advimman/lama/blob/main/LICENSE",
+        homepage="https://github.com/advimman/lama",
+        files=(
+            ModelFile(
+                "inpainting_lama_2025jan.onnx",
+                f"{_OPENCV_ZOO}/models/inpainting_lama/inpainting_lama_2025jan.onnx",
+                "7df918ac3921d3daf0aae1d219776cf0dc4e4935f035af81841b40adcf74fdf2",
+                92591623,
+            ),
+        ),
+        context=0,
+        recommended=True,
+        tags=("erase", "retouch"),
+    ),
+    ModelSpec(
+        id="siggraph17-colorize",
+        name="Colorize (SIGGRAPH 2017)",
+        task="colorize",
+        arch="siggraph_color",
+        scale=1,
+        summary="Adds plausible colour to black and white photos, keeping every detail of the original.",
+        license="BSD-2-Clause",
+        license_url=f"{_COLORIZATION}/blob/master/LICENSE",
+        homepage=_COLORIZATION,
+        files=(
+            ModelFile(
+                "siggraph17-df00044c.pth",
+                "https://colorizers.s3.us-east-2.amazonaws.com/siggraph17-df00044c.pth",
+                "df00044c0a4d7c3edcecf6f75437ce346a66e7a42612d9b968e1a7e17dbc6f66",
+                136787426,
+            ),
+        ),
+        context=0,
+        speed="fast",
+        recommended=True,
+        tags=("old photos",),
+    ),
+)
+
+# Models that run on the CPU worker with ONNX Runtime; the rest need the GPU worker's PyTorch.
+CPU_ARCHS = frozenset({"isnet_onnx", "onnx", "lama_onnx"})
+# Models whose output is computed tile by tile (the rest see the whole image at once).
+TILED_ARCHS = frozenset({"spandrel", "siqe_classic", "forge", "onnx"})
+
 FACE_MODEL_ID = "gfpgan-v1.4"
 CLIP_MODEL_ID = "clip-vit-b32"
 MODELS_BY_ID = {m.id: m for m in MODELS}
 TASK_LABELS: dict[Task, str] = {
     "upscale": "Upscale",
     "denoise": "Denoise",
+    "deblur": "Deblur",
+    "colorize": "Colorize",
+    "erase": "Erase objects",
     "background": "Remove background",
     "face": "Restore faces",
     "embed": "Search and tags",

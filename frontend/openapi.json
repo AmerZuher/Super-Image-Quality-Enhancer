@@ -3814,6 +3814,9 @@
             "enum": [
               "upscale",
               "denoise",
+              "deblur",
+              "colorize",
+              "erase",
               "background",
               "face",
               "embed"
@@ -3972,6 +3975,17 @@
             "title": "Restore Faces",
             "description": "After upscaling, restore faces with GFPGAN (it must be installed).",
             "default": false
+          },
+          "mask": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Mask"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For erase: brush strokes over what to remove, in image-relative units."
           }
         },
         "type": "object",
@@ -7701,6 +7715,24 @@
         ],
         "title": "LibraryStatusOut"
       },
+      "Mask": {
+        "properties": {
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/Stroke"
+            },
+            "type": "array",
+            "maxItems": 400,
+            "minItems": 1,
+            "title": "Strokes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strokes"
+        ],
+        "title": "Mask"
+      },
       "ModelInstallOut": {
         "properties": {
           "model": {
@@ -7740,6 +7772,9 @@
             "enum": [
               "upscale",
               "denoise",
+              "deblur",
+              "colorize",
+              "erase",
               "background",
               "face",
               "embed"
@@ -8457,6 +8492,42 @@
           "key"
         ],
         "title": "SignInIn"
+      },
+      "Stroke": {
+        "properties": {
+          "points": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "maxItems": 4000,
+            "minItems": 1,
+            "title": "Points"
+          },
+          "radius": {
+            "type": "number",
+            "maximum": 0.5,
+            "exclusiveMinimum": 0.0,
+            "title": "Radius",
+            "description": "Brush radius as a share of the image width."
+          }
+        },
+        "type": "object",
+        "required": [
+          "points",
+          "radius"
+        ],
+        "title": "Stroke"
       },
       "SystemOut": {
         "properties": {

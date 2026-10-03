@@ -54,7 +54,43 @@ test("download a model, upscale an image and compare the result", async ({ page,
     .toBe(0);
 
   // Results open in Studio as ordinary images.
-  await page.getByRole("link", { name: "Edit in Studio" }).first().click();
+  await page
+    .getByTestId("result")
+    .filter({ hasText: /rose-blue ×4/ })
+    .first()
+    .getByRole("link", { name: "Edit in Studio" })
+    .click();
   await expect(page).toHaveURL(/\/studio\?asset=/);
   await expect(page.getByRole("heading", { name: /rose-blue ×4/ })).toBeVisible();
+});
+
+test("paint over part of an image and erase it", async ({ page }) => {
+  test.setTimeout(600_000);
+  await page.goto("/ai-lab");
+
+  await page.getByRole("tab", { name: /Models/ }).click();
+  const card = page.getByTestId("model-lama-erase");
+  const download = card.getByRole("button", { name: /(Download|Retry downloading) LaMa object eraser/ });
+  if (await download.isVisible()) await download.click();
+  await expect(card.getByText("Installed")).toBeVisible({ timeout: 300_000 });
+
+  await page.getByTestId("file-input").or(page.getByTestId("ailab-file-input")).first().setInputFiles(SAMPLE);
+  await expect(page.getByText("rose-blue.jpg", { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+
+  // Picking Erase shows the paint layer; nothing can run until something is painted.
+  await page.getByRole("tab", { name: "Run" }).click();
+  await page.getByRole("button", { name: "Erase objects", exact: true }).click();
+  const run = page.getByRole("button", { name: "Erase painted areas" });
+  await expect(run).toBeDisabled();
+  await expect(page.getByTestId("plan")).toContainText("640 × 424"); // same size as the original
+  const box = await page.getByLabel("Paint over what to erase").boundingBox();
+  if (!box) throw new Error("paint layer not visible");
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.45, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByRole("button", { name: "Undo" })).toBeEnabled();
+
+  await run.click();
+  await expect(page.getByText(/rose-blue retouched.*\.png/).first()).toBeVisible({ timeout: 300_000 });
 });
