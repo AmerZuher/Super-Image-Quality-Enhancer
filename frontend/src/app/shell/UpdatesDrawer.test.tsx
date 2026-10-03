@@ -26,7 +26,7 @@ const base: UpdateStatus = {
 };
 
 describe("UpdatesContent", () => {
-  it("lists newer releases with their notes and the update commands", () => {
+  it("lists newer releases with their notes and the update commands", async () => {
     render(
       <UpdatesContent
         status={{
@@ -42,19 +42,20 @@ describe("UpdatesContent", () => {
     );
     expect(screen.getByText("Version 0.2.0 is available")).toBeInTheDocument();
     expect(screen.getByText("docker compose pull && docker compose up -d")).toBeInTheDocument();
-    expect(screen.getByText("AI Lab")).toBeInTheDocument();
-    expect(screen.getByText("Fixed a crash")).toBeInTheDocument();
+    // The Markdown renderer loads lazily: wait for the formatted notes.
+    expect(await screen.findByText("AI Lab")).toBeInTheDocument();
+    expect(await screen.findByText("Fixed a crash")).toBeInTheDocument();
     expect(screen.getAllByText("View on GitHub")).toHaveLength(2);
   });
 
-  it("says when you are up to date and shows the installed version's notes", () => {
+  it("says when you are up to date and shows the installed version's notes", async () => {
     render(
       <UpdatesContent
         status={{ ...base, latest_version: "0.1.0", current: release("0.1.0", "First release") }}
       />,
     );
     expect(screen.getByText("You're up to date")).toBeInTheDocument();
-    expect(screen.getByText("First release")).toBeInTheDocument();
+    expect(await screen.findByText("First release")).toBeInTheDocument();
     expect(screen.getByText("Installed")).toBeInTheDocument();
   });
 
