@@ -95,8 +95,16 @@ test("paint over part of an image and erase it", async ({ page }) => {
   await expect(page.getByText(/rose-blue retouched.*\.png/).first()).toBeVisible({ timeout: 300_000 });
 });
 
-// A 202-byte graph with no weights: nearest-neighbour ×2, the simplest model a user could bring.
-const ONNX = fileURLToPath(new URL("./fixtures/nearest-x2.onnx", import.meta.url));
+// A 202-byte ONNX graph with no weights, the simplest model a user could bring: one Resize op,
+// nearest-neighbour ×2 (opset 17, input "input" N×3×h×w). Inline because *.onnx is git-ignored.
+const ONNX = {
+  name: "nearest-x2.onnx",
+  mimeType: "application/octet-stream",
+  buffer: Buffer.from(
+    "CAkSEVNJUUUgU3R1ZGlvIHRlc3RzOqwBCjUKBWlucHV0CgAKBnNjYWxlcxIGb3V0cHV0IgZSZXNpemUqEgoEbW9kZSIHbmVhcmVzdKABAxIKbmVhcmVzdF94MioeCAQQASIQAACAPwAAgD8AAABAAAAAQEIGc2NhbGVzWiIKBWlucHV0EhkKFwgBEhMKAxIBbgoCCAMKAxIBaAoDEgF3YiMKBm91dHB1dBIZChcIARITCgMSAW4KAggDCgMSAUgKAxIBV0IECgAQEQ==",
+    "base64",
+  ),
+};
 
 test("add your own ONNX model and use it", async ({ page, request }) => {
   test.setTimeout(300_000);
