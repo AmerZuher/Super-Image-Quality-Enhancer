@@ -167,19 +167,22 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Other GPU work while training | It runs between training chunks, so it waits at most about 3 minutes **(P5)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
-## Input edge cases (P1 and P2)
+## Input edge cases
+
+`tests/integration/test_input_formats.py` and `test_robustness.py` check these against a running stack.
+
 
 | Case | Handling |
 |---|---|
-| EXIF rotation | Applied on import; pixels and metadata agree **(P1)** |
+| EXIF rotation | Applied on import; pixels and metadata agree **(P1, checked in P6)** |
 | CMYK, Adobe RGB, wide-gamut profiles | Converted to an sRGB working space via ICC **(P1)** |
 | 16-bit images | Kept 16-bit through classic ops and PNG/TIFF export **(P1)**; models run in float (P2) |
 | Alpha channel | RGB goes through the model; alpha is upscaled separately **(P2)** |
-| Grayscale, palette, 1-bit | Normalised on import; original mode remembered for export |
-| Animated GIF, WebP, APNG | Frames processed individually, or the first frame with a notice |
-| HEIC and AVIF | Supported via libvips and pillow-heif |
+| Grayscale, palette, 1-bit | Opened and converted to sRGB on import; exports are RGB **(P1, checked in P6)** |
+| Animated GIF, WebP, APNG | The first frame is used **(P1, checked in P6)** |
+| HEIC and AVIF | Opened by libvips (libheif) **(P1, AVIF checked in P6)** |
 | Truncated or corrupt files | A damaged header is refused at upload with `image.unreadable` **(P1)**; damage further in (a file cut off mid-copy) is found while preparing the image, which then fails with `image.unreadable` and a fix, never raw decoder text **(P6)** |
-| Smaller than a tile or kernel | Padded, processed, cropped **(P2)** |
+| Smaller than a tile or kernel | Padded, processed, cropped **(P2, checked in P6)** |
 | Extreme aspect ratios | The tiler handles any shape **(P2)** |
 | Y-channel models on RGB | Correct YCbCr conversion; chroma upscaled with Lanczos (SIQE Classic) **(P2)** |
 | NaN or out-of-range model output | Replaced and clamped; the count is shown on the job **(P2)** |
