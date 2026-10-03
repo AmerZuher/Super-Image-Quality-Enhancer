@@ -24,7 +24,7 @@ export interface Workspace {
 }
 
 /** Phases that have shipped; workspaces from later phases show a preview page. */
-export const CURRENT_PHASE = 5;
+export const CURRENT_PHASE = 6;
 
 export function isAvailable(workspace: Workspace): boolean {
   return workspace.phase <= CURRENT_PHASE;
@@ -60,7 +60,8 @@ export const WORKSPACES: Workspace[] = [
     capabilities: [
       "Upscale ×2, ×3 and ×4 with tiled inference: any image size in fixed memory",
       "SIQE Classic, your original model, ported to PyTorch",
-      "Denoise and background removal",
+      "Denoise, deblur, colorize, erase objects and remove backgrounds",
+      "Add your own ONNX models, checked on test images first",
       "Full-resolution before and after compare",
       "Memory planner and out-of-memory fallback ladder, tuned for your GPU",
     ],
@@ -110,7 +111,7 @@ export const WORKSPACES: Workspace[] = [
       "Generated PyTorch code you can read and export",
       "Dataset builder with a visual degradation chain",
       "Live training charts, checkpoints and exact resume",
-      "Publish a trained model to AI Lab as a new version",
+      "Publish a trained model to AI Lab, or export a checked ONNX file",
     ],
   },
 ];

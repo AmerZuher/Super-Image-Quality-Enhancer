@@ -72,7 +72,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 
 <div class="page">
   <header class="top">
-    <div class="eyebrow">Architecture · v3 · approved · Phases 0 to 5 implemented · 2 Oct 2026</div>
+    <div class="eyebrow">Architecture · v3 · approved · Phases 0 to 6 implemented · 3 Oct 2026</div>
     <h1>SIQE Studio<span>How the platform is built, and why</span></h1>
     <p>Stack, Temporal orchestration, database, memory safety for 8K+ images, the Update Center, repository layout and build order. Rendered from docs/architecture.md, the source of truth.</p>
   </header>
@@ -88,11 +88,11 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tbody>
 <tr>
 <td><strong>Status</strong></td>
-<td>Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library), 4 (Flows) and 5 (Forge) implemented. Living document, v3.</td>
+<td>Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library), 4 (Flows), 5 (Forge) and 6 (Hardening) implemented; Phase 7 (model packages) next. Living document, v3.</td>
 </tr>
 <tr>
 <td><strong>Updated</strong></td>
-<td>2 October 2026</td>
+<td>3 October 2026</td>
 </tr>
 <tr>
 <td><strong>Product plan</strong></td>
@@ -339,12 +339,14 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <ul>
 <li><strong>PyTorch</strong> runs built-in models and Forge training. The <code>ai</code> image ships the CUDA build, which also runs on CPU.</li>
 <li><strong>spandrel</strong> (MIT) recognises ESRGAN, SwinIR, SCUNet and GFPGAN checkpoints. We use only core spandrel; its "extra arches" package includes non-commercial licenses and stays out. We load state dicts ourselves with <code>torch.load(weights_only=True)</code> and hand them to spandrel, so no checkpoint can run code.</li>
-<li><strong>ONNX Runtime</strong> (CPU) runs ISNet background removal on the CPU worker. Bring-your-own <code>.onnx</code> models come later.</li>
+<li><strong>ONNX Runtime</strong> (CPU) runs ISNet background removal, LaMa erase and NAFNet deblur on the CPU worker; <code>OnnxBackend</code> lets ONNX models use the same tiled pipeline as PyTorch ones (<a href="adr/0011-restore-models.md">ADR 0011</a>).</li>
+<li><strong>Your own ONNX models</strong> are uploaded in AI Lab, checked by a CPU job that runs them on test images (scale, size step, output range, speed) and installed as files under <code>models/user-*</code> with a descriptor, like Forge models. They always run on the CPU worker, tiled, in AI Lab and Flows (<a href="adr/0012-your-own-onnx-models.md">ADR 0012</a>).</li>
+<li><strong>Erase and colorize</strong> don't tile: the eraser fills each painted region with its surroundings at 512 × 512 and blends it back; the colorizer predicts colour at 256 × 256 and joins it with the photo's own lightness.</li>
 <li><strong>SIQE Classic</strong>: your <code>v10.h5</code> (in git history at commit <code>588eb10</code>) is downloaded from that commit, converted with <code>h5py</code> to safetensors, and run by a PyTorch port of the network. TensorFlow isn't needed: a test checks the port against an independent numpy implementation of the Keras graph.</li>
 <li><strong>Face restoration</strong>: our own RetinaFace implementation loads the facexlib detector weights; faces are aligned to the FFHQ template, restored with GFPGAN v1.4 and blended back (section 5.4).</li>
 <li><strong>Library search</strong>: OpenCLIP ViT-B/32 runs in numpy (<code>siqe.ai.clip</code>) on the CPU worker and in the API, so searching never waits for the GPU worker. Its checkpoint is read without torch by a restricted unpickler (<code>siqe.ai.pth</code>) and stored as float16 safetensors (section 4.5, <a href="adr/0007-library-search-and-duplicates.md">ADR 0007</a>).</li>
 </ul>
-<p>The built-in catalog (<code>siqe.ai.manifest</code>) pins every file by URL, size and SHA-256 and allows only MIT, BSD-3-Clause and Apache-2.0 licenses. All sources are GitHub release assets. Details and trade-offs: <a href="adr/0006-ai-models-and-runs.md">ADR 0006</a>.</p>
+<p>The built-in catalog (<code>siqe.ai.manifest</code>) pins every file by URL, size and SHA-256 and allows only MIT, BSD-2-Clause, BSD-3-Clause and Apache-2.0 licenses. Sources are GitHub release assets, GitHub LFS files pinned to a commit (OpenCV Zoo), or the authors' own buckets; none needs Hugging Face. Details and trade-offs: <a href="adr/0006-ai-models-and-runs.md">ADR 0006</a>.</p>
 <div class="tbl"><table>
 <thead>
 <tr>
@@ -385,6 +387,21 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <td>Apache-2.0 + MIT</td>
 </tr>
 <tr>
+<td>NAFNet (GoPro, int8 ONNX)</td>
+<td>Deblur</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>LaMa (ONNX)</td>
+<td>Erase objects</td>
+<td>Apache-2.0</td>
+</tr>
+<tr>
+<td>SIGGRAPH17 colorizer</td>
+<td>Colorize black and white photos</td>
+<td>BSD-2-Clause</td>
+</tr>
+<tr>
 <td>CLIP ViT-B/32 (OpenCLIP, LAION-400M)</td>
 <td>Library search, similar images, automatic tags</td>
 <td>MIT</td>
@@ -414,7 +431,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 </tr>
 <tr>
 <td>AI</td>
-<td>PyTorch 2.14 (CUDA 13 build), nvidia-ml-py</td>
+<td>PyTorch 2.14 (CUDA 13 build), ONNX Runtime 1.30 (CPU), onnx 1.23 and onnxscript 0.7 (Forge export, <code>ai</code> image), nvidia-ml-py</td>
 </tr>
 <tr>
 <td>Services</td>
@@ -475,7 +492,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 </table></div>
 <p>PostgreSQL is the only stateful service. SQLite remains an option for a future single-binary "portable mode". See <a href="adr/0002-database.md">ADR 0002</a>.</p>
 <h3 id="42-schema">4.2 Schema</h3>
-<p>Implemented: <code>jobs</code>, <code>worker_heartbeats</code>, <code>app_settings</code> and the <code>vector</code> extension (Phase 0); <code>assets</code> and <code>renditions</code> (Phase 1); <code>ai_models</code> and the <code>parent_id</code> and <code>derivation</code> of AI results on <code>assets</code> (Phase 2); the Library's analysis columns on <code>assets</code> (hashes, sharpness, colour, date taken, GPS, <code>vector(512)</code> embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), <code>albums</code>, <code>album_assets</code> and <code>import_files</code> (Phase 3); <code>flows</code>, <code>flow_runs</code>, <code>flow_run_items</code>, <code>api_keys</code> and the <code>faces</code> count on <code>assets</code> (Phase 4); <code>forge_projects</code>, <code>forge_datasets</code>, <code>forge_runs</code> and <code>forge_metrics</code>, and <code>source</code> and <code>spec</code> on <code>ai_models</code> (Phase 5).</p>
+<p>Implemented: <code>jobs</code>, <code>worker_heartbeats</code>, <code>app_settings</code> and the <code>vector</code> extension (Phase 0); <code>assets</code> and <code>renditions</code> (Phase 1); <code>ai_models</code> and the <code>parent_id</code> and <code>derivation</code> of AI results on <code>assets</code> (Phase 2); the Library's analysis columns on <code>assets</code> (hashes, sharpness, colour, date taken, GPS, <code>vector(512)</code> embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), <code>albums</code>, <code>album_assets</code> and <code>import_files</code> (Phase 3); <code>flows</code>, <code>flow_runs</code>, <code>flow_run_items</code>, <code>api_keys</code> and the <code>faces</code> count on <code>assets</code> (Phase 4); <code>forge_projects</code>, <code>forge_datasets</code>, <code>forge_runs</code> and <code>forge_metrics</code>, and <code>source</code> and <code>spec</code> on <code>ai_models</code> (Phase 5); <code>onnx_export</code> on <code>forge_runs</code> (Phase 6).</p>
 <pre class="mermaid">erDiagram
   ASSET ||--o{ RENDITION : &quot;has outputs&quot;
   ASSET ||--o| EDIT_STACK : &quot;edited by&quot;
@@ -598,6 +615,7 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <li><strong>Datasets</strong> are clean crops cut from Library images, with every Nth image held out for validation. The degradation chain (blur, bicubic down, noise, JPEG) is applied to each sample as it is drawn, so its settings can change without a rebuild and one dataset serves every scale.</li>
 <li><strong>Training</strong> runs in chunks of about three minutes on the GPU queue, each resuming exactly from the last checkpoint, so other GPU work waits minutes at most. Pause, resume and stop are workflow signals; a cancelled chunk saves before it ends. Charts get a training point every 25 steps and a validation point (PSNR and SSIM on brightness, against bicubic) at the interval you choose.</li>
 <li><strong>Publishing</strong> scores the best checkpoint on the held-out crops and copies it, with a <code>forge.json</code> descriptor, to the models folder. The registry merges these into the catalog, and AI Lab and Flows run them through the usual tiled pipeline.</li>
+<li><strong>ONNX export</strong> (<code>siqe.forge.onnx_export</code>, on the AI worker) rebuilds the best checkpoint as <code>GraphNet</code>, exports it with <code>torch.export</code> (TorchScript as a fallback) with a dynamic batch and sizes in steps of the patch multiple, and keeps the file only if ONNX Runtime matches PyTorch within 0.001. The file can be added back as your own ONNX model (<a href="adr/0013-forge-onnx-export.md">ADR 0013</a>).</li>
 </ul>
 <p>Details and trade-offs: <a href="adr/0009-forge.md">ADR 0009</a>.</p>
 <h3 id="48-model-packages-planned-phase-7">4.8 Model packages (planned, Phase 7)</h3>
@@ -714,6 +732,50 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <p>A run starts only when the graph has no problems, the dataset is built, and the patch size fits the model (a multiple of its Down blocks) and the dataset's crops. Out of memory halves the batch and doubles gradient accumulation, keeping the effective batch. bfloat16 autocast is used where the GPU supports it (the RTX 3090 does). Each chunk ends with a checkpoint and the next resumes exactly, including random states. A non-finite loss skips the step and halves the learning rate; twenty in a row stop the run as diverged. Notes on the run say what was adjusted and when.</p>
 <h3 id="510-input-edge-cases">5.10 Input edge cases</h3>
 <p>EXIF rotation, CMYK and wide-gamut profiles, 16-bit, alpha, palette and 1-bit images, animated GIF/WebP/APNG, HEIC/AVIF, truncated files, images smaller than a tile, extreme aspect ratios, Y-channel models on RGB input, NaN outputs, duplicate uploads and half-copied hot-folder files are each handled explicitly. The full table is in <a href="robustness.md">docs/robustness.md</a>.</p>
+<h3 id="512-measured-performance-phase-6">5.12 Measured performance (Phase 6)</h3>
+<p>Measured on the CI-class sandbox (4 CPU cores, no GPU) with <code>tests/integration/test_robustness.py</code> and a probe script; your PC will be faster.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Work</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prepare an 8K photo (thumbnail, preview, deep-zoom pyramid)</td>
+<td>3 to 9 s</td>
+</tr>
+<tr>
+<td>Prepare a 96 MP and a 240 MP photo</td>
+<td>about 9 s and 30 s, in bounded memory</td>
+</tr>
+<tr>
+<td>Export 8K: JPEG, PNG, WebP, TIFF</td>
+<td>3.6 s, 6.6 s, 9.4 s, 14 s</td>
+</tr>
+<tr>
+<td>Export 8K AVIF</td>
+<td>18.5 s (was 52 s before effort 3 for big images)</td>
+</tr>
+<tr>
+<td>Library analysis of a new 8K photo</td>
+<td>within 30 s of it becoming ready</td>
+</tr>
+<tr>
+<td>API: library page, assets, jobs, system</td>
+<td>9 to 14 ms median</td>
+</tr>
+<tr>
+<td>Library search by description</td>
+<td>about 0.1 s for a new query, 15 ms repeated</td>
+</tr>
+<tr>
+<td>First load of the web app</td>
+<td>123 kB of script (gzipped) before a workspace opens; each workspace loads its own chunk</td>
+</tr>
+</tbody>
+</table></div>
 <h3 id="511-observability">5.11 Observability</h3>
 <ul>
 <li>structlog JSON logs carrying <code>job_id</code>.</li>
@@ -909,12 +971,12 @@ article blockquote{margin:16px 0; padding:12px 16px; border-left:3px solid var(-
 <tr>
 <td>P6 Hardening</td>
 <td>8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, <code>docker compose up</code> verified on your PC</td>
-<td>Next</td>
+<td><strong>Done</strong> (verified with a fresh <code>docker compose up</code> on empty volumes, on CPU)</td>
 </tr>
 <tr>
 <td>P7 Model packages</td>
 <td>Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, <code>/api/generate</code> and <code>siqe generate</code></td>
-<td>Planned: <a href="plan/phase7-model-packages.md">plan</a>, <a href="adr/0010-model-packages.md">ADR 0010</a> (proposed)</td>
+<td>Next: <a href="plan/phase7-model-packages.md">plan</a>, <a href="adr/0010-model-packages.md">ADR 0010</a> (proposed)</td>
 </tr>
 </tbody>
 </table></div>

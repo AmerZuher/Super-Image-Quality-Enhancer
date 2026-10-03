@@ -18,7 +18,7 @@ Self-hosted. One command to run. Your GPU, your files, your models.
 </div>
 
 > [!NOTE]
-> **Status: Phase 5 of 7 is complete.** All five workspaces are ready to use: the **Studio** editor, the **AI Lab** (upscaling, denoising, deblurring, colorizing, object removal, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder), **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) and **Forge** (design, train and publish your own models). Hardening comes next, then model packages for text-to-image and image editing; see the [roadmap](#roadmap).
+> **Status: Phase 6 of 7 is complete.** All five workspaces are ready to use, hardened against huge and damaged images: the **Studio** editor, the **AI Lab** (upscaling, denoising, deblurring, colorizing, object removal, background removal, face restoration and your original SIQE model), the **Library** (search by description, duplicates, smart albums, people, location removal and an import folder), **Flows** (visual pipelines for batches and watched folders, with API keys and a command line) and **Forge** (design, train, publish and export your own models), and AI Lab also runs ONNX models you bring. Model packages for text-to-image and image editing come next; see the [roadmap](#roadmap).
 
 ---
 
@@ -264,8 +264,8 @@ Every API error has a stable code and a suggested fix; the full list is in [docs
 | P3 Library | Search by description, similar images, tags, duplicates with quarantine, smart albums, location removal, import folder | ✅ Done |
 | P4 Flows | Visual pipelines, batch runs, dry runs, recipes, watched folders, API keys, CLI, people filters | ✅ Done |
 | P5 Forge | Visual model builder with shape checks and fixes, generated PyTorch, datasets with a damage preview, resumable training with live charts, publish to AI Lab | ✅ Done |
-| P6 Hardening | 8K+ robustness suite, performance, erase, colorize, deblur, your own ONNX models and ONNX export, final docs | In progress |
-| P7 Model packages | Install multi-file models as packages; **text to image and image to image** with Qwen-Image (Apache-2.0) and, opt-in for personal use, Qwen-Image-2.1. [Plan and prerequisites](docs/plan/phase7-model-packages.md) | Planned |
+| P6 Hardening | 8K+ robustness suite, performance, erase, colorize, deblur, your own ONNX models and ONNX export, final docs | ✅ Done |
+| P7 Model packages | Install multi-file models as packages; **text to image and image to image** with Qwen-Image (Apache-2.0) and, opt-in for personal use, Qwen-Image-2.1. [Plan and prerequisites](docs/plan/phase7-model-packages.md) | Next |
 
 The interactive product plan, with UI mockups of every workspace, is in [docs/plan/blueprint.html](docs/plan/blueprint.html).
 

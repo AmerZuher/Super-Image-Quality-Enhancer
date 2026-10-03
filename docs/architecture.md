@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library), 4 (Flows) and 5 (Forge) implemented. Living document, v3. |
-| **Updated** | 2 October 2026 |
+| **Status** | Approved. Phases 0 (foundation), 1 (Studio), 2 (AI Lab), 3 (Library), 4 (Flows), 5 (Forge) and 6 (Hardening) implemented; Phase 7 (model packages) next. Living document, v3. |
+| **Updated** | 3 October 2026 |
 | **Product plan** | [docs/plan/blueprint.html](plan/blueprint.html): workspaces, UI mockups and the 83-operation catalog |
 | **Decision records** | [docs/adr/](adr/) |
 | **Limits and error codes** | [docs/robustness.md](robustness.md) |
@@ -123,7 +123,7 @@ The built-in catalog (`siqe.ai.manifest`) pins every file by URL, size and SHA-2
 | Frontend | Vite 8.3, React 19.3, TypeScript 5.9, TanStack Router 1.170 and Query 5.104, Zustand 5, Tailwind CSS 4.3, cmdk 1.1, OpenSeadragon 6.1, Biome 2.5, Vitest 5, Playwright 1.63, pnpm 12.8, Node 24 |
 | Backend | Python 3.12, FastAPI 0.142, Pydantic 2.13, SQLAlchemy 2.1 (asyncpg), Alembic 1.20, temporalio 1.34, structlog, Typer, uv, Ruff, mypy (strict), pytest |
 | Imaging | pyvips 3.2 with libvips 8.18 (binary wheel), OpenCV 5, Pillow 12 |
-| AI | PyTorch 2.14 (CUDA 13 build), nvidia-ml-py |
+| AI | PyTorch 2.14 (CUDA 13 build), ONNX Runtime 1.30 (CPU), onnx 1.23 and onnxscript 0.7 (Forge export, `ai` image), nvidia-ml-py |
 | Services | PostgreSQL 18 + pgvector, Temporal server 1.32, Temporal UI 2.54, Caddy 2 |
 
 ---
@@ -145,7 +145,7 @@ PostgreSQL is the only stateful service. SQLite remains an option for a future s
 
 ### 4.2 Schema
 
-Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3); `flows`, `flow_runs`, `flow_run_items`, `api_keys` and the `faces` count on `assets` (Phase 4); `forge_projects`, `forge_datasets`, `forge_runs` and `forge_metrics`, and `source` and `spec` on `ai_models` (Phase 5).
+Implemented: `jobs`, `worker_heartbeats`, `app_settings` and the `vector` extension (Phase 0); `assets` and `renditions` (Phase 1); `ai_models` and the `parent_id` and `derivation` of AI results on `assets` (Phase 2); the Library's analysis columns on `assets` (hashes, sharpness, colour, date taken, GPS, `vector(512)` embedding with an HNSW index, tags, duplicate group and rank, quarantine, source), `albums`, `album_assets` and `import_files` (Phase 3); `flows`, `flow_runs`, `flow_run_items`, `api_keys` and the `faces` count on `assets` (Phase 4); `forge_projects`, `forge_datasets`, `forge_runs` and `forge_metrics`, and `source` and `spec` on `ai_models` (Phase 5); `onnx_export` on `forge_runs` (Phase 6).
 
 ```mermaid
 erDiagram
@@ -555,7 +555,7 @@ Settings: `SIQE_UPDATE_REPO`, `SIQE_UPDATE_INCLUDE_PRERELEASES`, optional `SIQE_
 | **P3 Library** | Import folder, hashing and embeddings, duplicates with quarantine, similar and text search, automatic tags, smart and hand-picked albums, camera details and location removal | **Done** (face-based albums need face detection on the GPU queue; they move to P4) |
 | **P4 Flows** | Node editor, batch runs with paged child workflows, dry runs, recipes, folder watching, API keys and optional sign-in, `siqe` CLI commands, face counts and face rules | **Done** |
 | **P5 Forge** | Visual builder, shape checker with fixes, graph-to-PyTorch compiler, dataset builder with a damage preview, chunked and resumable training, live charts, publish to AI Lab | **Done** (ONNX export moves to P6, with bring-your-own ONNX) |
-| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | In progress (robustness suite, performance pass, erase, colorize, deblur, your own ONNX models and ONNX export done) |
-| P7 Model packages | Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, `/api/generate` and `siqe generate` | Planned: [plan](plan/phase7-model-packages.md), [ADR 0010](adr/0010-model-packages.md) (proposed) |
+| P6 Hardening | 8K+ robustness suite, performance pass, erase, colorize, deblur, bring-your-own ONNX and ONNX export, final docs and gallery, `docker compose up` verified on your PC | **Done** (verified with a fresh `docker compose up` on empty volumes, on CPU) |
+| P7 Model packages | Installable multi-file model packages with a preflight-checked install workflow; text to image and image to image with Qwen-Image (Apache-2.0) by default and Qwen-Image-2.1 as an opt-in personal-use package; AI Lab Create tab, an Edit with a prompt flow block, `/api/generate` and `siqe generate` | Next: [plan](plan/phase7-model-packages.md), [ADR 0010](adr/0010-model-packages.md) (proposed) |
 
 Each phase ends with commits pushed to `claude/brave-keller-fgjtdn`, refreshed screenshots in `gallery/`, an updated README and a CHANGELOG entry.

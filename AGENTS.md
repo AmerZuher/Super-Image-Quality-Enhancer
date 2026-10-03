@@ -9,7 +9,7 @@ Guidelines for AI coding agents (and humans) working in this repository. Read th
 - Architecture and decisions: [docs/architecture.md](docs/architecture.md) and [docs/adr/](docs/adr/)
 - Limits, error codes, fallbacks: [docs/robustness.md](docs/robustness.md)
 - Product plan and UI mockups: [docs/plan/blueprint.html](docs/plan/blueprint.html)
-- Current phase: **P5 (Forge) done; P6 (Hardening) next; P7 (model packages, text and image to image) planned** in [docs/plan/phase7-model-packages.md](docs/plan/phase7-model-packages.md). All five workspaces are live.
+- Current phase: **P6 (Hardening) done; P7 (model packages, text and image to image) next**, planned in [docs/plan/phase7-model-packages.md](docs/plan/phase7-model-packages.md). All five workspaces are live.
 
 ## Map
 
