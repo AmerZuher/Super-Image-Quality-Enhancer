@@ -15,7 +15,7 @@ from pathlib import Path
 
 from siqe.core.config import Settings, get_settings
 from siqe.core.errors import AppError
-from siqe.system.resources import disk_info
+from siqe.system.resources import disk_info, disk_reserve
 
 FLUSH_BYTES = 4 * 1024 * 1024
 
@@ -58,10 +58,12 @@ class MediaStore:
 
     def ensure_space(self, settings: Settings, needed_bytes: int = 0) -> None:
         info = disk_info(self.root)
-        if info.free_bytes - needed_bytes < info.total_bytes * settings.min_free_disk_ratio:
+        reserve = disk_reserve(info.total_bytes, settings.min_free_disk_ratio)
+        if info.free_bytes - needed_bytes < reserve:
             raise AppError(
                 "disk.insufficient_space",
-                f"Only {info.free_bytes / 1e9:.1f} GB of disk is free, so new files are paused.",
+                f"Only {info.free_bytes / 1e9:.1f} GB of disk is free and {reserve / 1e9:.1f} GB is kept "
+                "free, so new files are paused.",
                 status=507,
                 title="Not enough disk space",
                 fix="Delete images or exports you no longer need, or free space on the data volume.",

@@ -240,6 +240,20 @@ def test_target_size_is_met(tmp_path: Path) -> None:
     assert result.quality is not None and 10 <= result.quality < 95
 
 
+def test_target_size_on_a_big_image_measures_a_copy_and_still_fits(tmp_path: Path) -> None:
+    """Over SEARCH_PROXY_MP the search runs on a smaller copy; the real file must still fit."""
+    xyz = pyvips.Image.xyz(2600, 1800)
+    soft = pyvips.Image.perlin(2600, 1800, cell_size=64, uchar=True)
+    img = soft.bandjoin([(xyz[0] / 10.2).cast("uchar"), (xyz[1] / 7.1).cast("uchar")])
+    src = save(img.copy(interpretation="srgb"), tmp_path / "big.png")
+    result = encode(
+        render(src, EditDocument()), ExportOptions(format="jpeg", target_kb=400), tmp_path / "o.jpg", tmp_path
+    )
+    assert result.size_bytes <= 400 * 1024
+    assert result.quality is not None and result.quality >= 30
+    assert not list(tmp_path.glob("*.proxy.v"))
+
+
 def test_unreachable_target_is_reported(tmp_path: Path) -> None:
     noise = pyvips.Image.gaussnoise(1200, 900, sigma=80).cast("uchar")
     src = save(noise.bandjoin([noise, noise]).copy(interpretation="srgb"), tmp_path / "noise.png")
@@ -280,3 +294,10 @@ def test_validation_messages_are_plain() -> None:
     with pytest.raises(AppError) as err:
         parse_document({"ops": [{"id": "exposure", "params": {"ev": 12}}]})
     assert err.value.detail == "The edit settings aren't valid: Exposure stops must be between -4 and 4."
+
+
+def test_disk_reserve_is_a_share_capped_at_20_gb() -> None:
+    from siqe.system.resources import disk_reserve
+
+    assert disk_reserve(100 * 10**9, 0.05) == 5 * 10**9
+    assert disk_reserve(2 * 10**12, 0.05) == 20 * 10**9

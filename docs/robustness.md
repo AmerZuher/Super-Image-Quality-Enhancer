@@ -14,7 +14,8 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | One model loaded on the GPU | The GPU worker runs one job at a time and keeps one model | Two models competing for VRAM **(P2)** |
 | Model downloads | Size and SHA-256 must match the manifest; resumed with HTTP Range | Corrupted or tampered weights **(P2)** |
 | Free disk before an export starts | 2 × predicted output | Half-written outputs on a full disk **(P1)** |
-| Uploads and exports paused below | 5% free disk (`min_free_disk_ratio`) | Filling the disk completely **(P1)** |
+| AVIF exports | Encoder effort 4, or 3 above 12 MP (3 to 4 times faster at 8K for files about 15% larger); target-size searches on images over 4 MP measure a smaller copy, then check the real file | 8K AVIF exports taking minutes **(P6)** |
+| Uploads and exports paused below | 5% free disk (`SIQE_MIN_FREE_DISK_RATIO`), at most 20 GB on big drives | Filling the disk completely **(P1)**; the 20 GB cap keeps a 2 TB drive from holding back 100 GB **(P6)** |
 | Output dimensions | JPEG 65,535 px, WebP 16,383 px, AVIF 16,384 px per side | Encoders failing late on oversized output **(P1)** |
 | Abandoned temporary files | Removed after 6 hours when the CPU worker starts | Crashed uploads and exports leaking disk **(P1)** |
 | Container memory caps | api 1.5 GB, worker 4 GB, worker-gpu 12 GB, db 1 GB | One process taking the whole machine down **(P0)**; the API's cap rose in P3 to hold the search model's text half (about 250 MB) |

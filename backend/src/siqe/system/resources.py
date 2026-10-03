@@ -89,6 +89,16 @@ def memory_info(root: Path = CGROUP_ROOT) -> MemoryInfo:
     return MemoryInfo(limit, max(0, min(vm.available, limit - used)), limited_by_container=True)
 
 
+# The free-disk reserve is a share of the disk, capped so a big drive isn't held back for nothing
+# (5% of 2 TB would keep 100 GB free).
+MAX_DISK_RESERVE_BYTES = 20 * 10**9
+
+
+def disk_reserve(total_bytes: int, ratio: float) -> int:
+    """Bytes kept free on the data volume: ``ratio`` of the disk, at most 20 GB."""
+    return int(min(total_bytes * ratio, MAX_DISK_RESERVE_BYTES))
+
+
 def disk_info(path: Path) -> DiskInfo:
     probe = path
     while not probe.exists() and probe != probe.parent:

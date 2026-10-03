@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, model_validator
 from siqe.core.errors import AppError
 from siqe.imaging.formats import OUTPUT_FORMATS, OutputFormat
 from siqe.imaging.working import Working, from_working
-from siqe.system.resources import disk_info
+from siqe.system.resources import disk_info, disk_reserve
 
 ProgressFn = Callable[[float], None]
 
@@ -74,25 +74,35 @@ def check_disk(
     """Need room for the uncompressed temporary render plus the output (assumed same size)."""
     needed = width * height * bands * (2 if depth == 16 else 1) * 2
     info = disk_info(directory)
-    if info.free_bytes - needed < info.total_bytes * min_free_ratio:
+    reserve = disk_reserve(info.total_bytes, min_free_ratio)
+    if info.free_bytes - needed < reserve:
         raise AppError(
             "disk.insufficient_space",
-            f"Exporting needs about {needed / 1e9:.1f} GB of free disk; "
-            f"only {info.free_bytes / 1e9:.1f} GB is free.",
+            f"Exporting needs about {needed / 1e9:.1f} GB, and {reserve / 1e9:.1f} GB of the disk is "
+            f"kept free; only {info.free_bytes / 1e9:.1f} GB is free now.",
             status=507,
             title="Not enough disk space",
-            fix="Free some disk space or export at a smaller maximum size.",
+            fix="Free some disk space, export at a smaller maximum size, "
+            "or lower SIQE_MIN_FREE_DISK_RATIO in .env.",
         )
 
 
-def _save_kwargs(fmt: OutputFormat, quality: int, strip: bool) -> dict[str, object]:
+# AVIF's encoder slows sharply with effort: at 8K, effort 4 takes 3 to 4 times as long as 3 for
+# files about 15% smaller at the same quality. Big images use 3 so exports finish in seconds.
+AVIF_FAST_ABOVE_MP = 12
+# Above this, the target-size search measures a smaller copy instead of the full image.
+SEARCH_PROXY_MP = 4
+
+
+def _save_kwargs(fmt: OutputFormat, quality: int, strip: bool, megapixels: float = 0) -> dict[str, object]:
     keep = "icc" if strip else "all"
     if fmt == "jpeg":
         return {"Q": quality, "optimize_coding": True, "interlace": True, "keep": keep}
     if fmt == "webp":
         return {"Q": quality, "effort": 4, "keep": keep}
     if fmt == "avif":
-        return {"Q": quality, "compression": "av1", "effort": 4, "keep": keep}
+        effort = 3 if megapixels > AVIF_FAST_ABOVE_MP else 4
+        return {"Q": quality, "compression": "av1", "effort": effort, "keep": keep}
     if fmt == "png":
         return {"compression": 6, "keep": keep}
     return {"compression": "deflate", "predictor": "horizontal", "keep": keep}
@@ -133,15 +143,25 @@ def encode(
         _with_progress(final, progress, 0.0, 0.8)
         final.write_to_file(str(staged))
 
+        megapixels = final.width * final.height / 1e6
         quality: int | None = options.quality if spec.lossy else None
-        if options.target_kb is not None:
-            quality = _search_quality(str(staged), options, options.target_kb * 1024)
+        target = options.target_kb * 1024 if options.target_kb is not None else None
+        if target is not None:
+            quality = _search_quality(str(staged), options, target, tmp_dir)
 
-        rendered = pyvips.Image.new_from_file(str(staged), access="sequential")
-        _with_progress(rendered, progress, 0.8, 0.2)
-        rendered.write_to_file(
-            str(partial), **_save_kwargs(options.format, quality or 90, options.strip_metadata)
-        )
+        for attempt in range(4):
+            rendered = pyvips.Image.new_from_file(str(staged), access="sequential")
+            _with_progress(rendered, progress, 0.8, 0.2)
+            rendered.write_to_file(
+                str(partial),
+                **_save_kwargs(options.format, quality or 90, options.strip_metadata, megapixels),
+            )
+            # The search may have measured a smaller copy: the real file must still fit the target.
+            if target is None or quality is None or partial.stat().st_size <= target or attempt == 3:
+                break
+            quality = max(10, quality - 5)
+        if target is not None and partial.stat().st_size > target:
+            raise _unreachable(options)
         partial.replace(out_path)
         if progress is not None:
             progress(1.0)
@@ -151,28 +171,49 @@ def encode(
         partial.unlink(missing_ok=True)
 
 
-def _search_quality(staged: str, options: ExportOptions, target_bytes: int) -> int:
-    """Highest quality (10..95) whose encoded size fits the target, by binary search."""
+def _unreachable(options: ExportOptions) -> AppError:
+    return AppError(
+        "export.target_unreachable",
+        f"Even at the lowest quality the file is larger than {options.target_kb:,} KB.",
+        status=422,
+        title="Target size can't be reached",
+        fix="Set a smaller maximum size, choose AVIF or WebP, or raise the target.",
+    )
+
+
+def _search_quality(staged: str, options: ExportOptions, target_bytes: int, tmp_dir: Path) -> int:
+    """Highest quality (10..95) whose encoded size fits the target, by binary search.
+
+    Big images are measured on a copy of about SEARCH_PROXY_MP megapixels, with the target scaled
+    by area; encode() then checks the real file and steps down if it is still too large.
+    """
     spec = OUTPUT_FORMATS[options.format]
+    full = pyvips.Image.new_from_file(staged, access="sequential")
+    megapixels = full.width * full.height / 1e6
+    source, budget = staged, target_bytes
+    proxy = tmp_dir / f"{Path(staged).stem}.proxy.v"
+    if megapixels > SEARCH_PROXY_MP:
+        factor = (SEARCH_PROXY_MP / megapixels) ** 0.5
+        small = pyvips.Image.new_from_file(staged).resize(factor)
+        small.write_to_file(str(proxy))
+        source = str(proxy)
+        budget = int(target_bytes * (small.width * small.height) / (full.width * full.height))
 
     def size_at(q: int) -> int:
-        image = pyvips.Image.new_from_file(staged, access="sequential")
-        buf = image.write_to_buffer(spec.extension, **_save_kwargs(options.format, q, options.strip_metadata))
-        return len(buf)
+        image = pyvips.Image.new_from_file(source, access="sequential")
+        kwargs = _save_kwargs(options.format, q, options.strip_metadata, megapixels)
+        return len(image.write_to_buffer(spec.extension, **kwargs))
 
-    low, high, best = 10, 95, None
-    if size_at(low) > target_bytes:
-        raise AppError(
-            "export.target_unreachable",
-            f"Even at the lowest quality the file is larger than {options.target_kb:,} KB.",
-            status=422,
-            title="Target size can't be reached",
-            fix="Set a smaller maximum size, choose AVIF or WebP, or raise the target.",
-        )
-    while low <= high:
-        mid = (low + high) // 2
-        if size_at(mid) <= target_bytes:
-            best, low = mid, mid + 1
-        else:
-            high = mid - 1
-    return best or 10
+    try:
+        low, high, best = 10, 95, None
+        if size_at(low) > budget:
+            raise _unreachable(options)
+        while low <= high:
+            mid = (low + high) // 2
+            if size_at(mid) <= budget:
+                best, low = mid, mid + 1
+            else:
+                high = mid - 1
+        return best or 10
+    finally:
+        proxy.unlink(missing_ok=True)

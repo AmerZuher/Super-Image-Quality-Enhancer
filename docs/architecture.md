@@ -399,6 +399,21 @@ A run starts only when the graph has no problems, the dataset is built, and the 
 
 EXIF rotation, CMYK and wide-gamut profiles, 16-bit, alpha, palette and 1-bit images, animated GIF/WebP/APNG, HEIC/AVIF, truncated files, images smaller than a tile, extreme aspect ratios, Y-channel models on RGB input, NaN outputs, duplicate uploads and half-copied hot-folder files are each handled explicitly. The full table is in [docs/robustness.md](robustness.md).
 
+### 5.12 Measured performance (Phase 6)
+
+Measured on the CI-class sandbox (4 CPU cores, no GPU) with `tests/integration/test_robustness.py` and a probe script; your PC will be faster.
+
+| Work | Time |
+|---|---|
+| Prepare an 8K photo (thumbnail, preview, deep-zoom pyramid) | 3 to 9 s |
+| Prepare a 96 MP and a 240 MP photo | about 9 s and 30 s, in bounded memory |
+| Export 8K: JPEG, PNG, WebP, TIFF | 3.6 s, 6.6 s, 9.4 s, 14 s |
+| Export 8K AVIF | 18.5 s (was 52 s before effort 3 for big images) |
+| Library analysis of a new 8K photo | within 30 s of it becoming ready |
+| API: library page, assets, jobs, system | 9 to 14 ms median |
+| Library search by description | about 0.1 s for a new query, 15 ms repeated |
+| First load of the web app | 123 kB of script (gzipped) before a workspace opens; each workspace loads its own chunk |
+
 ### 5.11 Observability
 
 - structlog JSON logs carrying `job_id`.

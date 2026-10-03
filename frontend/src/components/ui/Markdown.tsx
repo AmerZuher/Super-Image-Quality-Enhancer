@@ -1,25 +1,15 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { lazy, Suspense } from "react";
 
-/**
- * Release notes renderer. Raw HTML in the Markdown is ignored (react-markdown's default),
- * so notes from GitHub can't inject markup or scripts. Links open in a new tab.
- */
+// The renderer (react-markdown and its parser, about 120 kB) loads only when notes are shown.
+const MarkdownRenderer = lazy(() =>
+  import("./MarkdownRenderer").then((m) => ({ default: m.MarkdownRenderer })),
+);
+
+/** Release notes, rendered without raw HTML. The text shows plainly while the renderer loads. */
 export function Markdown({ children }: { children: string }) {
   return (
-    <div className="prose-notes">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          a: ({ href, children: content }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              {content}
-            </a>
-          ),
-        }}
-      >
-        {children}
-      </ReactMarkdown>
-    </div>
+    <Suspense fallback={<p className="whitespace-pre-wrap text-[13px] text-fg-2">{children}</p>}>
+      <MarkdownRenderer>{children}</MarkdownRenderer>
+    </Suspense>
   );
 }
