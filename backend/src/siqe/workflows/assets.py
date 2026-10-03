@@ -5,6 +5,7 @@ from typing import Any
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import ActivityError, ApplicationError, CancelledError
+from temporalio.exceptions import TimeoutError as ActivityTimeout
 
 with workflow.unsafe.imports_passed_through():
     from siqe.activities.assets import (
@@ -22,10 +23,28 @@ QUICK = RetryPolicy(maximum_attempts=5, initial_interval=timedelta(seconds=1))
 HEAVY = RetryPolicy(maximum_attempts=3, initial_interval=timedelta(seconds=5))
 
 
+UNEXPECTED = "job.unexpected"
+UNEXPECTED_MESSAGE = (
+    "Something unexpected went wrong. The details are in the worker's log (docker compose logs worker)."
+)
+
+
 def _failure(exc: ActivityError) -> tuple[str, str]:
+    """The code and message a job shows. Only typed errors (dotted codes) say what happened;
+    anything else is logged and shown as job.unexpected, so internals never reach the UI."""
     cause = exc.cause or exc
-    code = getattr(cause, "type", None) or type(cause).__name__
-    return str(code), str(cause)
+    code = str(getattr(cause, "type", None) or type(cause).__name__)
+    message = str(getattr(cause, "message", None) or cause)
+    if "." in code:
+        return code, message
+    if isinstance(cause, ActivityTimeout):
+        return "job.timed_out", (
+            "A worker stopped responding (it may have restarted or run out of memory). Try again; "
+            "if it keeps happening, check docker compose logs."
+        )
+    if workflow.in_workflow():
+        workflow.logger.warning("activity failed unexpectedly: %s: %s", code, message)
+    return UNEXPECTED, UNEXPECTED_MESSAGE
 
 
 async def _update(update: JobUpdate) -> None:

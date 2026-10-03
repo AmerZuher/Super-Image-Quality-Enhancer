@@ -14,6 +14,7 @@ from siqe.activities.threaded import ThreadProgress, run_threaded
 from siqe.assets.records import get_asset, get_rendition, megapixel_limit, publish_asset, publish_rendition
 from siqe.core.config import get_settings
 from siqe.core.errors import AppError
+from siqe.core.logging import get_logger
 from siqe.db.base import utcnow
 from siqe.db.models import AssetStatus, RenditionStatus
 from siqe.db.session import session_scope
@@ -24,6 +25,8 @@ from siqe.imaging.pipeline import render_working, resize_to
 from siqe.imaging.working import from_working, to_working
 from siqe.jobs.progress import ProgressReporter
 from siqe.storage.store import get_store
+
+log = get_logger(__name__)
 
 PREVIEW_SIDE = 2048
 THUMB_SIDE = 320
@@ -91,7 +94,18 @@ async def prepare_asset(job_id: str, asset_id: str, start: float = 0.0, span: fl
         out_dir = store.previews(asset.id)
         limit = megapixel_limit(asset)
     try:
-        sizes = await run_threaded(lambda state: _prepare(src, out_dir, state, limit), reporter)
+        try:
+            sizes = await run_threaded(lambda state: _prepare(src, out_dir, state, limit), reporter)
+        except pyvips.Error as exc:
+            # The header was fine at upload, but the pixels aren't: usually a file cut off by an
+            # interrupted copy or download.
+            log.warning("asset.unreadable", asset_id=asset_id, error=str(exc).splitlines()[-1:])
+            raise AppError(
+                "image.unreadable",
+                "This image is damaged or incomplete, so its pixels can't be read.",
+                status=422,
+                fix="Copy or download the file again, then add it once more.",
+            ) from exc
     except AppError as exc:
         await _mark_asset_failed(asset_id, {"code": exc.code, "message": exc.detail})
         raise _non_retryable(exc) from exc

@@ -125,6 +125,8 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `forge.out_of_memory` | job error | The model doesn't fit in GPU memory even one patch at a time | P5 |
 | `forge.diverged` | job error | Twenty steps in a row gave non-finite losses | P5 |
 | `forge.model_files_missing` | 409 | Re-adding a published Forge model whose files were removed | P5 |
+| `job.unexpected` | n/a (job error) | An activity failed in a way that has no typed error; the details go to the worker's log, never to the UI | P6 |
+| `job.timed_out` | n/a (job error) | A worker stopped responding (restart, out of memory) and the job ran out of retries | P6 |
 | `auth.required` | 401 | `SIQE_API_AUTH=keys` and the request has no key | P4 |
 | `auth.invalid_key` | 401 | The key is wrong or was revoked | P4 |
 | `auth.key_not_found` | 404 | Revoking a key that doesn't exist | P4 |
@@ -176,7 +178,7 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Grayscale, palette, 1-bit | Normalised on import; original mode remembered for export |
 | Animated GIF, WebP, APNG | Frames processed individually, or the first frame with a notice |
 | HEIC and AVIF | Supported via libvips and pillow-heif |
-| Truncated or corrupt files | Rejected cleanly with `image.unreadable`; nothing is stored **(P1)** |
+| Truncated or corrupt files | A damaged header is refused at upload with `image.unreadable` **(P1)**; damage further in (a file cut off mid-copy) is found while preparing the image, which then fails with `image.unreadable` and a fix, never raw decoder text **(P6)** |
 | Smaller than a tile or kernel | Padded, processed, cropped **(P2)** |
 | Extreme aspect ratios | The tiler handles any shape **(P2)** |
 | Y-channel models on RGB | Correct YCbCr conversion; chroma upscaled with Lanczos (SIQE Classic) **(P2)** |

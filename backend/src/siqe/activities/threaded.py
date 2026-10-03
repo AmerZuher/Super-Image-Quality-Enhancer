@@ -33,6 +33,23 @@ class ThreadProgress:
             self.details = details
 
 
+def consume(task: "asyncio.Task[Any]") -> None:
+    """Mark a cancelled thread task's outcome as seen, now or when it ends.
+
+    A thread stopped by cancellation ends with InterruptedError; nobody awaits it any more, so
+    without this asyncio logs "Task exception was never retrieved" for every cancelled job.
+    """
+
+    def seen(t: "asyncio.Task[Any]") -> None:
+        if not t.cancelled():
+            t.exception()
+
+    if task.done():
+        seen(task)
+    else:
+        task.add_done_callback(seen)
+
+
 async def run_threaded[T](
     work: Callable[[ThreadProgress], T], reporter: ProgressReporter, *, interval: float = 0.5
 ) -> T:
@@ -47,4 +64,5 @@ async def run_threaded[T](
         state.cancelled.set()
         # Let the thread notice and unwind before the activity reports cancellation.
         await asyncio.wait({task}, timeout=30)
+        consume(task)
         raise

@@ -16,7 +16,7 @@ from sqlalchemy import select
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from siqe.activities.threaded import ThreadProgress, run_threaded
+from siqe.activities.threaded import ThreadProgress, consume, run_threaded
 from siqe.ai.registry import FORGE_FILE, FORGE_WEIGHTS, get_spec, models_root, publish_model
 from siqe.core.errors import AppError
 from siqe.core.logging import get_logger
@@ -289,6 +289,7 @@ async def forge_train_chunk(run_id: str) -> dict[str, Any]:
         await asyncio.wait({task}, timeout=300)
         if task.done() and task.exception() is None:
             await _record_chunk(run_id, task.result(), runtime.device_name(device), reporter)
+        consume(task)
         raise
     except AppError as exc:
         await reporter.flush()
