@@ -59,6 +59,10 @@ class ModelSpec:
     # models that can't say so themselves (ONNX exports).
     multiple: int = 1
     min_input: int = 0
+    # ONNX outputs in 0..255 instead of 0..1 (found when you add your own model).
+    output_range: int = 1
+    # Measured on this machine's CPU, for models you add yourself; used to warn about long runs.
+    seconds_per_mp: float | None = None
     speed: Speed = "balanced"
     recommended: bool = False
     tags: tuple[str, ...] = field(default_factory=tuple)

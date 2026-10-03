@@ -158,7 +158,26 @@ async def flow_run_start(run_id: str) -> dict[str, Any]:
         if run.job_id:
             await apply_update(session, run.job_id, state=JobState.running, message=f"0 of {run.total}")
         await publish_run(session, run)
-        return {"kind": run.kind.value, "dry_run": run.dry_run, "document": run.document}
+        return {"kind": run.kind.value, "dry_run": run.dry_run, "document": _with_queues(run.document)}
+
+
+def _with_queues(document: dict[str, Any]) -> dict[str, Any]:
+    """Mark AI blocks whose model runs on the CPU (ONNX models, including your own) so the
+    workflow sends them to the CPU worker instead of the block's usual GPU queue."""
+    from siqe.ai.manifest import CPU_ARCHS
+
+    nodes = []
+    for node in document.get("nodes", []):
+        model_id = (node.get("params") or {}).get("model")
+        spec = NODES_BY_TYPE.get(node.get("type", ""))
+        if spec is not None and spec.category == "ai" and isinstance(model_id, str):
+            try:
+                if get_spec(model_id).arch in CPU_ARCHS:
+                    node = {**node, "queue": "cpu"}
+            except AppError:
+                pass  # an unknown model fails in its step, with the step's error
+        nodes.append(node)
+    return {**document, "nodes": nodes}
 
 
 @activity.defn

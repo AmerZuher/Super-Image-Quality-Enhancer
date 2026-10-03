@@ -28,7 +28,7 @@ CHUNK = 1024 * 1024
 
 
 def get_spec(model_id: str) -> ModelSpec:
-    spec = MODELS_BY_ID.get(model_id) or forge_spec(model_id)
+    spec = MODELS_BY_ID.get(model_id) or forge_spec(model_id) or user_spec(model_id)
     if spec is None:
         raise NotFoundError("model.not_found", f"No model called '{model_id}'.", title="Model not found")
     return spec
@@ -100,6 +100,86 @@ def forge_specs() -> list[ModelSpec]:
     return [f[0] for f in found if f]
 
 
+# ------------------------------------------------------------ your own ONNX models
+
+USER_FILE = "model.json"
+USER_WEIGHTS = "model.onnx"
+USER_PREFIX = "user-"
+MAX_ONNX_MB = 1024  # the CPU worker has 4 GB; a model this size already needs a good part of it
+_user_cache: dict[str, tuple[float, ModelSpec, dict[str, Any]]] = {}
+
+
+def _read_user(model_id: str) -> tuple[ModelSpec, dict[str, Any]] | None:
+    """An ONNX model you added, from the descriptor the import wrote next to it (like Forge's)."""
+    if not model_id.startswith(USER_PREFIX) or "/" in model_id or ".." in model_id:
+        return None
+    path = models_root() / model_id / USER_FILE
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        _user_cache.pop(model_id, None)
+        return None
+    cached = _user_cache.get(model_id)
+    if cached and cached[0] == mtime:
+        return cached[1], cached[2]
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+        probe = info["probe"]
+        spec = ModelSpec(
+            id=model_id,
+            name=str(info["name"]),
+            task=info["task"] if info["task"] in ("upscale", "denoise", "deblur") else "denoise",
+            arch="onnx",
+            scale=int(probe["scale"]),
+            summary=str(info.get("summary") or "From an ONNX file you added. Runs on the CPU."),
+            license="Your own",
+            license_url="",
+            homepage="",
+            files=(ModelFile(USER_WEIGHTS, "", str(info["sha256"]), int(info["size"])),),
+            context=int(info.get("context", 16)),
+            channels="y" if int(probe["in_channels"]) == 1 else "rgb",
+            multiple=int(probe["multiple"]),
+            min_input=int(probe["min_input"]),
+            output_range=int(probe["output_range"]),
+            seconds_per_mp=float(probe["seconds_per_mp"]),
+            speed=info.get("speed", "balanced"),
+            tags=("user", "onnx"),
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    _user_cache[model_id] = (mtime, spec, info)
+    return spec, info
+
+
+def user_spec(model_id: str) -> ModelSpec | None:
+    found = _read_user(model_id)
+    return found[0] if found else None
+
+
+def user_info(model_id: str) -> dict[str, Any]:
+    found = _read_user(model_id)
+    return found[1] if found else {}
+
+
+def user_specs() -> list[ModelSpec]:
+    root = models_root()
+    if not root.is_dir():
+        return []
+    found = [_read_user(p.parent.name) for p in sorted(root.glob(f"{USER_PREFIX}*/{USER_FILE}"))]
+    return [f[0] for f in found if f]
+
+
+def user_staging(model_id: str) -> Path:
+    """Where an import assembles a model before it appears; creating it reserves the id."""
+    return models_root() / f".{model_id}.partial"
+
+
+def source_of(spec: ModelSpec) -> str:
+    if spec.arch == "forge":
+        return "forge"
+    return "user" if spec.id.startswith(USER_PREFIX) else "catalog"
+
+
 def models_root() -> Path:
     return get_settings().data_dir / "models"
 
@@ -151,8 +231,9 @@ def model_to_dict(spec: ModelSpec, row: AiModel | None) -> dict[str, Any]:
         "installed_at": row.installed_at.isoformat() if row and row.installed_at else None,
         "runs": row.runs if row else 0,
         "calibrated": sorted((row.calibration or {}).keys()) if row else [],
-        "source": "forge" if spec.arch == "forge" else "catalog",
+        "source": source_of(spec),
         "benchmark": forge_info(spec.id).get("benchmark") if spec.arch == "forge" else None,
+        "probe": user_info(spec.id).get("probe") if source_of(spec) == "user" else None,
     }
 
 
@@ -187,7 +268,7 @@ async def require_installed(session: AsyncSession, spec: ModelSpec) -> AiModel:
 
 
 def catalog() -> tuple[ModelSpec, ...]:
-    return (*MODELS, *forge_specs())
+    return (*MODELS, *forge_specs(), *user_specs())
 
 
 # ------------------------------------------------------------------------- download

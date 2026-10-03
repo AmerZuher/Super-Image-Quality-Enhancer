@@ -256,17 +256,28 @@ class ModelOut(BaseModel):
     installed_at: str | None
     runs: int
     calibrated: list[str] = Field(description="Devices this model has measured its memory use on.")
-    source: Literal["catalog", "forge"] = Field(
-        default="catalog", description="forge: a model you trained and published from Forge."
+    source: Literal["catalog", "forge", "user"] = Field(
+        default="catalog",
+        description="forge: a model you trained and published from Forge. user: an ONNX file you added.",
     )
     benchmark: dict[str, Any] | None = Field(
         default=None, description="For Forge models: PSNR, SSIM and speed measured when it was published."
+    )
+    probe: dict[str, Any] | None = Field(
+        default=None,
+        description="For ONNX models you added: what the import measured (scale, channels, size step, "
+        "output range, seconds per megapixel on this CPU).",
     )
 
 
 class ModelInstallOut(BaseModel):
     model: ModelOut
     job: JobOut | None = Field(description="The download job; null when the model was already installed.")
+
+
+class ModelImportOut(BaseModel):
+    model_id: str = Field(description="The id the model will have once the check passes.")
+    job: JobOut = Field(description="The job that checks the file and adds the model.")
 
 
 class AiRunIn(BaseModel):

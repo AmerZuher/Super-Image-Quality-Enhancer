@@ -8,11 +8,20 @@ from temporalio.exceptions import ActivityError, ApplicationError, CancelledErro
 
 with workflow.unsafe.imports_passed_through():
     from siqe.activities.jobs import JobUpdate
-    from siqe.activities.models import ModelFailure, install_model, mark_model_failed
+    from siqe.activities.models import (
+        ModelFailure,
+        OnnxImport,
+        discard_onnx_upload,
+        import_onnx,
+        install_model,
+        mark_model_failed,
+    )
     from siqe.ai.manifest import CLIP_MODEL_ID, FACE_MODEL_ID
     from siqe.core.config import CPU_TASK_QUEUE
     from siqe.workflows.assets import QUICK, _failure, _update, wake_indexer
 
+# A model that takes the worker down (out of memory) is tried once more, not five times.
+IMPORT = RetryPolicy(maximum_attempts=2, initial_interval=timedelta(seconds=5))
 DOWNLOAD = RetryPolicy(maximum_attempts=6, initial_interval=timedelta(seconds=5), backoff_coefficient=2.0)
 
 
@@ -55,4 +64,51 @@ class ModelInstallWorkflow:
         )
         if model_id in (CLIP_MODEL_ID, FACE_MODEL_ID):
             await wake_indexer()  # embed, tag and count faces in the images already in the library
+        return result
+
+
+def _fix(exc: BaseException) -> str | None:
+    """The fix hint a typed activity error carries (``{"code", "fix"}`` details)."""
+    cause = getattr(exc, "cause", None)
+    if isinstance(cause, ApplicationError) and cause.details and isinstance(cause.details[0], dict):
+        fix = cause.details[0].get("fix")
+        return str(fix) if fix else None
+    return None
+
+
+@workflow.defn
+class ModelImportWorkflow:
+    """Check an uploaded ONNX file by running it on test images, then add it as a model."""
+
+    @workflow.run
+    async def run(self, req: OnnxImport) -> dict[str, Any]:
+        await _update(JobUpdate(req.job_id, state="running", message="Checking the model"))
+        try:
+            result: dict[str, Any] = await workflow.execute_activity(
+                import_onnx,
+                req,
+                task_queue=CPU_TASK_QUEUE,
+                start_to_close_timeout=timedelta(minutes=20),
+                heartbeat_timeout=timedelta(minutes=2),
+                retry_policy=IMPORT,
+            )
+        except (asyncio.CancelledError, ActivityError) as exc:
+            cancelled = isinstance(exc, asyncio.CancelledError) or isinstance(exc.cause, CancelledError)
+            await workflow.execute_activity(
+                discard_onnx_upload,
+                req,
+                task_queue=CPU_TASK_QUEUE,
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=QUICK,
+            )
+            if cancelled:
+                await _update(JobUpdate(req.job_id, state="cancelled", message="Cancelled"))
+                raise
+            code, message = _failure(exc)  # type: ignore[arg-type]
+            error = {"code": code, "message": message, "fix": _fix(exc)}
+            await _update(JobUpdate(req.job_id, state="failed", message=message, error=error))
+            raise ApplicationError(message, type=code, non_retryable=True) from exc
+        label = f"×{result['scale']} upscaler" if result["scale"] > 1 else result["task"]
+        message = f"Added {result['name']} ({label})"
+        await _update(JobUpdate(req.job_id, state="succeeded", message=message, result=result))
         return result

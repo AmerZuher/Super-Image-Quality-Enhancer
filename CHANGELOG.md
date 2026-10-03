@@ -9,6 +9,7 @@ User-facing changes to SIQE Studio. The format follows [Keep a Changelog](https:
 - **Erase objects:** paint over what you don't want (a post, a passer-by, a sensor spot) in AI Lab and it is filled in from its surroundings. Only the painted areas change. Uses LaMa (Apache-2.0) on the CPU, about 10 seconds per area.
 - **Colorize black and white photos** with the SIGGRAPH 2017 colorizer (BSD-2-Clause). Every detail of the photo is kept; only colour is added. Also a block in Flows.
 - **Deblur** slightly blurred or shaken photos with NAFNet (MIT). Runs on the CPU at any size; the plan tells you when it will take minutes. Also a block in Flows.
+- **Add your own ONNX models** in AI Lab → Models. Each file is checked by running it on test images, which finds its scale, the image sizes it accepts and its speed on your computer. Files it can't run are refused with a reason and how to re-export them. Added models work in AI Lab and Flows on the CPU, tiled at any image size, and can be removed again.
 
 - **Forge is here: design, train and publish your own models.** Start from SIQE Classic, ESPCN, EDSR-lite, a bicubic-plus-detail ×4 model or a U-Net denoiser, or from just an input and an output, and change it block by block: convolutions, residual and residual dense blocks, channel attention, add and concat, depth-to-space, resize, down and up.
 - **Checked as you draw:** every link shows its channels and size, and the model's parameters, compute and training memory update as you go. Blocks that can't work turn red and say why, usually with a one-click fix.

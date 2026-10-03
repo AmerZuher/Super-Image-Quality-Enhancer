@@ -5,7 +5,7 @@ from fastapi import APIRouter, status
 
 from siqe.activities.ai import AiRunRequest
 from siqe.ai.governor import Calibration
-from siqe.ai.manifest import FACE_MODEL_ID, TASK_LABELS
+from siqe.ai.manifest import CPU_ARCHS, FACE_MODEL_ID, TASK_LABELS
 from siqe.ai.plan import current_device, plan_run
 from siqe.ai.registry import get_spec, require_installed
 from siqe.api.deps import SessionDep, SettingsDep, TemporalDep
@@ -125,6 +125,7 @@ async def start_run(
         device=body.device,
         restore_faces=bool(result["restore_faces"]) and spec.task == "upscale",
         mask=body.mask.model_dump() if body.mask is not None and spec.task == "erase" else None,
+        on_cpu=spec.arch in CPU_ARCHS,
     )
     await start_workflow(session, temporal, job, AiRunWorkflow.run, [str(job.id), request])
     return AiRunStartOut(job=JobOut.model_validate(job_to_dict(job)), plan=AiPlanOut.model_validate(result))

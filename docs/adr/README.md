@@ -15,3 +15,4 @@ One short file per decision that shapes the codebase. Add a new record (next num
 | [0009](0009-forge.md) | Forge: graphs checked without PyTorch, training in GPU chunks, models published as files | Accepted |
 | [0010](0010-model-packages.md) | Model packages: multi-file models installed by a workflow, with opt-in personal-use licences | Proposed |
 | [0011](0011-restore-models.md) | Erase, colorize and deblur: ONNX on the CPU worker, whole-image models outside the tiler | Accepted |
+| [0012](0012-your-own-onnx-models.md) | Your own ONNX models: checked by running them, installed as files, run on the CPU | Accepted |

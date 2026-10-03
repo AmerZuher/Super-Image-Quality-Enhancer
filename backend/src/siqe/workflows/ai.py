@@ -31,10 +31,11 @@ class AiRunWorkflow:
 
     @workflow.run
     async def run(self, job_id: str, request: AiRunRequest) -> dict[str, Any]:
-        # Models published from Forge aren't in the built-in catalog; they always run on PyTorch.
+        # Models published from Forge aren't in the built-in catalog and run on PyTorch; your own
+        # ONNX models aren't either, and the API marks them for the CPU worker.
         spec = MODELS_BY_ID.get(request.model_id)
         await _update(JobUpdate(job_id, state="running", message="Waiting for the AI worker"))
-        on_gpu = spec is None or spec.arch in TORCH_ARCHS
+        on_gpu = not request.on_cpu and (spec is None or spec.arch in TORCH_ARCHS)
         try:
             result: dict[str, Any] = await workflow.execute_activity(
                 run_model if on_gpu else run_background,

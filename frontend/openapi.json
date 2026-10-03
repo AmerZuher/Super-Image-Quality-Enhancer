@@ -3673,6 +3673,96 @@
         }
       }
     },
+    "/api/models/onnx": {
+      "post": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Add your own ONNX model (raw request body)",
+        "description": "Send the .onnx file as the request body. A job runs the model on test images to find its scale, size step, output range and speed, then adds it to AI Lab and Flows. Same-size models are listed under `task` (denoise by default); models that enlarge are always upscalers. At most 1024 MB, one file (no external data).",
+        "operationId": "import_onnx_model_api_models_onnx_post",
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Filename"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "name": "task",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "denoise",
+                    "deblur"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelImportOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {}
+            }
+          }
+        }
+      }
+    },
     "/api/ai/plan": {
       "post": {
         "tags": [
@@ -7733,6 +7823,25 @@
         ],
         "title": "Mask"
       },
+      "ModelImportOut": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "title": "Model Id",
+            "description": "The id the model will have once the check passes."
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobOut",
+            "description": "The job that checks the file and adds the model."
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_id",
+          "job"
+        ],
+        "title": "ModelImportOut"
+      },
       "ModelInstallOut": {
         "properties": {
           "model": {
@@ -7901,10 +8010,11 @@
             "type": "string",
             "enum": [
               "catalog",
-              "forge"
+              "forge",
+              "user"
             ],
             "title": "Source",
-            "description": "forge: a model you trained and published from Forge.",
+            "description": "forge: a model you trained and published from Forge. user: an ONNX file you added.",
             "default": "catalog"
           },
           "benchmark": {
@@ -7919,6 +8029,19 @@
             ],
             "title": "Benchmark",
             "description": "For Forge models: PSNR, SSIM and speed measured when it was published."
+          },
+          "probe": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probe",
+            "description": "For ONNX models you added: what the import measured (scale, channels, size step, output range, seconds per megapixel on this CPU)."
           }
         },
         "type": "object",

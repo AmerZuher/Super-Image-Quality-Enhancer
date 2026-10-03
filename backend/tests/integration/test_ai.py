@@ -174,3 +174,105 @@ def test_deblur_runs_on_the_cpu_and_keeps_size(client: httpx.Client, photo: dict
     result = _result(client, photo, "nafnet-deblur")
     assert (result["width"], result["height"]) == (160, 120)
     assert result["derivation"]["device_name"] == "CPU"
+
+
+# ------------------------------------------------------------------ your own ONNX models
+
+
+def _onnx_upscaler(factor: int) -> bytes:
+    """A tiny nearest-neighbour ×factor model, exported the way a user would bring one."""
+    from onnx import TensorProto, helper
+
+    x = helper.make_tensor_value_info("input", TensorProto.FLOAT, ["n", 3, "h", "w"])
+    y = helper.make_tensor_value_info("output", TensorProto.FLOAT, ["n", 3, "H", "W"])
+    scales = helper.make_tensor("scales", TensorProto.FLOAT, [4], [1, 1, factor, factor])
+    node = helper.make_node("Resize", ["input", "", "scales"], ["output"], mode="nearest")
+    model = helper.make_model(
+        helper.make_graph([node], "upscale", [x], [y], [scales]),
+        opset_imports=[helper.make_opsetid("", 17)],
+    )
+    model.ir_version = 9
+    return bytes(model.SerializeToString())
+
+
+def _add_onnx(client: httpx.Client, content: bytes, filename: str, **params: str) -> httpx.Response:
+    return client.post(
+        "/api/models/onnx",
+        params={"filename": filename, **params},
+        content=content,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+
+
+def test_your_own_onnx_model_is_checked_added_run_and_removed(
+    client: httpx.Client, photo: dict[str, Any]
+) -> None:
+    name = f"Test x2 {uuid.uuid4().hex[:6]}"
+    added = _add_onnx(client, _onnx_upscaler(2), "nearest_x2.onnx", name=name)
+    assert added.status_code == 202, added.text
+    model_id = added.json()["model_id"]
+    assert model_id.startswith("user-test-x2-")
+    job = wait(client, added.json()["job"]["id"], 300)
+    assert job["state"] == "succeeded", job
+    assert job["result"]["scale"] == 2 and job["result"]["task"] == "upscale"
+    try:
+        model = next(m for m in client.get("/api/models").json() if m["id"] == model_id)
+        assert (model["source"], model["status"], model["arch"]) == ("user", "installed", "onnx")
+        assert model["scale"] == 2
+        assert model["name"] == name and model["license"] == "Your own"
+        assert model["probe"]["multiple"] == 1 and model["probe"]["output_range"] == 1
+
+        plan = client.post("/api/ai/plan", json={"asset_id": photo["id"], "model_id": model_id}).json()
+        assert plan["device"] == "cpu" and (plan["output_width"], plan["output_height"]) == (320, 240)
+        result = _result(client, photo, model_id)
+        assert (result["width"], result["height"]) == (320, 240)
+        before, after = _pixels(client, photo), _pixels(client, result)
+        assert abs(int(after[121, 161, 0]) - int(before[60, 80, 0])) <= 2  # nearest ×2
+
+        # In a flow, the Upscale block sends this model to the CPU worker.
+        def node(node_id: str, kind: str, x: int, **params: Any) -> dict[str, Any]:
+            return {"id": node_id, "type": kind, "params": params, "position": {"x": x, "y": 0}}
+
+        document = {
+            "version": 1,
+            "nodes": [
+                node("in", "input", 0),
+                node("up", "upscale", 200, model=model_id),
+                node("out", "export", 400),
+            ],
+            "edges": [
+                {"source": "in", "target": "up", "port": "out"},
+                {"source": "up", "target": "out", "port": "out"},
+            ],
+        }
+        flow = client.post("/api/flows", json={"name": f"Own model {name}", "document": document}).json()
+        assert flow["problems"] == [], flow["problems"]
+        try:
+            started = client.post(
+                f"/api/flows/{flow['id']}/runs",
+                json={"source": {"kind": "assets", "asset_ids": [photo["id"]]}, "dry_run": True},
+            )
+            assert started.status_code == 201, started.text
+            run_url = f"/api/flows/runs/{started.json()['id']}"
+            deadline = time.monotonic() + 300
+            while (detail := client.get(run_url).json())["run"]["state"] not in ("succeeded", "failed"):
+                assert time.monotonic() < deadline, detail["run"]
+                time.sleep(1)
+            assert detail["run"]["state"] == "succeeded", detail
+            assert detail["items"][0]["outputs"][0]["width"] == 320
+        finally:
+            client.delete(f"/api/flows/{flow['id']}")
+    finally:
+        assert client.delete(f"/api/models/{model_id}").status_code == 204
+    assert model_id not in {m["id"] for m in client.get("/api/models").json()}
+
+
+def test_onnx_files_that_cant_run_are_refused_with_a_fix(client: httpx.Client) -> None:
+    wrong = _add_onnx(client, b"not a model", "notes.txt")
+    assert wrong.status_code == 415 and wrong.json()["code"] == "onnx.wrong_type"
+
+    broken = _add_onnx(client, b"\x08\x07 definitely not protobuf", "broken.onnx")
+    job = wait(client, broken.json()["job"]["id"], 120)
+    assert job["state"] == "failed" and job["error"]["code"] == "model.load_failed"
+    assert job["error"]["fix"]
+    assert broken.json()["model_id"] not in {m["id"] for m in client.get("/api/models").json()}

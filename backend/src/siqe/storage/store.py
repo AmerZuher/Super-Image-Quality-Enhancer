@@ -69,7 +69,13 @@ class MediaStore:
                 fix="Delete images or exports you no longer need, or free space on the data volume.",
             )
 
-    async def receive(self, chunks: AsyncIterator[bytes], max_bytes: int) -> StagedUpload:
+    async def receive(
+        self,
+        chunks: AsyncIterator[bytes],
+        max_bytes: int,
+        *,
+        too_large_fix: str = "Raise SIQE_MAX_UPLOAD_MB in .env, or upload a smaller file.",
+    ) -> StagedUpload:
         self.tmp.mkdir(parents=True, exist_ok=True)
         path = self.tmp / f"upload-{uuid.uuid4()}"
         digest = hashlib.sha256()
@@ -85,7 +91,7 @@ class MediaStore:
                         f"The file is larger than the {max_bytes // (1024 * 1024):,} MB upload limit.",
                         status=413,
                         title="File too large",
-                        fix="Raise SIQE_MAX_UPLOAD_MB in .env, or upload a smaller file.",
+                        fix=too_large_fix,
                     )
                 digest.update(chunk)
                 pending.extend(chunk)

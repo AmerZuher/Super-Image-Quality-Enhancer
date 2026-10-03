@@ -97,8 +97,9 @@ def plan_run(
     warnings: list[str] = []
     if not device.worker_online:
         warnings.append("The AI worker is offline. The run will start when it's back.")
-    if spec.arch == "onnx" and width * height > 2_000_000:
-        minutes = width * height / 1e6 * 30 / 60
+    per_mp = spec.seconds_per_mp or 30.0
+    if spec.arch == "onnx" and width * height / 1e6 * per_mp > 60:
+        minutes = width * height / 1e6 * per_mp / 60
         warnings.append(f"{spec.name} runs on the CPU: about {minutes:,.0f} minutes for this image.")
     elif device.kind == "cpu" and tiled and spec.speed != "fast" and width * height > 2_000_000:
         warnings.append(

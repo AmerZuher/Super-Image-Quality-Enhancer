@@ -28,8 +28,9 @@ import { usePlan, useRemoveResult, useStartRun } from "./api";
 import { ModelControl, RUN_TASKS } from "./Models";
 import { strokesFor, useAiLabStore } from "./store";
 
-/** Tasks whose models run on the CPU worker, whatever the device setting. */
+/** Tasks and model formats that run on the CPU worker, whatever the device setting. */
 const CPU_TASKS: ModelTask[] = ["background", "deblur", "erase"];
+const CPU_ARCHS = new Set(["onnx", "isnet_onnx", "lama_onnx"]);
 
 const TASK_ICON: Record<ModelTask, ReactNode> = {
   upscale: <Maximize2 />,
@@ -387,7 +388,7 @@ export function RunPanel({
         </p>
       )}
 
-      {!CPU_TASKS.includes(task) && (
+      {!CPU_TASKS.includes(task) && !CPU_ARCHS.has(chosen?.arch ?? "") && (
         <label className="flex items-center justify-between gap-2 text-[12.5px] text-fg-2">
           Run on
           <select

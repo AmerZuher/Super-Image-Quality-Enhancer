@@ -20,6 +20,7 @@ export type OpEntry = components["schemas"]["OpEntryIn"];
 export type ExportRequest = components["schemas"]["ExportIn"];
 export type Rendition = components["schemas"]["RenditionOut"];
 export type Model = components["schemas"]["ModelOut"];
+export type ModelImport = components["schemas"]["ModelImportOut"];
 export type ModelTask = Model["task"];
 export type AiPlan = components["schemas"]["AiPlanOut"];
 export type AiRunRequest = components["schemas"]["AiRunIn"];

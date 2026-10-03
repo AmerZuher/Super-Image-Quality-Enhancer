@@ -1309,6 +1309,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/onnx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add your own ONNX model (raw request body)
+         * @description Send the .onnx file as the request body. A job runs the model on test images to find its scale, size step, output range and speed, then adds it to AI Lab and Flows. Same-size models are listed under `task` (denoise by default); models that enlarge are always upscalers. At most 1024 MB, one file (no external data).
+         */
+        post: operations["import_onnx_model_api_models_onnx_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/plan": {
         parameters: {
             query?: never;
@@ -2864,6 +2884,16 @@ export interface components {
             /** Strokes */
             strokes: components["schemas"]["Stroke"][];
         };
+        /** ModelImportOut */
+        ModelImportOut: {
+            /**
+             * Model Id
+             * @description The id the model will have once the check passes.
+             */
+            model_id: string;
+            /** @description The job that checks the file and adds the model. */
+            job: components["schemas"]["JobOut"];
+        };
         /** ModelInstallOut */
         ModelInstallOut: {
             model: components["schemas"]["ModelOut"];
@@ -2933,16 +2963,23 @@ export interface components {
             calibrated: string[];
             /**
              * Source
-             * @description forge: a model you trained and published from Forge.
+             * @description forge: a model you trained and published from Forge. user: an ONNX file you added.
              * @default catalog
              * @enum {string}
              */
-            source: "catalog" | "forge";
+            source: "catalog" | "forge" | "user";
             /**
              * Benchmark
              * @description For Forge models: PSNR, SSIM and speed measured when it was published.
              */
             benchmark?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Probe
+             * @description For ONNX models you added: what the import measured (scale, channels, size step, output range, seconds per megapixel on this CPU).
+             */
+            probe?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -5933,6 +5970,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_onnx_model_api_models_onnx_post: {
+        parameters: {
+            query: {
+                filename: string;
+                name?: string | null;
+                task?: ("denoise" | "deblur") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": unknown;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelImportOut"];
+                };
             };
             /** @description Validation Error */
             422: {

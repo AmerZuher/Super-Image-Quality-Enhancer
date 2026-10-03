@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Download,
   ExternalLink,
+  FileUp,
   RotateCcw,
   Sparkles,
   Trash2,
@@ -17,6 +18,7 @@ import { errorMessage, type Model, type ModelTask } from "@/lib/api/client";
 import { useCancelJob } from "@/lib/api/queries";
 import { formatBytes } from "@/lib/format";
 import { useJob } from "../studio/api";
+import { AddModel } from "./AddModel";
 import { useInstallModel, useRemoveModel } from "./api";
 
 export const TASKS: { id: ModelTask; label: string }[] = [
@@ -122,8 +124,14 @@ function benchmarkOf(model: Model): Benchmark | null {
   return typeof b?.psnr === "number" && typeof b.gain_db === "number" ? (b as Benchmark) : null;
 }
 
+function probeOf(model: Model): { seconds_per_mp: number } | null {
+  const p = model.probe as { seconds_per_mp?: unknown } | null | undefined;
+  return typeof p?.seconds_per_mp === "number" ? { seconds_per_mp: p.seconds_per_mp } : null;
+}
+
 export function ModelCard({ model }: { model: Model }) {
   const bench = benchmarkOf(model);
+  const probe = probeOf(model);
   return (
     <li
       className={clsx(
@@ -169,7 +177,16 @@ export function ModelCard({ model }: { model: Model }) {
               {bench.gain_db.toFixed(2)} vs bicubic)
             </span>
           )}
-          {model.tags.includes("yours") && <Chip tone="gold">Your model</Chip>}
+          {model.source === "user" && (
+            <Chip tone="cyan" icon={<FileUp className="size-3" />}>
+              Added by you
+            </Chip>
+          )}
+          {probe && (
+            <span className="font-mono text-fg-2" title="Measured on this computer's CPU when it was added">
+              CPU · {probe.seconds_per_mp.toFixed(1)} s per megapixel
+            </span>
+          )}
           {model.recommended && <Chip tone="gold">Recommended</Chip>}
         </div>
         <ModelControl model={model} />
@@ -183,8 +200,8 @@ export function ModelLibrary({ models }: { models: Model[] }) {
   return (
     <div className="grid gap-5">
       <p className="text-[12px] text-fg-2">
-        Models download once from their authors' GitHub releases and are checked against a published checksum.
-        Every model here allows commercial use. Installed: {formatBytes(installed)}.
+        Models download once from their authors' releases and are checked against a published checksum. Every
+        model in the catalog allows commercial use. Installed: {formatBytes(installed)}.
       </p>
       {TASKS.map((task) => {
         const list = models.filter((m) => m.task === task.id);
@@ -202,6 +219,7 @@ export function ModelLibrary({ models }: { models: Model[] }) {
           </section>
         );
       })}
+      <AddModel />
     </div>
   );
 }

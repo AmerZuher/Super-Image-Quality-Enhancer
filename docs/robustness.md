@@ -46,6 +46,8 @@ The rules every feature follows so SIQE Studio degrades instead of crashing. Des
 | Erase regions | The mask is grown a third past the brush (plus 2 px) so no edge of the object is left for the model to continue; each painted area is cut out with about 2.2 times its size of surroundings (at least 512 px), filled at 512 × 512 by LaMa on the CPU worker and blended back with a feathered edge; nothing outside the painted areas changes | Blurry fills on large images, and seams **(P6)** |
 | Deblur | NAFNet (int8 ONNX) on the CPU worker through the tiled pipeline, tiles of at least 384 px in multiples of 16; the plan warns when a run will take minutes (about 30 s per megapixel on 4 cores) | The network failing on small tiles, and surprise waits **(P6)** |
 | Colorize | Colour is predicted at 256 × 256 and scaled up; the photo's own lightness (every detail) and transparency are kept | Large photos needing gigabytes of GPU memory **(P6)** |
+| Your own ONNX models | One file of at most 1 GB (no external data); streamed to disk, then checked on the CPU worker by running it on test images from 64 px up; one retry if the check crashes the worker; installed only after every check passes, by renaming a finished folder | Models that can't run tiled, half-installed models, and a bad file taking the worker down repeatedly **(P6)** |
+| Running your own ONNX models | Always on the CPU worker through the tiled pipeline (AI Lab and Flows), with the size step and minimum size the check found; output clipped to 0..1 (0..255 outputs are scaled first) | Seams and wrong colours from models with unusual conventions **(P6)** |
 | PostgreSQL connections | 200, Temporal capped at 10 per store | Connection exhaustion **(P0)** |
 | Event payload | 7,900 bytes; larger events become refetch pointers | NOTIFY's 8,000-byte limit **(P0)** |
 | WebSocket queue per browser | 500 events, oldest dropped | A slow or backgrounded tab growing server memory **(P0)** |
@@ -92,6 +94,13 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | `erase.mask_required` | 422 | Erasing without painting anything (or with an empty mask) | P6 |
 | `erase.bad_mask` | n/a (job error) | The painted strokes reached the worker in a shape it can't read | P6 |
 | `erase.too_many_regions` | n/a (job error) | More than 24 separate painted areas in one run; erase in a few passes or join nearby strokes | P6 |
+| `onnx.wrong_type` | 415 | Adding a file that doesn't end in `.onnx` | P6 |
+| `onnx.unsupported_inputs` | n/a (job error) | The model has more than one input, an input that isn't a float N×C×H×W tensor, or other than 1 or 3 channels | P6 |
+| `onnx.fixed_size` | n/a (job error) | The model only accepts one image size, or only squares; export it with dynamic height and width | P6 |
+| `onnx.not_image_to_image` | n/a (job error) | The output isn't an image, or isn't the same whole-number scale (1 to 8) in both directions | P6 |
+| `onnx.probe_failed` | n/a (job error) | The model failed on every test image (64 to 384 px), or returned NaN or infinite values | P6 |
+| `upload.missing` | n/a (job error) | An added model's upload was cleaned up before it could be checked (for example after a long restart) | P6 |
+| `upload.corrupt` | n/a (job error) | An added model's upload changed on disk before it was checked | P6 |
 | `library.invalid_rules` | 422 | A filter or album rule with an unknown field, a wrong operator or a value of the wrong type | P3 |
 | `library.not_indexed` | 409 | "Find similar" on an image that hasn't been analysed by the search model yet | P3 |
 | `library.no_location` | 422 | Removing location from images that have none | P3 |
@@ -175,6 +184,7 @@ Every API error is `application/problem+json` with `code`, `title`, `detail` and
 | Other GPU work while training | It runs between training chunks, so it waits at most about 3 minutes **(P5)** |
 | Erase painted on another image | Strokes belong to the image they were painted on; switching images starts a fresh mask, so a mask never lands on the wrong photo **(P6)** |
 | An ONNX model file is damaged | The run fails with `model.load_failed`; remove and download the model again **(P6)** |
+| An ONNX model you add fails its check | The job says what is wrong and how to export it instead; the upload and its reserved folder are deleted and nothing is added **(P6)** |
 | First run of a model on a GPU | Peak memory is measured at two tile sizes and stored, so later runs pick the largest tile that fits **(P2)** |
 
 ## Input edge cases

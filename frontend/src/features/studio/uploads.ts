@@ -2,16 +2,19 @@
  * Upload queue. Files go up as the raw request body, two at a time.
  *
  * This is the one place the app calls the API without openapi-fetch: fetch() can't report
- * upload progress, so it uses XMLHttpRequest. The URL and response type still come from the
- * generated schema, so a change to the endpoint fails type-checking here.
+ * upload progress, so it uses XMLHttpRequest (for images here, and for ONNX models added in AI
+ * Lab via ``uploadModel``). The URLs and response types still come from the generated schema,
+ * so a change to an endpoint fails type-checking here.
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
-import type { Asset, Job, Problem, Upload } from "@/lib/api/client";
+import type { Asset, Job, ModelImport, Problem, Upload } from "@/lib/api/client";
 import { keys, upsertById, upsertJob } from "@/lib/api/keys";
 import type { paths } from "@/lib/api/schema";
 
 const UPLOAD_PATH = "/api/assets" satisfies keyof paths;
+const MODEL_PATH = "/api/models/onnx" satisfies keyof paths;
+type ModelQuery = NonNullable<paths[typeof MODEL_PATH]["post"]["parameters"]["query"]>;
 const CONCURRENCY = 2;
 
 export type UploadState = "waiting" | "uploading" | "done" | "failed";
@@ -57,18 +60,17 @@ function problemFrom(xhr: XMLHttpRequest): { message: string; fix?: string } {
   }
 }
 
-export function uploadFile(
-  file: File,
-  onProgress: (loaded: number) => void,
-): Promise<{ ok: true; body: Upload } | { ok: false; error: { message: string; fix?: string } }> {
+type Sent<T> = { ok: true; body: T } | { ok: false; error: { message: string; fix?: string } };
+
+function send<T>(url: string, file: File, onProgress: (loaded: number) => void): Promise<Sent<T>> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${UPLOAD_PATH}?filename=${encodeURIComponent(file.name)}`);
+    xhr.open("POST", url);
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     xhr.upload.onprogress = (event) => onProgress(event.loaded);
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ ok: true, body: JSON.parse(xhr.responseText) as Upload });
+        resolve({ ok: true, body: JSON.parse(xhr.responseText) as T });
       } else {
         resolve({ ok: false, error: problemFrom(xhr) });
       }
@@ -83,6 +85,22 @@ export function uploadFile(
       });
     xhr.send(file);
   });
+}
+
+export function uploadFile(file: File, onProgress: (loaded: number) => void): Promise<Sent<Upload>> {
+  return send<Upload>(`${UPLOAD_PATH}?filename=${encodeURIComponent(file.name)}`, file, onProgress);
+}
+
+/** Add an ONNX model: the server checks it in a job (``body.job``) and adds it when it passes. */
+export function uploadModel(
+  file: File,
+  query: Omit<ModelQuery, "filename">,
+  onProgress: (loaded: number) => void,
+): Promise<Sent<ModelImport>> {
+  const params = new URLSearchParams({ filename: file.name });
+  if (query.name) params.set("name", query.name);
+  if (query.task) params.set("task", query.task);
+  return send<ModelImport>(`${MODEL_PATH}?${params}`, file, onProgress);
 }
 
 function pump(client: QueryClient, onUploaded?: (asset: Asset) => void): void {

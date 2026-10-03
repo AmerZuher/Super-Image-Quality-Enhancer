@@ -100,7 +100,16 @@ export function applyEvent(client: QueryClient, event: ServerEvent): void {
     }
     case "model.updated": {
       const model = event.data as unknown as Model;
-      client.setQueryData<Model[]>(keys.models, (list) => list?.map((m) => (m.id === model.id ? model : m)));
+      const list = client.getQueryData<Model[]>(keys.models);
+      if (list && !list.some((m) => m.id === model.id)) {
+        // A model just published from Forge or added from an ONNX file: fetch the new list.
+        void client.invalidateQueries({ queryKey: keys.models });
+      } else if (model.source !== "catalog" && model.status === "available") {
+        // Removing a Forge or ONNX model deletes its files, so it leaves the list.
+        client.setQueryData<Model[]>(keys.models, (old) => old?.filter((m) => m.id !== model.id));
+      } else {
+        client.setQueryData<Model[]>(keys.models, (old) => old?.map((m) => (m.id === model.id ? model : m)));
+      }
       // Installing a model changes what a run would do.
       void client.invalidateQueries({ queryKey: ["plan"] });
       return;

@@ -46,6 +46,9 @@ class AiRunRequest:
     restore_faces: bool = False
     # Brush strokes for the eraser (siqe.ai.inpaint.Mask as a dict).
     mask: dict[str, Any] | None = None
+    # Set by the API from the model's format: models outside the built-in catalog (your own ONNX
+    # files) can't be looked up inside the workflow, which must stay deterministic.
+    on_cpu: bool = False
 
 
 def _paths(job_id: str) -> tuple[Path, Path]:
@@ -390,7 +393,12 @@ async def _run_onnx_tiled(
     tile = min_input_settings(
         cpu_settings(width=width, height=height, context=spec.context, multiple=spec.multiple), spec.min_input
     )
-    backend = await asyncio.to_thread(OnnxBackend, weights_path(spec))
+    backend = await asyncio.to_thread(
+        OnnxBackend,
+        weights_path(spec),
+        out_channels=1 if spec.channels == "y" else 3,
+        output_range=spec.output_range,
+    )
     canvas = out_png.with_suffix(".raw")
     resume = _resume_details()
     done = {Rect.from_list(r) for r in resume["done"]} if resume else set()

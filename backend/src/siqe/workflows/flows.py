@@ -83,8 +83,9 @@ class FlowItemWorkflow:
             port = decision["port"]  # None stops this image here; the step records why
         elif spec.transforms:
             if spec.category == "ai":
-                activity = flow_ai_gpu if spec.queue == "gpu" else flow_ai_cpu
-                queue = GPU_TASK_QUEUE if spec.queue == "gpu" else CPU_TASK_QUEUE
+                on_gpu = node.get("queue", spec.queue) == "gpu"  # flow_run_start marks CPU models
+                activity = flow_ai_gpu if on_gpu else flow_ai_cpu
+                queue = GPU_TASK_QUEUE if on_gpu else CPU_TASK_QUEUE
                 timeout = timedelta(hours=2)
             else:
                 activity, queue, timeout = flow_edit, CPU_TASK_QUEUE, timedelta(minutes=30)

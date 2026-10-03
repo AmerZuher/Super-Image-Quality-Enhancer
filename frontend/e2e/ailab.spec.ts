@@ -94,3 +94,45 @@ test("paint over part of an image and erase it", async ({ page }) => {
   await run.click();
   await expect(page.getByText(/rose-blue retouched.*\.png/).first()).toBeVisible({ timeout: 300_000 });
 });
+
+// A 202-byte graph with no weights: nearest-neighbour ×2, the simplest model a user could bring.
+const ONNX = fileURLToPath(new URL("./fixtures/nearest-x2.onnx", import.meta.url));
+
+test("add your own ONNX model and use it", async ({ page, request }) => {
+  test.setTimeout(300_000);
+  const name = `Nearest x2 ${Date.now() % 100000}`;
+  // Leftovers from an earlier run that stopped half-way.
+  const before: { id: string; name: string; source: string }[] = await (
+    await request.get("/api/models")
+  ).json();
+  for (const m of before.filter((m) => m.source === "user" && m.name.startsWith("Nearest x2 "))) {
+    await request.delete(`/api/models/${m.id}`);
+  }
+  await page.goto("/ai-lab");
+  await page.getByRole("tab", { name: /Models/ }).click();
+  const card = page.getByTestId("add-model");
+  await card.getByTestId("onnx-file-input").setInputFiles(ONNX);
+  await card.getByLabel("Name").fill(name);
+  await card.getByRole("button", { name: "Add ONNX model" }).click();
+  await expect(card.getByRole("status")).toContainText(`Added ${name} (×2 upscaler)`, { timeout: 120_000 });
+
+  // It joins the library as your own model, and can be picked for upscaling (always on the CPU).
+  const added = page.locator("[data-testid^='model-user-']").filter({ hasText: name });
+  await expect(added.getByText("Added by you", { exact: true })).toBeVisible();
+  await expect(added.getByText(/CPU · [\d.]+ s per megapixel/)).toBeVisible();
+  await page.getByTestId("file-input").or(page.getByTestId("ailab-file-input")).first().setInputFiles(SAMPLE);
+  await page.getByRole("tab", { name: "Run" }).click();
+  await page.getByRole("button", { name: "Upscale", exact: true }).click();
+  await page.getByText(name).first().click();
+  await expect(page.getByTestId("plan")).toContainText("1,280 × 848");
+  await expect(page.getByLabel("Run on")).toHaveCount(0);
+
+  // Removing it deletes the file; it leaves the list.
+  const models: { id: string; name: string }[] = await (await request.get("/api/models")).json();
+  const id = models.find((m) => m.name === name)?.id;
+  expect(id).toBeTruthy();
+  await page.getByRole("tab", { name: /Models/ }).click();
+  await added.getByRole("button", { name: `Remove ${name}` }).click();
+  await added.getByRole("button", { name: `Confirm removing ${name}` }).click();
+  await expect(page.getByTestId(`model-${id}`)).toHaveCount(0);
+});

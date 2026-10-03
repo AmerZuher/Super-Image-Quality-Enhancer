@@ -48,7 +48,7 @@ from siqe.activities.library import (
     scan_import_folder,
     start_indexing,
 )
-from siqe.activities.models import install_model, mark_model_failed
+from siqe.activities.models import discard_onnx_upload, import_onnx, install_model, mark_model_failed
 from siqe.activities.selftest import cpu_probe, gpu_probe
 from siqe.core.config import CPU_TASK_QUEUE, GPU_TASK_QUEUE, get_settings
 from siqe.core.logging import configure_logging, get_logger
@@ -64,7 +64,7 @@ from siqe.workflows.assets import ExportWorkflow, IngestAssetWorkflow
 from siqe.workflows.flows import FlowItemWorkflow, FlowRunWorkflow
 from siqe.workflows.forge import ForgeDatasetWorkflow, ForgePublishWorkflow, ForgeTrainWorkflow
 from siqe.workflows.library import ImportFolderWorkflow, LibraryIndexWorkflow, RemoveLocationWorkflow
-from siqe.workflows.models import ModelInstallWorkflow
+from siqe.workflows.models import ModelImportWorkflow, ModelInstallWorkflow
 from siqe.workflows.selftest import SelfTestWorkflow
 
 log = get_logger(__name__)
@@ -74,6 +74,7 @@ WORKFLOWS = [
     IngestAssetWorkflow,
     ExportWorkflow,
     ModelInstallWorkflow,
+    ModelImportWorkflow,
     AiRunWorkflow,
     LibraryIndexWorkflow,
     RemoveLocationWorkflow,
@@ -93,6 +94,8 @@ CPU_ACTIVITIES: list[Callable[..., Any]] = [
     mark_rendition_failed,
     install_model,
     mark_model_failed,
+    import_onnx,
+    discard_onnx_upload,
     run_background,
     register_result,
     discard_run_files,

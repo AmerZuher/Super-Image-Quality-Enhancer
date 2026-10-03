@@ -31,19 +31,30 @@ def session(path: Path, threads: int | None = None) -> ort.InferenceSession:
 
 
 class OnnxBackend:
-    """An image-to-image ONNX model with one N×C×H×W float input and one output, values 0..1."""
+    """An image-to-image ONNX model with one N×C×H×W float input and one output.
 
-    def __init__(self, path: Path, *, out_channels: int = 3, threads: int | None = None) -> None:
+    Inputs are 0..1; outputs are 0..1, or 0..255 with ``output_range=255``. Float16 exports get
+    float16 inputs.
+    """
+
+    def __init__(
+        self, path: Path, *, out_channels: int = 3, output_range: int = 1, threads: int | None = None
+    ) -> None:
         self.session = session(path, threads)
-        self.input = self.session.get_inputs()[0].name
+        first = self.session.get_inputs()[0]
+        self.input = first.name
+        self.dtype = np.float16 if first.type == "tensor(float16)" else np.float32
         self.output = self.session.get_outputs()[0].name
         self.out_channels = out_channels
+        self.output_range = output_range
         self.device: str = "cpu"
 
     def forward(self, batch: np.ndarray) -> np.ndarray:
-        (out,) = self.session.run([self.output], {self.input: np.ascontiguousarray(batch, np.float32)})
+        (out,) = self.session.run([self.output], {self.input: np.ascontiguousarray(batch, self.dtype)})
         out = np.asarray(out, np.float32)[:, : self.out_channels]
-        return np.clip(out, 0.0, 1.0)
+        if self.output_range != 1:
+            out = out / np.float32(self.output_range)
+        return np.asarray(np.clip(out, 0.0, 1.0), np.float32)
 
     def to_cpu(self) -> None:  # already on the CPU
         return None
